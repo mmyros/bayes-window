@@ -1,6 +1,6 @@
 import bulwark.checks as ck
 import numpy as np
-from vis_and_bayes.fake_spikes import generate_fake_spikes
+from bayes_window.fake_spikes import generate_fake_spikes
 
 
 def test_generate_fake_spikes():

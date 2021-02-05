@@ -1,7 +1,7 @@
 from pdb import set_trace
 import altair as alt
 from sklearn.preprocessing import LabelEncoder
-from vis_and_bayes import utils
+from . import utils
 trans = LabelEncoder().fit_transform
 # reload(utils)
 

@@ -1,8 +1,8 @@
 from joblib import delayed, Parallel
-from vis_and_bayes.fitting import fit_numpyro
-from vis_and_bayes.fake_spikes import generate_fake_spikes
-from vis_and_bayes.fitting import Models
-from vis_and_bayes import visualization
+from bayes_window.fitting import fit_numpyro
+from bayes_window.fake_spikes import generate_fake_spikes
+from bayes_window.fitting import Models
+from bayes_window import visualization
 from altair.vegalite.v4.api import FacetChart
 import bulwark.checks as ck
 from sklearn.preprocessing import LabelEncoder

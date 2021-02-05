@@ -1,1 +1,1 @@
-"""Unit test package for vis_and_bayes."""
+"""Unit test package for bayes_window."""
