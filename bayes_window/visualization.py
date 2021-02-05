@@ -2,7 +2,10 @@ from pdb import set_trace
 import altair as alt
 from sklearn.preprocessing import LabelEncoder
 from . import utils
+
 trans = LabelEncoder().fit_transform
+
+
 # reload(utils)
 
 def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim phase:N',
@@ -47,7 +50,6 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
     # Can add data on same plot, though would need to make slopes:
     # df.rename({'Change coherence mean near':ycoh},axis=1,inplace=True)
     # alt.Chart(utils.DataJoint.humanize(df)).mark_boxplot(opacity=.95,size=10,extent=999).encode(y=ycoh,x='Stim phase:N')
-
 
 
 def fake_spikes_explore(df, df_monster, index_cols):
@@ -120,8 +122,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
     # Monster-level ISI
     df_isi = df_monster[
         (
-                (df_monster['neuron'] == 0) |
-                (df_monster['neuron'] == str(df_monster['neuron'].astype(int).max()))
+            (df_monster['neuron'] == 0) |
+            (df_monster['neuron'] == str(df_monster['neuron'].astype(int).max()))
         ) &
         # (df_monster['mouse']=='m0bayes') |
         (df_monster['mouse'] == 'm9bayes')
@@ -130,7 +132,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         x=alt.Y('stim'),
         y=alt.X('log_1/isi', scale=alt.Scale(zero=False), ),
         color='neuron:N',
-        detail='i_spike:Q', # Crucial: Q!
+        detail='i_spike:Q',  # Crucial: Q!
     ).properties(
         title=['Multiple trials per mouse', 'many spikes'],
         width=width,

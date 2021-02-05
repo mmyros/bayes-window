@@ -15,3 +15,5 @@ elephant
 numpy
 numpyro
 bulwark
+xarray
+altair

@@ -84,7 +84,6 @@ class Models():
         sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
         numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=data)
 
-
     @staticmethod
     def model_hier_lognormal_stim(y, stim_on, treat, subject):
         n_conditions = np.unique(treat).shape[0]
@@ -99,10 +98,10 @@ class Models():
         b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.LogNormal(jnp.tile(0, n_conditions), .5))
 
         theta = (a + a_subject[subject] * sigma_a_subject +
-                 (#b
-                  #+ b_subject[subject] * sigma_b_subject
-                  + b_stim_per_condition[treat] * sigma_b_condition
-                  ) * stim_on
+                 (  # b
+                     # + b_subject[subject] * sigma_b_subject
+                     + b_stim_per_condition[treat] * sigma_b_condition
+                 ) * stim_on
                  )
 
         sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
@@ -125,10 +124,10 @@ class Models():
         b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.Normal(jnp.tile(0, n_conditions), .5))
 
         theta = (a + a_subject[subject] * sigma_a_subject +
-                 (#b
-                  #+ b_subject[subject] * sigma_b_subject
-                  + b_stim_per_condition[treat] * sigma_b_condition
-                  ) * stim_on
+                 (  # b
+                     # + b_subject[subject] * sigma_b_subject
+                     + b_stim_per_condition[treat] * sigma_b_condition
+                 ) * stim_on
                  )
 
         sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
