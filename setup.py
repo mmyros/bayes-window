@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = []
 
-setup_requirements = ['pytest-runner', 'joblib', 'numpy', 'numpyro', 'bulwark', 'elephant', 'xarray', 'altair', 'jax',
+setup_requirements = ['pytest-runner', 'joblib', 'numpy', 'numpyro', 'bulwark', 'elephant', 'xarray', 'altair',# 'jax',
                       'pandas', 'arviz', 'sklearn']
 
 test_requirements = ['pytest>=3', ]
