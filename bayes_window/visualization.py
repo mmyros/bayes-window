@@ -13,8 +13,6 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
     # Convert to dataframe and fill in original conditions:
     df_bayes = utils.trace2df(trace, df, b_name, group_name=group_name)
 
-    # Keep only theta:
-    # df_bayes = df_bayes[df_bayes['Stim frequency'] < 30]
     alt.themes.enable('default')
 
     # Make the zero line
@@ -149,7 +147,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
     def make_fold_change(df, y='log_firing_rate'):
         # Make multiindex
         mdf = df.set_index(list(index_cols - {'i_spike'})).copy()
-        mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
+        # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
 
         # Subtract/divide
         data = (mdf.xs(0, level='stim') - mdf.xs(1, level='stim')).reset_index()
