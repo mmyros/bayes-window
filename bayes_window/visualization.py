@@ -9,7 +9,7 @@ trans = LabelEncoder().fit_transform
 # reload(utils)
 
 def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim phase:N',
-                          row=None, column=None, title='', width=300, group_name='condition_code'):
+                          title='', group_name='condition_code'):
     # Convert to dataframe and fill in original conditions:
     df_bayes = utils.trace2df(trace, df, b_name, group_name=group_name)
 
@@ -33,17 +33,8 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
         y2='Bayes condition ci1:Q',
     )
 
-    chart = (rule + points + error_bars).properties(
-        width=width,
-        # height=250
-    )
-    if (column is not None) and (row is not None):
-        chart = chart.facet(row=row, column=column)
-    elif column is not None:
-        chart = chart.facet(column=column)
-    elif row is not None:
-        chart = chart.facet(row=row)
-    chart.title = title
+    chart = (rule + points + error_bars)
+    # chart.title = title
 
     return chart
 
