@@ -51,11 +51,9 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
     # TODO this can be done by simply using Dataset.replace({})
     def fill_row(rows):
         row = rows.iloc[0]
-        # row['bayes_condition_CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
-        # row['bayes_condition_CI1'] = hpd_condition.sel(Condition=row[group_name], CI='ci_end').values
-        row['bayes_condition_CI0'] = hpd_condition.sel(Condition=int(row[group_name]), CI='ci_start').values
-        row['bayes_condition_CI1'] = hpd_condition.sel(Condition=int(row[group_name]), CI='ci_end').values
-        row['bayes_condition_mean'] = hpd_condition.sel(Condition=int(row[group_name]), CI='mean').values
+        row['Bayes condition CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
+        row['Bayes condition CI1'] = hpd_condition.sel(Condition=row[group_name], CI='ci_end').values
+        row['Bayes condition mean'] = hpd_condition.sel(Condition=row[group_name], CI='mean').values
         return row
 
     posterior = trace[b_name]
