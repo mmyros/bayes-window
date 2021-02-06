@@ -17,3 +17,7 @@ numpyro
 bulwark
 xarray
 altair
+jax
+pandas
+arviz
+sklearn
