@@ -25,3 +25,7 @@ deploy:
     tags: true
     repo: mmyros/bayes_window
     python: 3.8
+
+after_success:
+  - codecov
+  - coveralls
