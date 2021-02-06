@@ -17,7 +17,9 @@ numpyro
 bulwark
 xarray
 altair
-jax
+# jax
+jaxlib==0.1.59
 pandas
 arviz
 sklearn
+inflection

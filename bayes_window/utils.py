@@ -65,5 +65,5 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
                                  coords=[range(hpd.shape[0]), ['ci_start', 'ci_end', 'mean']])
 
     df_bayes = pd.DataFrame.from_records([fill_row(rows) for i, rows in df.groupby([group_name])])
-    df_bayes = humanize_df(df_bayes)
+    # df_bayes = humanize_df(df_bayes)
     return df_bayes
