@@ -18,6 +18,7 @@ bulwark
 xarray
 altair
 # jax
+jaxlib==0.1.59
 pandas
 arviz
 sklearn
