@@ -41,13 +41,16 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
-                     condition_name='stim', conditions=(0, 1)):
+                     condition_name='stim', conditions=(0, 1), do_take_mean=False):
+    if do_take_mean:
+        # Take mean of trials:
+        df = df.groupby(index_cols).mean().reset_index()
     # Make multiindex
     mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()
     # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
     if (mdf.xs(conditions[0], level=condition_name).size !=
         mdf.xs(conditions[1], level=condition_name).size):
-        raise IndexError(f'Uneven number of entries in conditions!'
+        raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
                          f'{mdf.xs(conditions[0], level=condition_name).size, mdf.xs(conditions[1], level=condition_name).size}')
 
     # Subtract/divide
