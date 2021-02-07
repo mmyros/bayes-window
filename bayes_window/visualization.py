@@ -34,10 +34,12 @@ def plot_data_and_posterior(df_both,y='Coherence diff', title='coherence', x='St
     return chart
 
 
-def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim phase:N',
+def plot_posterior_altair(trace=None, df=None, df_bayes=None,
+                          b_name='b_stim_per_condition', plot_x='Stim phase:N',
                           title='', group_name='condition_code'):
     # Convert to dataframe and fill in original conditions:
-    df_bayes = utils.trace2df(trace, df, b_name, group_name=group_name)
+    if df_bayes is None:
+        df_bayes = utils.trace2df(trace, df, b_name, group_name=group_name)
 
     alt.themes.enable('default')
 
