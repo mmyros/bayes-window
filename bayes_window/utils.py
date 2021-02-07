@@ -4,6 +4,7 @@ import pandas as pd
 import xarray as xr
 import inflection
 from sklearn.preprocessing import LabelEncoder
+
 trans = LabelEncoder().fit_transform
 
 
@@ -16,6 +17,8 @@ def add_data_to_posterior(df,
                           b_name='b_stim_per_condition',  # for posterior
                           group_name='Condition code'  # for posterior
                           ):
+    if not (condition_name in index_cols):
+        index_cols.append(condition_name)
     # Make fold change #TODO add option of divide or subtract
     df = df.groupby(index_cols).mean().reset_index()
     delta_y, y = make_fold_change(df,
@@ -30,7 +33,7 @@ def add_data_to_posterior(df,
     df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')  # TODO move to trace2df
 
     # Set multiindex and combine data with posterior
-    index_cols = list(set(index_cols) - {condition_name}) # pop might error
+    index_cols.remove(condition_name)
     df_bayes = df_bayes.set_index(index_cols)
     delta_y = delta_y.set_index(index_cols)
     df_both = df_bayes.append(delta_y, sort=False).reset_index()
