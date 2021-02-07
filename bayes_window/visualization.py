@@ -4,9 +4,35 @@ from sklearn.preprocessing import LabelEncoder
 from . import utils
 
 trans = LabelEncoder().fit_transform
+def plot_data_and_posterior(df_both,y='Coherence diff', title='coherence', x='Stim phase'):
 
+    # Plot data:
+    c1=alt.Chart().mark_line(fill=None,opacity=.5).encode(
+        x=x,
+        color='Subject',
+        y=y
+    )
+    # Make the zero line
+    df_both['zero'] = 0
 
-# reload(utils)
+    rule = alt.Chart().mark_rule(color='black', size=.1).encode(y='zero')
+
+    # Make bayes
+    points = alt.Chart().mark_point(filled=True, color='black').encode(
+        y=alt.Y('Bayes condition mean:Q', scale=alt.Scale(zero=False)),
+        x=x
+    )
+
+    error_bars = alt.Chart().mark_rule().encode(
+        x=x,
+        y=alt.Y('Bayes condition CI0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
+        y2='Bayes condition CI1:Q',
+    )
+
+    c2 = (rule+ points + error_bars)
+    chart=alt.layer(c1,c2,data=df_both).facet(column='Inversion')#.resolve_scale(y='independent') only works if no facet
+    return chart
+
 
 def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim phase:N',
                           title='', group_name='condition_code'):
@@ -38,29 +64,6 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
     # Can add data on same plot, though would need to make slopes:
     # df.rename({'Change coherence mean near':ycoh},axis=1,inplace=True)
     # alt.Chart(utils.DataJoint.humanize(df)).mark_boxplot(opacity=.95,size=10,extent=999).encode(y=ycoh,x='Stim phase:N')
-
-
-def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
-                     condition_name='stim', conditions=(0, 1), do_take_mean=False):
-    if do_take_mean:
-        # Take mean of trials:
-        df = df.groupby(index_cols).mean().reset_index()
-    # Make multiindex
-    mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()
-    # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
-    if (mdf.xs(conditions[0], level=condition_name).size !=
-        mdf.xs(conditions[1], level=condition_name).size):
-        raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
-                         f'{mdf.xs(conditions[0], level=condition_name).size, mdf.xs(conditions[1], level=condition_name).size}')
-
-    # Subtract/divide
-    data = (mdf.xs(conditions[0], level=condition_name) -
-            mdf.xs(conditions[1], level=condition_name)
-            ).reset_index()
-    y1 = f'{y.split(" ")[0]} diff'
-    data.rename({y: y1}, axis=1, inplace=True)
-    y = y1
-    return data, y
 
 
 def fake_spikes_explore(df, df_monster, index_cols):
@@ -157,7 +160,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         size=alt.value(2),
     )
 
-    data_fold_change, y = make_fold_change(df, y='log_firing_rate', index_cols=index_cols, condition_name='stim',
+    data_fold_change, y = utils.make_fold_change(df, y='log_firing_rate', index_cols=index_cols, condition_name='stim',
                                            conditions=(0, 1))
     box = alt.Chart(data=data_fold_change).mark_boxplot().encode(y=y).encode(
         x=alt.X('neuron:N', ),
