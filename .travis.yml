@@ -8,7 +8,7 @@ python:
 install:
   - pip install -U tox-travis
   - pip install pytest-cov
-  - pip install coveralls
+  - pip install coveralls >= 5.0.1
   - pip install codecov
 
 # Command to run tests, e.g. python setup.py test
