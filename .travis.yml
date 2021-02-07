@@ -3,10 +3,13 @@
 language: python
 python:
   - 3.8
-  - 3.7
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis
+install:
+  - pip install -U tox-travis
+  - pip install pytest-cov
+  - pip install coveralls >= 5.1
+  - pip install codecov
 
 # Command to run tests, e.g. python setup.py test
 script: tox
@@ -25,3 +28,7 @@ deploy:
     tags: true
     repo: mmyros/bayes_window
     python: 3.8
+
+after_success:
+  - codecov
+  - coveralls

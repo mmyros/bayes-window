@@ -27,8 +27,8 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
 
     error_bars = points.mark_rule().encode(
         x=plot_x,
-        y=alt.Y('Bayes condition ci0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
-        y2='Bayes condition ci1:Q',
+        y=alt.Y('Bayes condition CI0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
+        y2='Bayes condition CI1:Q',
     )
 
     chart = (rule + points + error_bars)
@@ -143,7 +143,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         # Subtract/divide
         data = (mdf.xs(0, level='stim') - mdf.xs(1, level='stim')).reset_index()
         import copy
-        y0 = copy.copy(y)
+        # y0 = copy.copy(y)
         y1 = f'{y.split(" ")[0]} diff'
         data.rename({y: y1}, axis=1, inplace=True)
         y = y1

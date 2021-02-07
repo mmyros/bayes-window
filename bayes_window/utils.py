@@ -1,27 +1,10 @@
-import warnings
-from importlib import reload
-from pdb import set_trace
-import altair as alt
-import matplotlib.pyplot as plt
+import arviz as az
 import numpy as np
 import pandas as pd
-
 import xarray as xr
-from joblib import Parallel, delayed
+from sklearn.preprocessing import LabelEncoder
 
 # Works:
-
-import numpyro
-from jax import random
-import jax.numpy as jnp
-import numpyro.distributions as dist
-
-from numpyro.infer import MCMC, NUTS, Predictive, log_likelihood
-
-import arviz as az
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
 import inflection
@@ -51,11 +34,12 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
     # TODO this can be done by simply using Dataset.replace({})
     def fill_row(rows):
         row = rows.iloc[0]
-        # row['bayes_condition_CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
-        # row['bayes_condition_CI1'] = hpd_condition.sel(Condition=row[group_name], CI='ci_end').values
-        row['bayes_condition_CI0'] = hpd_condition.sel(Condition=int(row[group_name]), CI='ci_start').values
-        row['bayes_condition_CI1'] = hpd_condition.sel(Condition=int(row[group_name]), CI='ci_end').values
-        row['bayes_condition_mean'] = hpd_condition.sel(Condition=int(row[group_name]), CI='mean').values
+        try:
+            row['Bayes condition CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
+        except KeyError:  # Sometimes it's string whereas it should be a number
+            row[group_name] = int(row[group_name])
+        row['Bayes condition CI1'] = hpd_condition.sel(Condition=row[group_name], CI='ci_end').values
+        row['Bayes condition mean'] = hpd_condition.sel(Condition=row[group_name], CI='mean').values
         return row
 
     posterior = trace[b_name]
