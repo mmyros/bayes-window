@@ -4,10 +4,11 @@ from sklearn.preprocessing import LabelEncoder
 from . import utils
 
 trans = LabelEncoder().fit_transform
-def plot_data_and_posterior(df_both,y='Coherence diff', title='coherence', x='Stim phase'):
 
+
+def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='Stim phase'):
     # Plot data:
-    c1=alt.Chart().mark_line(fill=None,opacity=.5).encode(
+    c1 = alt.Chart().mark_line(fill=None, opacity=.5).encode(
         x=x,
         color='Subject',
         y=y
@@ -29,8 +30,9 @@ def plot_data_and_posterior(df_both,y='Coherence diff', title='coherence', x='St
         y2='Bayes condition CI1:Q',
     )
 
-    c2 = (rule+ points + error_bars)
-    chart=alt.layer(c1,c2,data=df_both).facet(column='Inversion')#.resolve_scale(y='independent') only works if no facet
+    c2 = (rule + points + error_bars)
+    chart = alt.layer(c1, c2, data=df_both).facet(
+        column='Inversion')  # .resolve_scale(y='independent') only works if no facet
     return chart
 
 
@@ -163,7 +165,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
     )
 
     data_fold_change, y = utils.make_fold_change(df, y='log_firing_rate', index_cols=index_cols, condition_name='stim',
-                                           conditions=(0, 1))
+                                                 conditions=(0, 1))
     box = alt.Chart(data=data_fold_change).mark_boxplot().encode(y=y).encode(
         x=alt.X('neuron:N', ),
         y=alt.Y(y, scale=alt.Scale(zero=True)),

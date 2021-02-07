@@ -6,7 +6,8 @@ from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import visualization
 from bayes_window.fake_spikes import generate_fake_spikes
-from bayes_window.fitting import Models
+from bayes_window import models
+
 from bayes_window.fitting import fit_numpyro
 
 trans = LabelEncoder().fit_transform
@@ -24,7 +25,7 @@ def test_fit_numpyro_serial():
                             treat=trans(df['neuron']),
                             subject=trans(df['mouse']),
                             progress_bar=True,
-                            model=Models.model_hier_normal_stim,
+                            model=models.model_hier_normal_stim,
                             n_draws=100, num_chains=1, )
         chart = visualization.plot_posterior_altair(trace,
                                                     df,
@@ -52,7 +53,7 @@ def test_fit_numpyro_parallel():
                              treat=trans(df['neuron']),
                              subject=trans(df['mouse']),
                              progress_bar=False,
-                             model=Models.model_hier_normal_stim,
+                             model=models.model_hier_normal_stim,
                              n_draws=10
                              )
         for y in [df[y].values for y in meas])
