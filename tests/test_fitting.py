@@ -1,6 +1,6 @@
 import bulwark.checks as ck
 import xarray as xr
-from altair.vegalite.v4.api import FacetChart
+from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
 from joblib import delayed, Parallel
 from sklearn.preprocessing import LabelEncoder
 
@@ -30,10 +30,12 @@ def test_fit_numpyro_serial():
                                                     df,
                                                     b_name='b_stim_per_condition',
                                                     plot_x='Stim phase:N',
-                                                    column='Inversion',
                                                     group_name='neuron'
                                                     )
-        assert type(chart) == FacetChart
+
+        assert ((type(chart) == FacetChart) |
+                (type(chart) == Chart) |
+                (type(chart) == LayerChart)), print(f'{type(chart)}')
         trace.to_dataframe().pipe(ck.has_no_nans)
 
 
