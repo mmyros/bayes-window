@@ -26,14 +26,14 @@ def test_fit_numpyro_serial():
                             progress_bar=True,
                             model=Models.model_hier_normal_stim,
                             n_draws=100, num_chains=1, )
-        alt_obj = visualization.plot_posterior_altair(trace,
-                                                      df,
-                                                      b_name='b_stim_per_condition',
-                                                      plot_x='Stim phase:N',
-                                                      column='Inversion',
-                                                      group_name='neuron'
-                                                      )
-        assert type(alt_obj) == FacetChart
+        chart = visualization.plot_posterior_altair(trace,
+                                                    df,
+                                                    b_name='b_stim_per_condition',
+                                                    plot_x='Stim phase:N',
+                                                    column='Inversion',
+                                                    group_name='neuron'
+                                                    )
+        assert type(chart) == FacetChart
         trace.to_dataframe().pipe(ck.has_no_nans)
 
 

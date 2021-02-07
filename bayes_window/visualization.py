@@ -1,6 +1,6 @@
-from pdb import set_trace
 import altair as alt
 from sklearn.preprocessing import LabelEncoder
+
 from . import utils
 
 trans = LabelEncoder().fit_transform
@@ -32,13 +32,32 @@ def plot_posterior_altair(trace, df, b_name='b_stim_per_condition', plot_x='Stim
     )
 
     chart = (rule + points + error_bars)
-    # chart.title = title
 
     return chart
 
     # Can add data on same plot, though would need to make slopes:
     # df.rename({'Change coherence mean near':ycoh},axis=1,inplace=True)
     # alt.Chart(utils.DataJoint.humanize(df)).mark_boxplot(opacity=.95,size=10,extent=999).encode(y=ycoh,x='Stim phase:N')
+
+
+def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
+                     condition_name='stim', conditions=(0, 1)):
+    # Make multiindex
+    mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()
+    # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
+    if (mdf.xs(conditions[0], level=condition_name).size !=
+        mdf.xs(conditions[1], level=condition_name).size):
+        raise IndexError(f'Uneven number of entries in conditions!'
+                         f'{mdf.xs(conditions[0], level=condition_name).size, mdf.xs(conditions[1], level=condition_name).size}')
+
+    # Subtract/divide
+    data = (mdf.xs(conditions[0], level=condition_name) -
+            mdf.xs(conditions[1], level=condition_name)
+            ).reset_index()
+    y1 = f'{y.split(" ")[0]} diff'
+    data.rename({y: y1}, axis=1, inplace=True)
+    y = y1
+    return data, y
 
 
 def fake_spikes_explore(df, df_monster, index_cols):
@@ -135,38 +154,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
         size=alt.value(2),
     )
 
-    def make_fold_change(df, y='log_firing_rate'):
-        # Make multiindex
-        mdf = df.set_index(list(index_cols - {'i_spike'})).copy()
-        # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
-
-        # Subtract/divide
-        data = (mdf.xs(0, level='stim') - mdf.xs(1, level='stim')).reset_index()
-        import copy
-        # y0 = copy.copy(y)
-        y1 = f'{y.split(" ")[0]} diff'
-        data.rename({y: y1}, axis=1, inplace=True)
-        y = y1
-        # if y0=='log_firing_rate':
-        #     # Transform back to non-log
-        #    data[y] = 10** data[y]
-        #    y2='fold_change_in_log_space'
-        #    data.rename({y:y2},axis=1,inplace=True)
-        #    y=y2
-
-        return data, y
-
-    data_fold_change, y = make_fold_change(df  # [
-                                           #    (
-                                           #        (df['neuron']=='0')       |
-                                           #        (df['neuron']==str(n_neurons-1))
-                                           #    ) &
-                                           #    (
-                                           #        (df['mouse']=='m0bayes') |
-                                           #        (df['mouse']=='m9bayes')
-                                           #    )]
-                                           ,
-                                           y='log_firing_rate')
+    data_fold_change, y = make_fold_change(df, y='log_firing_rate', index_cols=index_cols, condition_name='stim',
+                                           conditions=(0, 1))
     box = alt.Chart(data=data_fold_change).mark_boxplot().encode(y=y).encode(
         x=alt.X('neuron:N', ),
         y=alt.Y(y, scale=alt.Scale(zero=True)),
