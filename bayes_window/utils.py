@@ -12,7 +12,7 @@ def add_data_to_posterior(df,
                           y='Coherence magnitude at',
                           index_cols=['Brain region', 'Stim phase', 'Event', 'Fid', 'Subject', 'Inversion'],
                           condition_name='Event',
-                          conditions=['stim_on', 'stim_stop'],
+                          conditions=('stim_on', 'stim_stop'),
                           b_name='b_stim_per_condition',  # for posterior
                           group_name='Condition code'  # for posterior
                           ):
@@ -30,7 +30,7 @@ def add_data_to_posterior(df,
     df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')  # TODO move to trace2df
 
     # Set multiindex and combine data with posterior
-    index_cols = list(set(index_cols) - set(condition_name)) # pop might error
+    index_cols = list(set(index_cols) - {condition_name}) # pop might error
     df_bayes = df_bayes.set_index(index_cols)
     delta_y = delta_y.set_index(index_cols)
     df_both = df_bayes.append(delta_y, sort=False).reset_index()
