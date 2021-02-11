@@ -6,13 +6,28 @@ from . import utils
 trans = LabelEncoder().fit_transform
 
 
-def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='Stim phase'):
+def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
+                            hold_for_facet=True):
+    assert x in df_both
+    assert color in df_both
+    assert y in df_both
+    assert 'Bayes condition CI0' in df_both
+    assert 'Bayes condition CI1' in df_both
+
     # Plot data:
-    c1 = alt.Chart().mark_line(fill=None, opacity=.5).encode(
+    c1 = alt.Chart().mark_line(fill=None, opacity=.5, size=6).encode(
         x=x,
-        color='Subject',
+        color=f'{color}:N',
         y=y
     )
+    c2 = plot_posterior(df_both, title=title, x=x, add_data=False)
+    chart = alt.layer(c1, c2, data=df_both)
+    if not hold_for_facet:
+        chart = chart.resolve_scale(y='independent')  # only works if no facet
+    return chart
+
+
+def plot_posterior(df_both, title='coherence', x='Stim phase', add_data=True):
     # Make the zero line
     df_both['zero'] = 0
 
@@ -24,16 +39,21 @@ def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='S
         x=x
     )
 
+    line = alt.Chart().mark_line(color='black').encode(
+        y=alt.Y('Bayes condition mean:Q', scale=alt.Scale(zero=False)),
+        x=x
+    )
+
     error_bars = alt.Chart().mark_rule().encode(
         x=x,
         y=alt.Y('Bayes condition CI0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
         y2='Bayes condition CI1:Q',
     )
 
-    c2 = (rule + points + error_bars)
-    chart = alt.layer(c1, c2, data=df_both).facet(
-        column='Inversion')  # .resolve_scale(y='independent') only works if no facet
-    return chart
+    c2 = (rule + points + line + error_bars)
+    if add_data:
+        c2 = alt.layer(c2, data=df_both)
+    return c2
 
 
 def plot_posterior_altair(trace=None, df=None, df_bayes=None,

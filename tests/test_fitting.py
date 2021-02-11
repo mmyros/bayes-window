@@ -21,7 +21,7 @@ def test_fit_numpyro_serial():
 
     for y in (set(df.columns) - set(index_cols)):
         trace = fit_numpyro(y=df[y].values,
-                            stim_on=(df['stim']).astype(int).values,
+                            stim_on=trans(df['stim']),
                             treat=trans(df['neuron']),
                             subject=trans(df['mouse']),
                             progress_bar=True,
