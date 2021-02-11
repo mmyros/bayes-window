@@ -131,9 +131,9 @@ def generate_fake_spikes(n_trials=6,
     # Trialwise measures of firing rate:
     dddf = []
     for i, ddf in df.groupby(list(index_cols - {'i_spike'})):
-        ddf['firing_rate'] = ddf['1/isi'].mean()
-        ddf['Firing rate'] = ddf['firing_rate']
-        ddf['log_firing_rate'] = np.log10(ddf['firing_rate'])
+        ddf.insert(0, 'firing_rate', ddf['1/isi'].mean())
+        ddf.insert(0, 'Firing rate', ddf['firing_rate'])
+        ddf.insert(0, 'log_firing_rate', np.log10(ddf['firing_rate']))
         dddf.append(ddf)
 
     df = pd.concat(dddf)

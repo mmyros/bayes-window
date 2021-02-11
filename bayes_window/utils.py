@@ -13,10 +13,13 @@ def add_data_to_posterior(df,
                           y='Coherence magnitude at',
                           index_cols=['Brain region', 'Stim phase', 'Event', 'Fid', 'Subject', 'Inversion'],
                           condition_name='Event',
-                          conditions=('stim_on', 'stim_stop'),
+                          conditions=None,  # eg ('stim_on', 'stim_stop')
                           b_name='b_stim_per_condition',  # for posterior
                           group_name='Condition code'  # for posterior
                           ):
+    index_cols = list(index_cols)
+    if conditions is None:
+        conditions = df[condition_name].unique()
     if not (condition_name in index_cols):
         index_cols.append(condition_name)
     # Make fold change #TODO add option of divide or subtract
@@ -30,7 +33,7 @@ def add_data_to_posterior(df,
 
     # Convert to dataframe and fill in original conditions:
     df_bayes = trace2df(trace, df, b_name=b_name, group_name=group_name)
-    df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')  # TODO move to trace2df
+    df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')
 
     # Set multiindex and combine data with posterior
     index_cols.remove(condition_name)
@@ -62,18 +65,20 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
     """
 
     # TODO this can be done by simply using Dataset.replace({})
+
     def fill_row(rows):
-        row = rows.iloc[0]
+        row = rows.iloc[0].to_dict()
         try:
             row['Bayes condition CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
         except KeyError:  # Sometimes it's string whereas it should be a number
             row[group_name] = int(row[group_name])
+            row['Bayes condition CI0'] = hpd_condition.sel(Condition=row[group_name], CI='ci_start').values
         row['Bayes condition CI1'] = hpd_condition.sel(Condition=row[group_name], CI='ci_end').values
         row['Bayes condition mean'] = hpd_condition.sel(Condition=row[group_name], CI='mean').values
         return row
 
     posterior = trace[b_name]
-    hpd = az.hpd(posterior.values.squeeze())
+    hpd = az.hdi(posterior.values)
     hpd_condition = xr.DataArray(np.concatenate((hpd, posterior.mean(['chain', 'draw']).values[:, None]), axis=1),
                                  dims=['Condition', 'CI'],
                                  coords=[range(hpd.shape[0]), ['ci_start', 'ci_end', 'mean']])
@@ -102,7 +107,7 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
     data = (mdf.xs(conditions[0], level=condition_name) -
             mdf.xs(conditions[1], level=condition_name)
             ).reset_index()
-    y1 = f'{y.split(" ")[0]} diff'
+    y1 = f'{y} diff'
     data.rename({y: y1}, axis=1, inplace=True)
     y = y1
     return data, y
