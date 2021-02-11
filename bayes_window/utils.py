@@ -85,6 +85,8 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
                      condition_name='stim', conditions=(0, 1), do_take_mean=False):
+    if y not in df.columns:
+        raise ValueError(f'{y} is not a column in this dataset: {df.columns}')
     if do_take_mean:
         # Take mean of trials:
         df = df.groupby(index_cols).mean().reset_index()

@@ -6,13 +6,15 @@ Bayes Window
 .. image:: https://img.shields.io/pypi/v/bayes_window.svg
         :target: https://pypi.python.org/pypi/bayes_window
 
-.. image:: https://img.shields.io/travis/mmyros/bayes_window.svg
+.. image:: https://travis-ci.com/mmyros/bayes-window.svg?branch=master
         :target: https://travis-ci.com/mmyros/bayes_window
 
 .. image:: https://readthedocs.org/projects/bayes-window/badge/?version=latest
         :target: https://bayes-window.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
+.. image:: https://codecov.io/gh/mmyros/bayes-window/branch/master/graph/badge.svg?token=CQMHJRNC9I
+      :target: https://codecov.io/gh/mmyros/bayes-window
 
 
 
