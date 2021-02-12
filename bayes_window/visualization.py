@@ -6,13 +6,11 @@ from . import utils
 trans = LabelEncoder().fit_transform
 
 
-def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
+def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
                             hold_for_facet=True):
-    assert x in df_both
-    assert color in df_both
-    assert y in df_both
-    assert 'Bayes condition CI0' in df_both
-    assert 'Bayes condition CI1' in df_both
+    assert (x in df) | (x[:-2] in df)
+    assert color in df
+    assert y in df
 
     # Plot data:
     c1 = alt.Chart().mark_line(fill=None, opacity=.5, size=6).encode(
@@ -20,18 +18,25 @@ def plot_data_and_posterior(df_both, y='Coherence diff', title='coherence', x='S
         color=f'{color}:N',
         y=y
     )
-    c2 = plot_posterior(df_both, title=title, x=x, add_data=False)
-    chart = alt.layer(c1, c2, data=df_both)
+    c2 = plot_posterior(df, title=title, x=x, add_data=False)
+    chart = alt.layer(c1, c2, data=df)
     if not hold_for_facet:
         chart = chart.resolve_scale(y='independent')  # only works if no facet
     return chart
 
 
-def plot_posterior(df_both, title='coherence', x='Stim phase', add_data=True):
-    # Make the zero line
-    df_both['zero'] = 0
-
-    rule = alt.Chart().mark_rule(color='black', size=.1).encode(y='zero')
+def plot_posterior(df, title='', x='Stim phase', add_data=True, do_make_change=True):
+    assert 'Bayes condition CI0' in df
+    assert 'Bayes condition CI1' in df
+    assert (x in df.columns) | (x[:-2] in df.columns), print(x, df.columns)
+    alt.themes.enable('default')
+    if do_make_change:
+        # Make the zero line
+        df['zero'] = 0
+        rule = alt.Chart().mark_rule(color='black', size=.1).encode(y='zero')
+        title = 'Δ ' + title
+    else:
+        rule = None
 
     # Make bayes
     points = alt.Chart().mark_point(filled=True, color='black').encode(
@@ -46,48 +51,27 @@ def plot_posterior(df_both, title='coherence', x='Stim phase', add_data=True):
 
     error_bars = alt.Chart().mark_rule().encode(
         x=x,
-        y=alt.Y('Bayes condition CI0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
+        y=alt.Y('Bayes condition CI0:Q', title=title, scale=alt.Scale(zero=False)),
         y2='Bayes condition CI1:Q',
     )
-
-    c2 = (rule + points + line + error_bars)
+    if do_make_change:
+        c2 = rule + points + line + error_bars
+    else:
+        c2 = points + line + error_bars
     if add_data:
-        c2 = alt.layer(c2, data=df_both)
+        c2 = alt.layer(c2, data=df)
     return c2
 
 
-def plot_posterior_altair(trace=None, df=None, df_bayes=None,
-                          b_name='b_stim_per_condition', plot_x='Stim phase:N',
+def plot_posterior_altair(trace, df,
+                          b_name='b_stim_per_condition', x='Stim phase',
                           title='', group_name='condition_code'):
     # Convert to dataframe and fill in original conditions:
-    if df_bayes is None:
-        df_bayes = utils.trace2df(trace, df, b_name, group_name=group_name)
+    df = utils.trace2df(trace, df, b_name, group_name=group_name)
 
-    alt.themes.enable('default')
-
-    # Make the zero line
-    df_bayes['zero'] = 0
-    rule = alt.Chart(df_bayes).mark_rule(color='black', size=.1).encode(y='zero')
-
-    # Make plots
-    points = alt.Chart(df_bayes).mark_point(filled=True, color='black').encode(
-        y=alt.Y('Bayes condition mean:Q', scale=alt.Scale(zero=False)),
-        x=plot_x
-    )
-
-    error_bars = points.mark_rule().encode(
-        x=plot_x,
-        y=alt.Y('Bayes condition CI0:Q', title='Δ ' + title, scale=alt.Scale(zero=False)),
-        y2='Bayes condition CI1:Q',
-    )
-
-    chart = (rule + points + error_bars)
+    chart = plot_posterior(df, title=title, x=x, add_data=True)
 
     return chart
-
-    # Can add data on same plot, though would need to make slopes:
-    # df.rename({'Change coherence mean near':ycoh},axis=1,inplace=True)
-    # alt.Chart(utils.DataJoint.humanize(df)).mark_boxplot(opacity=.95,size=10,extent=999).encode(y=ycoh,x='Stim phase:N')
 
 
 def fake_spikes_explore(df, df_monster, index_cols):

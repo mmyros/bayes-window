@@ -1,14 +1,15 @@
-from bayes_window.fake_spikes import generate_fake_spikes
-from bayes_window.visualization import fake_spikes_explore, plot_data_and_posterior
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
+from bayes_window.fake_spikes import generate_fake_spikes
 from bayes_window.fitting import fit_numpyro
 from bayes_window.utils import add_data_to_posterior
-from sklearn.preprocessing import LabelEncoder
+from bayes_window.visualization import plot_data_and_posterior, plot_posterior
 
 le = LabelEncoder()
 
 
-def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'),hold_for_facet=True):
+def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'), hold_for_facet=True):
     # df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
     #                                                                 n_neurons=8,
     #                                                                 n_mice=4,
@@ -52,7 +53,9 @@ def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'),hold_for_face
 
     return chart
 
-def estimate_posteriors(df, y='isi', levels=('stim', 'mouse', 'neuron')):
+
+def estimate_posteriors(df, y='isi', levels=('stim', 'mouse', 'neuron'),model=models.model_single_lognormal,
+                        add_data=True):
     if 0:
         df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                         n_neurons=8,
@@ -60,7 +63,7 @@ def estimate_posteriors(df, y='isi', levels=('stim', 'mouse', 'neuron')):
                                                                         dur=7, )
     df['combined_condition'] = df[levels[0]].astype('str')
     for level in levels[1:]:
-        df['combined_condition']+=df[level].astype('str')
+        df['combined_condition'] += df[level].astype('str')
 
     # Transform conditions to integers as required by numpyro:
     df['combined_condition'] = le.fit_transform(df['combined_condition'])
@@ -71,28 +74,31 @@ def estimate_posteriors(df, y='isi', levels=('stim', 'mouse', 'neuron')):
     trace = fit_numpyro(y=df[y].values,
                         treat=df['combined_condition'].values,
                         progress_bar=True,
-                        model=models.model_single_lognormal,
+                        model=model,
                         n_draws=100, num_chains=1)
-
     # Add data back
     df_both = add_data_to_posterior(df,
                                     trace=trace,
                                     y=y,
                                     index_cols=levels[:3],
-                                    condition_name=top_condition,
+                                    condition_name=levels[0],
                                     b_name='mu_per_condition',  # for posterior
-                                    group_name=levels[2]  # for posterior
+                                    group_name='combined_condition',
+                                    do_mean_over_trials=False,
+                                    do_make_change=False
                                     )
-    # df_both['combined_condition'].replace(key)
-    # [df_both[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
     # Plot data and posterior
-    df_both
-    #TODO
-    chart = plot_data_and_posterior(df_both,
-                                    y=f'{y} diff',
-                                    x=levels[2],
-                                    color=levels[1],
-                                    title=y,
-                                    hold_for_facet=hold_for_facet)
+    chart = plot_posterior(df=df_both,
+                           x=levels[0],
+                           do_make_change=False,
+                           add_data=add_data,
+                           ).properties(width=20)#.facet(row=levels[1],
+                                                                     #       column=levels[2])
+    # chart = plot_data_and_posterior(df_both,
+    #                                 y=f'{y} diff',
+    #                                 x=levels[2],
+    #                                 color=levels[1],
+    #                                 title=y,
+    #                                 hold_for_facet=hold_for_facet)
 
-    return chart
+    return chart,df_both

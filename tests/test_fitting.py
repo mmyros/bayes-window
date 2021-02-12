@@ -30,7 +30,7 @@ def test_fit_numpyro_serial():
         chart = visualization.plot_posterior_altair(trace,
                                                     df,
                                                     b_name='b_stim_per_condition',
-                                                    plot_x='Stim phase:N',
+                                                    x='stim',
                                                     group_name='neuron'
                                                     )
 
