@@ -95,7 +95,7 @@ def plot_data(x, y, color, add_box):
 
 
 def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
-                            hold_for_facet=True, add_box=True, ):
+                            hold_for_facet=True, add_box=True, **kwargs):
     # Keep kwargs!
     assert (x in df) | (x[:-2] in df)
     assert color in df
@@ -119,6 +119,7 @@ def plot_posterior(df, title='', x='Stim phase', add_data=True, do_make_change=T
         x = f'{x}:O'  # Ordinal
     # alt.themes.enable('vox')
     alt.themes.enable('default')
+
     charts = []
     # Make the zero line
     if do_make_change:

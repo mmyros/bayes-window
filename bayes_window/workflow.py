@@ -1,3 +1,4 @@
+import warnings
 from importlib import reload
 
 import altair as alt
@@ -90,37 +91,95 @@ class BayesWindow():
         self.y = y
 
     def fit_conditions(self,
+                       add_data=True,
                        model=models.model_single_lognormal):
+
         self.model = model
+        self.bname = 'mu_per_condition'
         # Estimate model
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  treat=self.data['combined_condition'].values,
                                  model=model,
                                  )
-
         # Add data back
         self.data_and_posterior = utils.add_data_to_posterior(self.data,
                                                               trace=self.trace,
                                                               y=self.y,
                                                               index_cols=self.levels[:3],
                                                               condition_name=self.levels[0],
-                                                              b_name='mu_per_condition',
+                                                              b_name=self.bname,
                                                               group_name='combined_condition',
                                                               do_mean_over_trials=False,
                                                               do_make_change=False
                                                               )
 
-    def plot(self, x='stim:O', add_data=False,
-             independent_axes=True, column=None, row=None,
-             color='neuron:N',
-             detail='i_trial',
-             **kwargs):
+    def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim,
+                   plot_index_cols=None):
+        self.bname = 'b_stim_per_condition'
+
+        if plot_index_cols is None:
+            plot_index_cols = self.levels[:3]
+        # By convention, top condition is first in list of levels:
+        top_condition = self.levels[0]
+        # Transform conditions to integers as required by numpyro:
+        key = dict()
+        for level in self.levels:
+            self.data[level] = le.fit_transform(self.data[level])
+            # Keep key for later use
+            key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+
+        # Estimate model
+        trace = fit_numpyro(y=self.data[self.y].values,
+                            stim_on=self.data[top_condition].values,
+                            treat=self.data[self.levels[2]].values,
+                            subject=self.data[self.levels[1]].values,
+                            progress_bar=False,
+                            model=model,
+                            n_draws=1000, num_chains=1)
+        if add_data:
+            # Add data back
+            df_result = utils.add_data_to_posterior(self.data,
+                                                    trace=trace,
+                                                    y=self.y,
+                                                    index_cols=plot_index_cols,
+                                                    condition_name=top_condition,
+                                                    b_name=self.bname,
+                                                    group_name=self.levels[2],
+                                                    do_make_change=True,
+                                                    do_mean_over_trials=True,
+                                                    )
+        else:
+            from bayes_window.utils import trace2df
+            df_result = trace2df(trace, self.data, b_name='b_stim_per_condition', group_name=self.levels[2])
+        [df_result[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
+        self.data_and_posterior = df_result
+
+    def plot_slopes(self, x=None, color=None, hold_for_facet=False, **kwargs):
+
+        if x is None:
+            x = self.levels[2]
+        if color is None:
+            color = self.levels[1]
+        chart = visualization.plot_data_and_posterior(self.data_and_posterior,
+                                                      y=f'{self.y} diff',
+                                                      x=x,
+                                                      color=color,
+                                                      title=self.y,
+                                                      hold_for_facet=hold_for_facet, **kwargs)
+        return chart
+
+    def plot_posteriors_no_slope(self, x='stim:O', add_data=False,
+                                 independent_axes=True, column=None, row=None,
+                                 color='neuron:N',
+                                 detail='i_trial',
+                                 **kwargs):
         reload(visualization)
         # Plot data and posterior
         if not hasattr(self, 'data_and_posterior'):
             add_data = True
+
         if add_data:
-            # Make data slopeplot:
+            # Make data plot:
             fig_trials = visualization.plot_data_slope_trials(self.data,
                                                               x=x,
                                                               y=self.y,
@@ -132,6 +191,7 @@ class BayesWindow():
                 return alt.layer(fig_trials, data=self.data)
         if hasattr(self, 'data_and_posterior'):
             # Add posterior
+
             chart = visualization.plot_posterior(df=self.data_and_posterior,
                                                  x=x,
                                                  # x=levels[0],
@@ -145,13 +205,14 @@ class BayesWindow():
                 chart = visualization.AltairHack(data=self.data_and_posterior,
                                                  charts=[chart, fig_trials])
                 if column or row:
-                    return chart.facet(data=self.data_and_posterior,
-                                       column=column,
+                    return chart.facet(column=column,
                                        row=row,
                                        width=80,
                                        height=150)
                 else:
-                    return alt.layer(chart, data=self.data_and_posterior).resolve_scale(y='independent')
+                    print('yes')
+                    # return chart
+                    return alt.layer(chart, data=self.data_and_posterior)#.resolve_scale(y='independent')
 
             elif add_data:
                 chart = alt.layer(chart, data=self.data_and_posterior)
@@ -161,3 +222,17 @@ class BayesWindow():
                 else:
                     return chart
             return chart
+
+    def plot(self, **kwargs):
+        # Convenience function
+        if not hasattr(self, 'bname'):
+            warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
+                          'or .plot_posteriors_no_slope to be explicit ')
+            return BayesWindow.plot_slopes(self, **kwargs)
+
+        if self.bname == 'b_stim_per_condition':
+            return BayesWindow.plot_slopes(self, **kwargs)
+        elif self.bname == 'mu_per_condition':
+            return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
+        else:
+            raise RuntimeError('Unknown model! please modify plotting code')
