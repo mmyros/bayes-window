@@ -1,15 +1,13 @@
-# import models  # My module contains statistical and poisson_firin_rate
-
-
 import arviz as az
 import numpyro
 from jax import random
 from numpyro.infer import MCMC, NUTS
+
 from . import models
 
+
 def fit_numpyro(progress_bar=False, model=None, n_draws=1000, num_chains=1, **kwargs):
-    if model is None:
-        model = models.model_hier_normal_stim
+    model = model or models.model_hier_normal_stim
     numpyro.set_host_device_count(4)
     mcmc = MCMC(NUTS(model), num_warmup=1000, num_samples=n_draws, num_chains=num_chains, progress_bar=progress_bar)
     mcmc.run(random.PRNGKey(16), **kwargs)

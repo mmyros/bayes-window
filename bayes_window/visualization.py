@@ -1,65 +1,160 @@
 import altair as alt
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 from . import utils
 
 trans = LabelEncoder().fit_transform
 
+import pandas as pd
+
+
+class AltairHack(alt.Chart):
+
+    def __init__(self, charts, data, **kwargs):
+        super().__init__()
+        assert type(data) == pd.DataFrame
+        if type(charts) not in [list, tuple]:
+            charts = [charts]
+        self.charts = charts
+        self.data = data
+
+    def facet(self,
+              column=None,
+              row=None,
+              width=80,
+              height=150,
+              **kwargs):
+        alt.themes.enable('vox')
+        if column is None and row is None:
+            raise RuntimeError('Need either column, or row, or both!')
+
+        if column:
+            assert column in self.data.columns
+        if row:
+            assert row in self.data.columns
+
+        def concat_charts(subdata, groupby_name, row_name='', row_val='', how='hconcat'):
+            charts = []
+            # print(subdata)
+            # print(column)
+            # TODO funky logic with column and row
+            for icol, column_val in enumerate(subdata[groupby_name].unique()):
+                title = f"{groupby_name} {column_val} {row_name} {row_val}"  # if icol == 0 else ''
+                charts.append(alt.layer(
+                    *self.charts, title=title, data=self.data
+                ).transform_filter(
+                    alt.datum[groupby_name] == column_val
+                ).resolve_scale(
+                    y='independent'
+                ).properties(
+                    width=width, height=height))
+            if how == 'hconcat':
+                return alt.hconcat(*charts)
+            else:
+                return alt.vconcat(*charts)
+
+        if row is None:
+            chart = concat_charts(self.data, groupby_name=column,
+                                  how='hconcat')
+        elif column is None:
+            chart = concat_charts(self.data, groupby_name=row,
+                                  how='vconcat')
+        else:
+            chart = alt.vconcat(*[concat_charts(subdata, groupby_name=column,
+                                                row_name=row, row_val=val, how='hconcat')
+                                  for val, subdata in self.data.groupby(row)])
+        chart = chart.configure_view(
+            stroke=None
+        )
+        return chart
+
+
+def plot_data(x, y, color, add_box):
+    if x[-2] != ':':
+        x = f'{x}:O'
+    if color != ':':
+        color = f'{color}:N'
+    charts = []
+    # Plot data:
+    charts.append(
+        alt.Chart().mark_line(fill=None, opacity=.5, size=3).encode(
+            x=x,
+            color=f'{color}',
+            y=f'{y}:Q'
+        ))
+    if add_box:
+        # Shift x axis for box so that it doesnt overlap:
+        # df['x_box'] = df[x[:-2]] + .01
+        charts.append(
+            alt.Chart().mark_boxplot(opacity=.3, size=12, color='black').encode(
+                x=x,
+                y=f'{y}:Q'
+            ))
+    return charts
+
 
 def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
-                            hold_for_facet=True):
+                            hold_for_facet=True, add_box=True, ):
+    # Keep kwargs!
     assert (x in df) | (x[:-2] in df)
     assert color in df
-    assert y in df
+    assert y in df.columns, f'{y} is not in {df.columns}'
 
-    # Plot data:
-    c1 = alt.Chart().mark_line(fill=None, opacity=.5, size=6).encode(
-        x=x,
-        color=f'{color}:N',
-        y=y
-    )
-    c2 = plot_posterior(df, title=title, x=x, add_data=False)
-    chart = alt.layer(c1, c2, data=df)
+    charts = plot_data(x=x, y=y, color=color, add_box=add_box)
+
+    charts.append(plot_posterior(df, title=title, x=x, add_data=False))
+    chart = alt.layer(*charts, data=df)
+
     if not hold_for_facet:
         chart = chart.resolve_scale(y='independent')  # only works if no facet
     return chart
 
 
-def plot_posterior(df, title='', x='Stim phase', add_data=True, do_make_change=True):
+def plot_posterior(df, title='', x='Stim phase', add_data=True, do_make_change=True, **kwargs):
     assert 'Bayes condition CI0' in df
     assert 'Bayes condition CI1' in df
     assert (x in df.columns) | (x[:-2] in df.columns), print(x, df.columns)
+    if x[-2] != ':':
+        x = f'{x}:O'  # Ordinal
+    # alt.themes.enable('vox')
     alt.themes.enable('default')
+    charts = []
+    # Make the zero line
     if do_make_change:
-        # Make the zero line
         df['zero'] = 0
-        rule = alt.Chart().mark_rule(color='black', size=.1).encode(y='zero')
-        title = 'Δ ' + title
-    else:
-        rule = None
+        charts.append(alt.Chart().mark_rule(color='black', size=.1, opacity=.4).encode(y='zero'))
+        title = f'Δ {title}'
 
-    # Make bayes
-    points = alt.Chart().mark_point(filled=True, color='black').encode(
-        y=alt.Y('Bayes condition mean:Q', scale=alt.Scale(zero=False)),
-        x=x
-    )
+    # line
+    charts.append(
+        alt.Chart().mark_line(point=True, color='black').encode(
+            y=alt.Y('Bayes condition mean:Q', impute=alt.ImputeParams(value='value')),
+            x=x
+        ))
 
-    line = alt.Chart().mark_line(color='black').encode(
-        y=alt.Y('Bayes condition mean:Q', scale=alt.Scale(zero=False)),
-        x=x
-    )
-
-    error_bars = alt.Chart().mark_rule().encode(
-        x=x,
-        y=alt.Y('Bayes condition CI0:Q', title=title, scale=alt.Scale(zero=False)),
-        y2='Bayes condition CI1:Q',
-    )
-    if do_make_change:
-        c2 = rule + points + line + error_bars
-    else:
-        c2 = points + line + error_bars
+    # Axis limits
     if add_data:
-        c2 = alt.layer(c2, data=df)
+        scale = alt.Scale(zero=False,
+                          domain=[float(df['Bayes condition CI0'].min()),
+                                  float(df['Bayes condition CI1'].max())])
+    else:
+        scale = alt.Scale(zero=False)
+
+    # error_bars
+    charts.append(
+        alt.Chart().mark_rule().encode(
+            x=x,
+            y=alt.Y('Bayes condition CI0:Q',
+                    title=title, scale=scale),
+            y2='Bayes condition CI1:Q',
+        ))
+
+    if add_data:
+        c2 = alt.layer(*charts, data=df)
+    else:
+        c2 = alt.layer(*charts)
+
     return c2
 
 
@@ -75,8 +170,6 @@ def plot_posterior_altair(trace, df,
 
 
 def fake_spikes_explore(df, df_monster, index_cols):
-    import altair as alt
-
     # mean firing rate per trial per mouse
     width = 50
     fig_trials = alt.Chart(df).mark_line(fill=None, ).encode(
@@ -144,11 +237,11 @@ def fake_spikes_explore(df, df_monster, index_cols):
     # Monster-level ISI
     df_isi = df_monster[
         (
-            (df_monster['neuron'] == 0) |
+            (df_monster['neuron'] == '0') |
             (df_monster['neuron'] == str(df_monster['neuron'].astype(int).max()))
         ) &
         # (df_monster['mouse']=='m0bayes') |
-        (df_monster['mouse'] == 'm9bayes')
+        (df_monster['mouse'] == f'm{df_monster["mouse_code"].astype(int).max()}bayes')
         ]
     fig_isi = alt.Chart(df_isi).mark_tick(opacity=.2).encode(
         x=alt.Y('stim'),
@@ -157,7 +250,6 @@ def fake_spikes_explore(df, df_monster, index_cols):
         detail='i_spike:Q',  # Crucial: Q!
     ).properties(
         title=['Multiple trials per mouse', 'many spikes'],
-        width=width,
         height=500
     )
     fig_overlay = alt.Chart(df_isi).mark_line(fill=None, ).encode(
@@ -215,3 +307,28 @@ def fake_spikes_explore(df, df_monster, index_cols):
     ).facet(row='stim')
 
     return fig_mice, fig_select, fig_neurons, fig_trials, fig_isi + fig_overlay, bar, box, fig_raster, bar_combined
+
+
+def plot_data_slope_trials(df,
+                           x,
+                           y,
+                           color,
+                           detail,
+                           **kwargs):
+    if x[-2] != ':':
+        x = f'{x}:O'  # Ordinal
+
+    # mean firing rate per trial per mouse
+    fig_trials = alt.Chart().mark_line(fill=None).encode(
+        x=alt.X(x),
+        y=alt.Y(y, scale=alt.Scale(zero=False,
+                                   # domain=[df[y].min(), df[y].max()])),
+                                   domain=list(np.quantile(df[y], [.05, .95])),
+                                   clamp=True)),
+        color=color,
+        detail=detail,
+        opacity=alt.value(.2),
+        size=alt.value(.9),
+        # **kwargs
+    )
+    return fig_trials

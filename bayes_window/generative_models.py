@@ -1,10 +1,11 @@
+import warnings
+
 import numpy as np
 import pandas as pd
+import xarray as xr
 from elephant.spike_train_generation import inhomogeneous_poisson_process as poisson
 from neo import analogsignal
 from quantities import s
-import warnings
-import xarray as xr
 from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform

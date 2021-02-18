@@ -5,7 +5,7 @@ from joblib import delayed, Parallel
 from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import visualization
-from bayes_window.fake_spikes import generate_fake_spikes
+from bayes_window.generative_models import generate_fake_spikes
 from bayes_window import models
 
 from bayes_window.fitting import fit_numpyro
