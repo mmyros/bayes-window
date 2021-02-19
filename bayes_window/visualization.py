@@ -7,12 +7,6 @@ from . import utils
 trans = LabelEncoder().fit_transform
 
 
-# class AltairHack(alt.Chart):
-#     def __init__(self):
-#         super().__init__()
-#         print(self.data)
-
-
 def facet(base_chart,
           column=None,
           row=None,
@@ -23,7 +17,7 @@ def facet(base_chart,
     alt.themes.enable('vox')
     if column is None and row is None:
         raise RuntimeError('Need either column, or row, or both!')
-
+    assert base_chart.data is not None
     if column:
         assert column in base_chart.data.columns
     if row:
@@ -31,15 +25,12 @@ def facet(base_chart,
 
     def concat_charts(subdata, groupby_name, row_name='', row_val='', how='hconcat'):
         charts = []
-        # print(subdata)
-        # print(column)
-        # TODO funky logic with column and row
-        for icol, column_val in enumerate(subdata[groupby_name].unique()):
-            title = f"{groupby_name} {column_val} {row_name} {row_val}"  # if icol == 0 else ''
+        for i_group, group_val in enumerate(subdata[groupby_name].unique()):
+            title = f"{groupby_name} {group_val} {row_name} {row_val}"  # if i_group == 0 else ''
             charts.append(alt.layer(
                 base_chart, title=title, data=base_chart.data
             ).transform_filter(
-                alt.datum[groupby_name] == column_val
+                alt.datum[groupby_name] == group_val
             ).resolve_scale(
                 y='independent'
             ).properties(
@@ -65,14 +56,14 @@ def facet(base_chart,
     return chart
 
 
-def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None):
+def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     if x[-2] != ':':
         x = f'{x}:O'
     if color != ':':
         color = f'{color}:N'
     # Plot data:
-    base = alt.Chart(df) or base_chart
+    base = base_chart or alt.Chart(df)
     chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
         x=x,
         color=f'{color}',
@@ -88,26 +79,23 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     return chart
 
 
-def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
-                            hold_for_facet=True, add_box=True, **kwargs):
-    # Keep kwargs!
-    assert (x in df) | (x[:-2] in df)
-    assert color in df
-    assert y in df.columns, f'{y} is not in {df.columns}'
-
-    chart_d = plot_data(df=df, x=x, y=y, color=color, add_box=add_box, base_chart=alt.Chart(df))
-    chart_p = plot_posterior(df, title=title, x=x, base_chart=alt.Chart(df))
-    chart = chart_d + chart_p
-
-    if not hold_for_facet:
-        chart = chart.resolve_scale(y='independent')  # only works if no facet
-    return chart
+# def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
+#                             add_box=True, **kwargs):
+#     # Keep kwargs!
+#     assert (x in df) | (x[:-2] in df), f'Column {x} is not present in data: {df.columns}'
+#     assert color in df
+#     assert y in df.columns, f'{y} is not in {df.columns}'
+#
+#     chart_d = plot_data(df=df, x=x, y=y, color=color, add_box=add_box, base_chart=alt.Chart(df))
+#     chart_p = plot_posterior(df, title=title, x=x, base_chart=alt.Chart(df))
+#     chart = chart_d + chart_p
+#
+#     return chart
 
 
 def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_chart=None, **kwargs):
-
     assert (df is not None) or (base_chart is not None)
-    data= df or base_chart.data
+    data = base_chart.data if df is None else df
     assert (x in data.columns) | (x[:-2] in data.columns), print(x, data.columns)
     assert 'Bayes condition CI0' in data.columns
     assert 'Bayes condition CI1' in data.columns
@@ -131,7 +119,7 @@ def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_
 
     # Make the zero line
     if do_make_change:
-        df['zero'] = 0
+        data['zero'] = 0
         chart += base_chart.mark_rule(color='black', size=.1, opacity=.4).encode(y='zero')
         title = f'Δ {title}'
 
