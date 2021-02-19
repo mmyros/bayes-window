@@ -2,12 +2,13 @@ import warnings
 from importlib import reload
 
 import altair as alt
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
@@ -54,9 +55,11 @@ class BayesWindow():
                                                                   do_make_change=False
                                                                   )
 
-    def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim,
+    def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
                    plot_index_cols=None):
+        assert do_make_change in ['subtract', 'divide']
         self.bname = 'b_stim_per_condition'
+        self.do_make_change = do_make_change
         if plot_index_cols is None:
             plot_index_cols = self.levels[:3]
         # By convention, top condition is first in list of levels:
@@ -89,7 +92,7 @@ class BayesWindow():
                                                     condition_name=top_condition,
                                                     b_name=self.bname,
                                                     group_name=self.levels[-1],
-                                                    do_make_change=True,
+                                                    do_make_change=do_make_change,
                                                     do_mean_over_trials=True,
                                                     )
         else:  # Just convert posterior to dataframe
@@ -107,7 +110,7 @@ class BayesWindow():
         # Plot posterior
         if hasattr(self, 'data_and_posterior'):
             base_chart = alt.Chart(self.data_and_posterior)
-            chart_p = plot_posterior(title=f'd_{self.y}', x=x, base_chart=base_chart)
+            chart_p = plot_posterior(title=f'{self.y}', x=x, base_chart=base_chart)
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
@@ -115,10 +118,13 @@ class BayesWindow():
         if add_data:
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
                                               base_chart=base_chart)
-            self.chart = chart_p + chart_d
+            self.chart = chart_d + chart_p  # Not chart_d + chart_p, or bayes means and HPD get scaled independently
         else:
             self.chart = chart_p
-        assert self.chart.data is not None
+        if independent_axes:
+            self.chart = self.chart.resolve_scale(y='independent')
+        elif self.do_make_change == 'divide':
+            warnings.warn('division change and independent axes will lead to separate axis! Upstream bug I think')
         return self.chart
 
     # TODO plot_posteriors_slopes and plot_posteriors_no_slope can be one

@@ -13,7 +13,6 @@ def facet(base_chart,
           width=80,
           height=150,
           ):
-    print('custom facet')
     alt.themes.enable('vox')
     if column is None and row is None:
         raise RuntimeError('Need either column, or row, or both!')
@@ -67,30 +66,16 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
         x=x,
         color=f'{color}',
-        y=f'{y}:Q'
+        y=alt.Y(f'{y}:Q')
     )
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
         chart += base.mark_boxplot(opacity=.3, size=12, color='black').encode(
             x=x,
-            y=f'{y}:Q'
+            y=alt.Y(f'{y}:Q')
         )
     return chart
-
-
-# def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim phase', color='Subject',
-#                             add_box=True, **kwargs):
-#     # Keep kwargs!
-#     assert (x in df) | (x[:-2] in df), f'Column {x} is not present in data: {df.columns}'
-#     assert color in df
-#     assert y in df.columns, f'{y} is not in {df.columns}'
-#
-#     chart_d = plot_data(df=df, x=x, y=y, color=color, add_box=add_box, base_chart=alt.Chart(df))
-#     chart_p = plot_posterior(df, title=title, x=x, base_chart=alt.Chart(df))
-#     chart = chart_d + chart_p
-#
-#     return chart
 
 
 def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_chart=None, **kwargs):
@@ -244,7 +229,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         y=alt.Y(y, scale=alt.Scale(zero=True)),
     ).properties(width=width, height=240).facet(
         # row='mouse:N',
-        column=alt.Column('mouse'))  # .resolve_scale(y='independent')
+        column=alt.Column('mouse'))
 
     bar = (alt.Chart(data=data_fold_change).mark_bar().encode(y=alt.Y(y, aggregate='mean')) +
            alt.Chart(data=data_fold_change).mark_errorbar().encode(y=alt.Y(y, aggregate='stderr'))).encode(
@@ -252,7 +237,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         y=alt.Y(y),
     ).properties(width=width * 2, height=240).facet(
         # row='Inversion:N',
-        column=alt.Column('mouse'))  # .resolve_scale(y='independent')
+        column=alt.Column('mouse'))
 
     bar_combined = (alt.Chart(data=data_fold_change).mark_bar().encode(y=alt.Y(y, aggregate='mean')) +
                     alt.Chart(data=data_fold_change).mark_errorbar().encode(y=alt.Y(y, aggregate='stderr'))).encode(

@@ -16,13 +16,14 @@ def add_data_to_posterior(df,
                           conditions=None,  # eg ('stim_on', 'stim_stop')
                           b_name='b_stim_per_condition',  # for posterior
                           group_name='Condition code',  # for posterior
-                          do_make_change=True,
+                          do_make_change='subtract',
                           do_mean_over_trials=True,
                           ):
     index_cols = list(index_cols)
-    if conditions is None:
-        conditions = df[condition_name].drop_duplicates().sort_values().values
+
+    conditions= conditions or df[condition_name].drop_duplicates().sort_values().values
     assert len(conditions) == 2, f'{condition_name}={conditions}. Should be only two instead!'
+    assert do_make_change in [False, 'subtract', 'divide']
     if not (condition_name in index_cols):
         index_cols.append(condition_name)
     if do_mean_over_trials:
@@ -36,6 +37,7 @@ def add_data_to_posterior(df,
                                  index_cols=index_cols,
                                  condition_name=condition_name,
                                  conditions=conditions,
+                                 fold_change_method=do_make_change,
                                  do_take_mean=False)
         # Condition is removed from both index columns and dfbayes
         index_cols.remove(condition_name)
@@ -98,19 +100,18 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
-                     condition_name='stim', conditions=(0, 1), do_take_mean=False):
-    # for index_col in index_cols:
-    #     assert type(df[index_col].iloc[0]) != str, f'Make sure {index_col} contains not strings!'
+                     condition_name='stim', conditions=(0, 1), do_take_mean=False, fold_change_method='divide'):
     for condition in conditions:
         assert condition in df[condition_name].unique(), f'{condition} not in {df[condition_name].unique()}'
     if y not in df.columns:
         raise ValueError(f'{y} is not a column in this dataset: {df.columns}')
+
+    # Take mean of trials:
     if do_take_mean:
-        # Take mean of trials:
         df = df.groupby(list(index_cols)).mean().reset_index()
+
     # Make multiindex
     mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()
-    # mdf.xs(0, level='stim') - mdf.xs(1, level='stim')
     if (mdf.xs(conditions[1], level=condition_name).size !=
         mdf.xs(conditions[0], level=condition_name).size):
         raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
@@ -118,9 +119,14 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
 
     # Subtract/divide
     try:
-        data = (mdf.xs(conditions[1], level=condition_name) -
-                mdf.xs(conditions[0], level=condition_name)
-                ).reset_index()
+        if fold_change_method == 'subtract':
+            data = (mdf.xs(conditions[1], level=condition_name) -
+                    mdf.xs(conditions[0], level=condition_name)
+                    ).reset_index()
+        else:
+            data = (mdf.xs(conditions[1], level=condition_name) /
+                    mdf.xs(conditions[0], level=condition_name)
+                    ).reset_index()
     except Exception as e:
         print(f'Try recasting {condition_name} as integer and try again. Alternatively, use bayes_window.workflow.'
               f' We do that automatically there ')
