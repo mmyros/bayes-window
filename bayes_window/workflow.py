@@ -45,7 +45,7 @@ def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'), hold_for_fac
                         n_draws=1000, num_chains=1)
     if add_data:
         # Add data back
-        df_result = utils.add_data_to_posterior(df,
+        df_result = utils.add_data_to_posterior(df=df,
                                                 trace=trace,
                                                 y=y,
                                                 index_cols=plot_index_cols,
@@ -58,7 +58,7 @@ def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'), hold_for_fac
 
         [df_result[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
         # Plot data and posterior
-        chart = visualization.plot_data_and_posterior(df_result,
+        chart = visualization.plot_data_and_posterior(df=df_result,
                                                       y=f'{y} diff',
                                                       x=plot_x,
                                                       color=plot_color,
@@ -66,7 +66,7 @@ def estimate_slope(df, y='isi', levels=('stim', 'mouse', 'neuron'), hold_for_fac
                                                       hold_for_facet=hold_for_facet, **kwargs)
     else:
         from bayes_window.utils import trace2df
-        df_result = trace2df(trace, df, b_name='b_stim_per_condition', group_name=levels[2])
+        df_result = trace2df(trace=trace, df=df, b_name='b_stim_per_condition', group_name=levels[2])
         [df_result[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
         chart = plot_posterior(df_result, do_make_change=True, x=plot_x, **kwargs)
     return chart, df_result
@@ -91,7 +91,6 @@ class BayesWindow():
         self.y = y
 
     def fit_conditions(self,
-                       add_data=True,
                        model=models.model_single_lognormal):
 
         self.model = model
@@ -102,7 +101,7 @@ class BayesWindow():
                                  model=model,
                                  )
         # Add data back
-        self.data_and_posterior = utils.add_data_to_posterior(self.data,
+        self.data_and_posterior = utils.add_data_to_posterior(df=self.data,
                                                               trace=self.trace,
                                                               y=self.y,
                                                               index_cols=self.levels[:3],
@@ -138,7 +137,7 @@ class BayesWindow():
                             n_draws=1000, num_chains=1)
         if add_data:
             # Add data back
-            df_result = utils.add_data_to_posterior(self.data,
+            df_result = utils.add_data_to_posterior(df=self.data,
                                                     trace=trace,
                                                     y=self.y,
                                                     index_cols=plot_index_cols,
@@ -160,7 +159,7 @@ class BayesWindow():
             x = self.levels[2]
         if color is None:
             color = self.levels[1]
-        chart = visualization.plot_data_and_posterior(self.data_and_posterior,
+        chart = visualization.plot_data_and_posterior(df=self.data_and_posterior,
                                                       y=f'{self.y} diff',
                                                       x=x,
                                                       color=color,
@@ -174,13 +173,14 @@ class BayesWindow():
                                  detail='i_trial',
                                  **kwargs):
         reload(visualization)
+        self.independent_axes = independent_axes
         # Plot data and posterior
         if not hasattr(self, 'data_and_posterior'):
             add_data = True
 
         if add_data:
             # Make data plot:
-            fig_trials = visualization.plot_data_slope_trials(self.data,
+            fig_trials = visualization.plot_data_slope_trials(df=self.data,
                                                               x=x,
                                                               y=self.y,
                                                               color=color,
@@ -188,40 +188,39 @@ class BayesWindow():
 
             if not hasattr(self, 'data_and_posterior'):
                 # We're done
-                return alt.layer(fig_trials, data=self.data)
+                self.chart = alt.layer(fig_trials, data=self.data)
+                return self.chart
         if hasattr(self, 'data_and_posterior'):
             # Add posterior
 
-            chart = visualization.plot_posterior(df=self.data_and_posterior,
-                                                 x=x,
-                                                 # x=levels[0],
-                                                 do_make_change=False,
-                                                 add_data=add_data,
-                                                 title='Estimate',
-                                                 **kwargs
-                                                 )
-            if add_data and independent_axes:
-                # Only this case requires AltairHack
-                chart = visualization.AltairHack(data=self.data_and_posterior,
-                                                 charts=[chart, fig_trials])
-                if column or row:
-                    return chart.facet(column=column,
-                                       row=row,
-                                       width=80,
-                                       height=150)
-                else:
-                    print('yes')
-                    # return chart
-                    return alt.layer(chart, data=self.data_and_posterior)#.resolve_scale(y='independent')
+            self.chart = visualization.plot_posterior(df=self.data_and_posterior,
+                                                      x=x,
+                                                      # x=levels[0],
+                                                      do_make_change=False,
+                                                      add_data=add_data,
+                                                      title='Estimate',
+                                                      **kwargs
+                                                      )
+            # if add_data and independent_axes:
+            #     # Will only work with facet. TODO somehow handle no-facet case
+            #     # Only this case requires AltairHack
+            #     self.chart = visualization.AltairHack(data=self.data_and_posterior,
+            #                                           charts=[chart, fig_trials])
+            # return chart
+            # if column or row:
+            # return chart.facet(column=column,
+            #                    row=row,
+            #                    width=80,
+            #                    height=150)
+            # else:
+            #     print('yes')
+            #     # return chart
+            #     return alt.layer(chart, data=self.data_and_posterior)#.resolve_scale(y='independent')
 
-            elif add_data:
-                chart = alt.layer(chart, data=self.data_and_posterior)
-                if column or row:
-                    return chart.facet(column=column,
-                                       row=row)
-                else:
-                    return chart
-            return chart
+            if add_data:
+                self.chart += fig_trials
+
+        return self.chart
 
     def plot(self, **kwargs):
         # Convenience function
@@ -236,3 +235,12 @@ class BayesWindow():
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
         else:
             raise RuntimeError('Unknown model! please modify plotting code')
+
+    def facet(self, row=None, column=None, width=50, height=60):
+        assert row or column
+        if not hasattr(self, 'independent_axes'):
+            raise RuntimeError('Plot first, then you can use facet')
+        if self.independent_axes:
+            self.chart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)
+        else:
+            self.chart.facet(row=row, column=column)

@@ -45,9 +45,9 @@ def add_data_to_posterior(df,
     df = df.set_index(index_cols)
     # TODO this misses first rows of data
     df_both = df.append(df_bayes, sort=False).reset_index()
-
-    df_both.loc[(df_both.shape[0] - df_bayes.shape[0]):,
-    'mouse_code'] = np.nan  # list(set(index_cols)-{condition_name})
+    # This replaces zeros in bayes columns with nans TODO super strange. Try merge in line above instead
+    df_both.loc[(df_both.shape[0] - df_bayes.shape[0]):, 'mouse_code'] = np.nan
+    # list(set(index_cols)-{condition_name})
     # df_both = pd.concat([df, df_bayes])
     return df_both
 

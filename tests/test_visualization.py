@@ -52,7 +52,7 @@ def test_plot_data_and_posterior():
                                         )
 
         # Plot data and posterior
-        chart = plot_data_and_posterior(df_both, y=f'{y} diff', x='neuron', color='mouse', title=y,
+        chart = plot_data_and_posterior(df=df_both, y=f'{y} diff', x='neuron', color='mouse', title=y,
                                         hold_for_facet=False)
         assert ((type(chart) == FacetChart) |
                 (type(chart) == Chart) |
@@ -77,7 +77,7 @@ def test_facet_twoaxes_row():
     #                     progress_bar=True,
     #                     model=models.model_hier_normal_stim,
     #                     n_draws=100, num_chains=1, )
-    chart = plot_data_slope_trials(df, y='firing_rate', x='stim:O',
+    chart = plot_data_slope_trials(df=df, y='firing_rate', x='stim:O',
                                    color='neuron:N',
                                    detail='i_trial')
     chart = AltairHack(charts=chart, data=df)
@@ -93,7 +93,7 @@ def test_facet_twoaxes_col():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart_data = plot_data_slope_trials(df, y='log_firing_rate', x='stim',
+    chart_data = plot_data_slope_trials(df=df, y='log_firing_rate', x='stim',
                                         color='neuron_code', detail='i_trial')
 
     chart = AltairHack(data=df, charts=[chart_data])
@@ -108,7 +108,7 @@ def test_facet_twoaxes_row_and_col():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart_data = plot_data_slope_trials(df, y='log_firing_rate', x='stim',
+    chart_data = plot_data_slope_trials(df=df, y='log_firing_rate', x='stim',
                                         color='neuron_code', detail='i_trial')
 
     chart = AltairHack(data=df, charts=[chart_data])
@@ -121,5 +121,5 @@ def test_plot_data_slope_trials():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart = plot_data_slope_trials(df, x='stim:O', y='log_firing_rate', color='neuron:N', detail='i_trial')
+    chart = plot_data_slope_trials(df=df, x='stim:O', y='log_firing_rate', color='neuron:N', detail='i_trial')
     chart.display()
