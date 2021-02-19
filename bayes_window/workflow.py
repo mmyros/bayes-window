@@ -148,7 +148,7 @@ class BayesWindow():
                                                     )
         else:
             from bayes_window.utils import trace2df
-            df_result = trace2df(trace, self.data, b_name='b_stim_per_condition', group_name=self.levels[2])
+            df_result = trace2df(trace, self.data, b_name=self.bname, group_name=self.levels[2])
         [df_result[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
         self.data_and_posterior = df_result
 
@@ -172,31 +172,42 @@ class BayesWindow():
                                  detail='i_trial',
                                  **kwargs):
         reload(visualization)
+        import altair as alt
         self.independent_axes = independent_axes
         if hasattr(self, 'data_and_posterior'):
+            base_chart = alt.Chart(self.data_and_posterior)
+            print('found posterior')
             # Plot posterior
-            self.chart = visualization.plot_posterior(df=self.data_and_posterior,
-                                                      x=x,
-                                                      # x=levels[0],
-                                                      do_make_change=False,
-                                                      add_data=add_data,
-                                                      title='Estimate',
-                                                      **kwargs
-                                                      )
+            chart_p = visualization.plot_posterior(#df=self.data_and_posterior,
+                                                   x=x,
+                                                   # x=levels[0],
+                                                   do_make_change=False,
+                                                   add_data=add_data,
+                                                   title='Estimate',
+                                                   base_chart=base_chart,
+                                                   **kwargs
+                                                   )
+            if not add_data:# done
+                self.chart = chart_p
+                return self.chart
         else:
-            add_data = visualization.plot_data_slope_trials(df=self.data,
-                                                            x=x,
-                                                            y=self.y,
-                                                            color=color,
-                                                            detail=detail)
+            add_data = True # Otherwise nothing to do
+            base_chart = alt.Chart(self.data)
 
         if add_data:
             # Make data plot:
-            self.chart += visualization.plot_data_slope_trials(df=self.data,
-                                                               x=x,
-                                                               y=self.y,
-                                                               color=color,
-                                                               detail=detail)
+            chart_d = visualization.plot_data_slope_trials(#df=self.data,
+                                                           x=x,
+                                                           y=self.y,
+                                                           color=color,
+                                                           detail=detail,
+                                                           base_chart=base_chart)
+
+            if not hasattr(self, 'data_and_posterior'):
+                self.chart = chart_d
+            else:
+                self.chart = chart_p + chart_d
+
 
         return self.chart
 
@@ -205,7 +216,7 @@ class BayesWindow():
         if not hasattr(self, 'bname'):
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
-            return visualization.plot_data(self.data,x=self.levels[0],y=self.y, color=self.levels[1], **kwargs)
+            return visualization.plot_data(self.data, x=self.levels[0], y=self.y, color=self.levels[1], **kwargs)
 
         if self.bname == 'b_stim_per_condition':
             return BayesWindow.plot_slopes(self, **kwargs)
@@ -222,5 +233,5 @@ class BayesWindow():
             self.facetchart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)
 
         else:
-            self.facetchart = self.chart.facet(row=row, column=column)
+            self.facetchart = self.chart.properties(width=width, height=height).facet(row=row, column=column)
         return self.facetchart

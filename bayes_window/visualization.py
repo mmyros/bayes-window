@@ -105,16 +105,18 @@ def plot_data_and_posterior(df, y='Coherence diff', title='coherence', x='Stim p
 
 
 def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_chart=None, **kwargs):
-    if df is not None and not base_chart:
-        assert 'Bayes condition CI0' in df
-        assert 'Bayes condition CI1' in df
-    assert (x in df.columns) | (x[:-2] in df.columns), print(x, df.columns)
+
     assert (df is not None) or (base_chart is not None)
+    data= df or base_chart.data
+    assert (x in data.columns) | (x[:-2] in data.columns), print(x, data.columns)
+    assert 'Bayes condition CI0' in data.columns
+    assert 'Bayes condition CI1' in data.columns
+    assert 'Bayes condition mean' in data.columns
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     # alt.themes.enable('vox')
     alt.themes.enable('default')
-    base_chart = alt.Chart(data=df) or base_chart
+    base_chart = base_chart or alt.Chart(data=df)
 
     # line
     chart = base_chart.mark_line(point=True, color='black').encode(
@@ -124,8 +126,8 @@ def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_
 
     # Axis limits
     scale = alt.Scale(zero=False,
-                      domain=[float(base_chart.data['Bayes condition CI0'].min()),
-                              float(base_chart.data['Bayes condition CI1'].max())])
+                      domain=[float(data['Bayes condition CI0'].min()),
+                              float(data['Bayes condition CI1'].max())])
 
     # Make the zero line
     if do_make_change:
