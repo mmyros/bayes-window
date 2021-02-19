@@ -1,7 +1,6 @@
 import warnings
 from importlib import reload
 
-import altair as alt
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
@@ -168,31 +167,14 @@ class BayesWindow():
         return chart
 
     def plot_posteriors_no_slope(self, x='stim:O', add_data=False,
-                                 independent_axes=True, column=None, row=None,
+                                 independent_axes=True,
                                  color='neuron:N',
                                  detail='i_trial',
                                  **kwargs):
         reload(visualization)
         self.independent_axes = independent_axes
-        # Plot data and posterior
-        if not hasattr(self, 'data_and_posterior'):
-            add_data = True
-
-        if add_data:
-            # Make data plot:
-            fig_trials = visualization.plot_data_slope_trials(df=self.data,
-                                                              x=x,
-                                                              y=self.y,
-                                                              color=color,
-                                                              detail=detail)
-
-            if not hasattr(self, 'data_and_posterior'):
-                # We're done
-                self.chart = alt.layer(fig_trials, data=self.data)
-                return self.chart
         if hasattr(self, 'data_and_posterior'):
-            # Add posterior
-
+            # Plot posterior
             self.chart = visualization.plot_posterior(df=self.data_and_posterior,
                                                       x=x,
                                                       # x=levels[0],
@@ -201,24 +183,20 @@ class BayesWindow():
                                                       title='Estimate',
                                                       **kwargs
                                                       )
-            # if add_data and independent_axes:
-            #     # Will only work with facet. TODO somehow handle no-facet case
-            #     # Only this case requires AltairHack
-            #     self.chart = visualization.AltairHack(data=self.data_and_posterior,
-            #                                           charts=[chart, fig_trials])
-            # return chart
-            # if column or row:
-            # return chart.facet(column=column,
-            #                    row=row,
-            #                    width=80,
-            #                    height=150)
-            # else:
-            #     print('yes')
-            #     # return chart
-            #     return alt.layer(chart, data=self.data_and_posterior)#.resolve_scale(y='independent')
+        else:
+            add_data = visualization.plot_data_slope_trials(df=self.data,
+                                                            x=x,
+                                                            y=self.y,
+                                                            color=color,
+                                                            detail=detail)
 
-            if add_data:
-                self.chart += fig_trials
+        if add_data:
+            # Make data plot:
+            self.chart += visualization.plot_data_slope_trials(df=self.data,
+                                                               x=x,
+                                                               y=self.y,
+                                                               color=color,
+                                                               detail=detail)
 
         return self.chart
 
@@ -227,7 +205,7 @@ class BayesWindow():
         if not hasattr(self, 'bname'):
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
-            return BayesWindow.plot_slopes(self, **kwargs)
+            return visualization.plot_data(self.data,x=self.levels[0],y=self.y, color=self.levels[1], **kwargs)
 
         if self.bname == 'b_stim_per_condition':
             return BayesWindow.plot_slopes(self, **kwargs)
@@ -241,6 +219,8 @@ class BayesWindow():
         if not hasattr(self, 'independent_axes'):
             raise RuntimeError('Plot first, then you can use facet')
         if self.independent_axes:
-            self.chart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)
+            self.facetchart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)
+
         else:
-            self.chart.facet(row=row, column=column)
+            self.facetchart = self.chart.facet(row=row, column=column)
+        return self.facetchart

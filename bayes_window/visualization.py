@@ -19,6 +19,7 @@ def facet(base_chart,
           width=80,
           height=150,
           ):
+    print('custom facet')
     alt.themes.enable('vox')
     if column is None and row is None:
         raise RuntimeError('Need either column, or row, or both!')
@@ -305,7 +306,7 @@ def plot_data_slope_trials(x,
     assert (df is not None) or (base_chart is not None)
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
-    base_chart = alt.Chart(df) or base_chart
+    base_chart = base_chart or alt.Chart(df)
 
     # mean firing rate per trial per mouse
     fig_trials = base_chart.mark_line(fill=None).encode(
