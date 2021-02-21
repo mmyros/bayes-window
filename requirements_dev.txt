@@ -24,3 +24,5 @@ arviz
 sklearn
 inflection
 ipython # for chart.display()
+nbval
+nbsphinx

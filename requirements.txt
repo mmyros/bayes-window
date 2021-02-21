@@ -23,3 +23,5 @@ pandas
 arviz
 sklearn
 inflection
+nbval
+nbsphinx

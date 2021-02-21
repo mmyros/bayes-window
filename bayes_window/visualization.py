@@ -66,14 +66,14 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
         x=x,
         color=f'{color}',
-        y=alt.Y(f'{y}:Q')
+        y=alt.Y(f'{y}:Q', scale=alt.Scale(zero=False))
     )
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
         chart += base.mark_boxplot(opacity=.3, size=12, color='black').encode(
             x=x,
-            y=alt.Y(f'{y}:Q')
+            y=alt.Y(f'{y}:Q', scale=alt.Scale(zero=False))
         )
     return chart
 

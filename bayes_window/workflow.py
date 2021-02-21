@@ -2,13 +2,12 @@ import warnings
 from importlib import reload
 
 import altair as alt
-from sklearn.preprocessing import LabelEncoder
-
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.visualization import plot_posterior
+from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
