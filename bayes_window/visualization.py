@@ -55,18 +55,20 @@ def facet(base_chart,
     return chart
 
 
-def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, **kwargs):
+def plot_data(df=None, x=None, y=None, color=':O', add_box=True, base_chart=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
-    if x[-2] != ':':
+    if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
-    if color != ':':
-        color = f'{color}:N'
     # Plot data:
     base = base_chart or alt.Chart(df)
+    # if len(base.data[color].unique())==1:
+    #     color=alt.Color(':N',legend=None)
+    if (color[-2] != ':'):
+        color = f'{color}:N'
     chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
         x=x,
         color=f'{color}',
-        y=alt.Y(f'{y}:Q', scale=alt.Scale(zero=False))
+        y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False))
     )
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
@@ -78,29 +80,31 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     return chart
 
 
-def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_chart=None, **kwargs):
+# from altair.vegalite.v4.api import Undefined
+def plot_posterior(df=None, title='', x=alt.X(':N'), do_make_change=True, base_chart=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
-    assert (x in data.columns) | (x[:-2] in data.columns), print(x, data.columns)
-    assert 'Bayes condition CI0' in data.columns
-    assert 'Bayes condition CI1' in data.columns
-    assert 'Bayes condition mean' in data.columns
-    if x[-2] != ':':
-        x = f'{x}:O'  # Ordinal
+    # if not (x is Undefined):
+    #     assert (x in data.columns) | (x[:-2] in data.columns), print(x, data.columns)
+    #     if x[-2] != ':':
+    #         x = f'{x}:O'  # Ordinal
+    assert 'higher HDI' in data.columns
+    assert 'lower HDI' in data.columns
+    assert 'mean HDI' in data.columns
     # alt.themes.enable('vox')
     alt.themes.enable('default')
     base_chart = base_chart or alt.Chart(data=df)
 
     # line
     chart = base_chart.mark_line(point=True, color='black').encode(
-        y=alt.Y('Bayes condition mean:Q', impute=alt.ImputeParams(value='value')),
-        x=x
+        y=alt.Y('mean HDI:Q', impute=alt.ImputeParams(value='value')),
+        x=x,
     )
 
     # Axis limits
     scale = alt.Scale(zero=False,
-                      domain=[float(data['Bayes condition CI0'].min()),
-                              float(data['Bayes condition CI1'].max())])
+                      domain=[float(data['lower HDI'].min()),
+                              float(data['higher HDI'].max())])
 
     # Make the zero line
     if do_make_change:
@@ -111,9 +115,9 @@ def plot_posterior(df=None, title='', x='Stim phase', do_make_change=True, base_
     # error_bars
     chart += base_chart.mark_rule().encode(
         x=x,
-        y=alt.Y('Bayes condition CI0:Q',
+        y=alt.Y('lower HDI:Q',
                 title=title, scale=scale),
-        y2='Bayes condition CI1:Q',
+        y2='higher HDI:Q',
     )
 
     return chart
@@ -254,8 +258,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
         #    (df_monster['neuron']==str(n_neurons-1))
         # )
         # &
-        # (df_monster['mouse']=='m0bayes') |
-        (df_monster['mouse'] == 'm9bayes')
+        # (df_monster['mouse']==f'm{df_monster["mouse_code"].astype(int).max()}bayes') |
+        (df_monster['mouse'] == f'm{df_monster["mouse_code"].astype(int).max()}bayes')
     ]
     fig_raster = alt.Chart(df_raster).mark_tick(thickness=.8).encode(
         y=alt.Y('neuron'),
@@ -273,12 +277,13 @@ def fake_spikes_explore(df, df_monster, index_cols):
 
 def plot_data_slope_trials(x,
                            y,
-                           color,
                            detail,
+                           color=None,
                            base_chart=None,
                            df=None,
                            **kwargs):
     assert (df is not None) or (base_chart is not None)
+    color = color or ':O'
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     base_chart = base_chart or alt.Chart(df)

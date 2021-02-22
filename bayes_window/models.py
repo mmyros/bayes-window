@@ -4,7 +4,6 @@ import numpyro
 import numpyro.distributions as dist
 
 
-
 def model_single_normal_stim(y, stim_on, treat):
     n_conditions = np.unique(treat).shape[0]
     a = numpyro.sample('a', dist.Normal(0, 1))
@@ -117,3 +116,29 @@ def model_hier_normal_stim(y, stim_on, treat, subject):
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
     nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
     numpyro.sample('y', dist.StudentT(nu_y, theta, sigma_obs), obs=y)
+
+
+def model_hier_stim_one_codition(y, stim_on, subject, dist_y='student', **kwargs):
+    n_subjects = np.unique(subject).shape[0]
+    a = numpyro.sample('a', dist.Normal(0, 1))
+
+    # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
+    # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
+
+    a_subject = numpyro.sample('a_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
+    sigma_a_subject = numpyro.sample('sigma_a_subject', dist.HalfNormal(1))
+
+    b = numpyro.sample('b_stim_per_condition', dist.Normal(0, 1))
+
+    theta = a + a_subject[subject] * sigma_a_subject + b * stim_on
+
+    sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
+    nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
+    if dist_y == 'student':
+        numpyro.sample('y', dist.StudentT(nu_y, theta, sigma_obs), obs=y)
+    elif dist_y == 'normal':
+        numpyro.sample('y', dist.Normal(theta, sigma_obs), obs=y)
+    elif dist_y == 'lognormal':
+        numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=y)
+    else:
+        raise ValueError

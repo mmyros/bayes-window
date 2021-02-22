@@ -55,12 +55,13 @@ class BayesWindow():
                                                                   )
 
     def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
-                   plot_index_cols=None):
+                   plot_index_cols=None, **kwargs):
+        # TODO case with no group_name
         assert do_make_change in ['subtract', 'divide']
         self.bname = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         if plot_index_cols is None:
-            plot_index_cols = self.levels[:3]
+            plot_index_cols = self.levels[-1]
         # By convention, top condition is first in list of levels:
         top_condition = self.levels[0]
         # Transform conditions to integers as required by numpyro:
@@ -71,13 +72,14 @@ class BayesWindow():
             key[level] = dict(zip(range(len(le.classes_)), le.classes_))
         # Estimate model
         try:
-            trace = fit_numpyro(y=self.data[self.y].values,
-                                stim_on=self.data[top_condition].values,
-                                treat=self.data[self.levels[2]].values,
-                                subject=self.data[self.levels[1]].values,
-                                progress_bar=False,
-                                model=model,
-                                n_draws=1000, num_chains=1)
+            self.trace = fit_numpyro(y=self.data[self.y].values,
+                                     stim_on=self.data[top_condition].values,
+                                     treat=self.data[self.levels[2]].values if len(self.levels) > 2 else None,
+                                     subject=self.data[self.levels[1]].values,
+                                     progress_bar=False,
+                                     model=model,
+                                     n_draws=1000, num_chains=1,
+                                     **kwargs)
         except TypeError:
             # assert that model() has kwarg stim_on, because this is slopes
             raise KeyError(f'Does your model {model} have "stim_on" argument? You asked for slopes!')
@@ -85,7 +87,7 @@ class BayesWindow():
         if add_data:
             # Add data back
             df_result = utils.add_data_to_posterior(df=self.data,
-                                                    trace=trace,
+                                                    trace=self.trace,
                                                     y=self.y,
                                                     index_cols=plot_index_cols,
                                                     condition_name=top_condition,
@@ -96,8 +98,10 @@ class BayesWindow():
                                                     )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
-            df_result = trace2df(trace, self.data, b_name=self.bname, group_name=self.levels[-1])
-        [df_result[col].replace(key[col], inplace=True) for col in key.keys() if not col == top_condition]
+            df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.levels[-1])
+
+        [df_result[col].replace(key[col], inplace=True) for col in key.keys() if
+         (not col == top_condition) and (col in df_result)]
         self.data_and_posterior = df_result
 
     def plot_posteriors_slopes(self, x=None, color=None, add_box=True, independent_axes=False, add_data=True, **kwargs):
@@ -109,12 +113,16 @@ class BayesWindow():
         # Plot posterior
         if hasattr(self, 'data_and_posterior'):
             base_chart = alt.Chart(self.data_and_posterior)
-            chart_p = plot_posterior(title=f'{self.y}', x=x, base_chart=base_chart)
+            chart_p = plot_posterior(title=f'{self.y}',
+                                     x=x,
+                                     base_chart=base_chart,
+                                     do_make_change=(self.do_make_change == 'divide'))
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
 
         if add_data:
+            assert hasattr(self, 'data_and_posterior')
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
                                               base_chart=base_chart)
             self.chart = chart_d + chart_p  # Not chart_d + chart_p, or bayes means and HPD get scaled independently
@@ -122,8 +130,6 @@ class BayesWindow():
             self.chart = chart_p
         if independent_axes:
             self.chart = self.chart.resolve_scale(y='independent')
-        elif self.do_make_change == 'divide':
-            warnings.warn('division change and independent axes will lead to separate axis! Upstream bug I think')
         return self.chart
 
     # TODO plot_posteriors_slopes and plot_posteriors_no_slope can be one

@@ -13,6 +13,20 @@ warnings.filterwarnings("ignore")
 
 
 # fake data generation
+def generate_fake_lfp():
+    df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=10,
+                                                         n_neurons=10,
+                                                         n_mice=5,
+                                                         dur=7,
+                                                         mouse_response_slope=1.)
+
+    df = df[df.mouse_code == 1]
+    df = df.drop('mouse', axis=1)
+    df_monster = df_monster.drop('mouse', axis=1)
+    df = df.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    df_monster = df_monster.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    return df, df_monster, index_cols, None
+
 
 def generate_fake_spikes(n_trials=6,
                          n_neurons=8,
@@ -21,7 +35,7 @@ def generate_fake_spikes(n_trials=6,
                          slowest_fr=7,
                          time_randomness=10,
                          overall_stim_response_strength=0,
-                         mouse_response_slope=2,  # .3 is hard, 3 is easy
+                         mouse_response_slope=2.,  # .3 is hard, 3 is easy
                          verbose=False,
                          do_ave_trial=False,
                          trial_baseline_randomness=.2,

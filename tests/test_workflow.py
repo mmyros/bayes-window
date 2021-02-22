@@ -1,5 +1,5 @@
 from bayes_window import models
-from bayes_window.generative_models import generate_fake_spikes
+from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
 from bayes_window.workflow import BayesWindow
 from sklearn.preprocessing import LabelEncoder
 
@@ -197,3 +197,12 @@ def test_facet():
     bw = BayesWindow(df, y='isi', levels=('stim', 'mouse', 'neuron'))
     bw.fit_conditions(model=models.model_single_lognormal)
     bw.plot().facet('neuron',width=40)
+
+from bayes_window.visualization import plot_posterior
+def test_single_condition():
+    df, df_monster, index_cols, _ = generate_fake_lfp()
+    bw = BayesWindow(df, y='Log power', levels=('stim', 'mouse'))
+    bw.fit_slopes(add_data=True, model=models.model_hier_stim_one_codition,
+                  do_make_change='divide', dist_y='normal')
+    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    bw.plot_posteriors_slopes(add_box=False, independent_axes=True, )
