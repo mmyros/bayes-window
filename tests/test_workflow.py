@@ -196,10 +196,18 @@ def test_facet():
     bw.plot().facet('neuron', width=40)
 
 
-def test_single_condition():
+def test_single_condition_withdata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     bw = BayesWindow(df, y='Log power', levels=('stim', 'mouse'))
     bw.fit_slopes(add_data=True, model=models.model_hier_stim_one_codition,
+                  do_make_change='divide', dist_y='normal')
+    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+
+def test_single_condition_nodata():
+    df, df_monster, index_cols, _ = generate_fake_lfp()
+    bw = BayesWindow(df, y='Log power', levels=('stim', 'mouse'))
+    bw.fit_slopes(add_data=False, model=models.model_hier_stim_one_codition,
                   do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()

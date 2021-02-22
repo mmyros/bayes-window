@@ -84,6 +84,8 @@ class BayesWindow():
             # assert that model() has kwarg stim_on, because this is slopes
             raise KeyError(f'Does your model {model} have "stim_on" argument? You asked for slopes!')
         self.levels.remove(top_condition)
+
+        self.add_data = add_data
         if add_data:
             # Add data back
             df_result = utils.add_data_to_posterior(df=self.data,
@@ -104,7 +106,7 @@ class BayesWindow():
          (not col == top_condition) and (col in df_result)]
         self.data_and_posterior = df_result
 
-    def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, add_data=True, **kwargs):
+    def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, **kwargs):
         # Set some options
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
@@ -114,6 +116,7 @@ class BayesWindow():
 
         # Plot posterior
         if hasattr(self, 'data_and_posterior'):
+            add_data = self.add_data
             base_chart = alt.Chart(self.data_and_posterior)
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,
