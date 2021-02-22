@@ -25,7 +25,7 @@ def generate_fake_lfp(n_trials=10,
                                                          mouse_response_slope=mouse_response_slope)
 
     df = df[df.mouse_code == 1]
-    df = df[df.neuron < n_neurons - 2]
+    df = df[df.neuron < n_neurons - 2 ]
     df = df.drop('mouse', axis=1)
     df_monster = df_monster.drop('mouse', axis=1)
     df = df.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
