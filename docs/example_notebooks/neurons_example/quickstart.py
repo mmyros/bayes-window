@@ -48,16 +48,18 @@ reload(workflow)
 reload(visualization)
 
 bw=workflow.BayesWindow(df,y='isi', levels=('stim', 'mouse', 'neuron'))
-bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim,do_make_change='divide')
-# -
+bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim,do_make_change='subtract',
+             plot_index_cols=('stim', 'mouse', 'neuron'))
 
-chart=bw.plot_posteriors_slopes(add_box=True, independent_axes=False)
+# +
+chart=bw.plot_posteriors_slopes(add_box=True, independent_axes=True,x='neuron:O',color='mouse')
 
 chart
+# -
 
 chart.resolve_scale(y='independent')
 
-bw.plot(independent_axes=True)
+bw.plot(x='neuron',color='mouse',independent_axes=True)
 
 
 bw.facet(column='neuron')
