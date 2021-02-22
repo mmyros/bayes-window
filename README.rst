@@ -1,6 +1,11 @@
 ============
 Bayes Window
 ============
+.. image:: bw_logo.jpg
+   :scale: 8
+   :align: center
+
+=================================
 
 
 .. image:: https://img.shields.io/pypi/v/bayes_window.svg
@@ -15,7 +20,6 @@ Bayes Window
 
 .. image:: https://codecov.io/gh/mmyros/bayes-window/branch/master/graph/badge.svg?token=CQMHJRNC9I
       :target: https://codecov.io/gh/mmyros/bayes-window
-
 
 
 Pretty and easy Bayesian estimation with data overlay
