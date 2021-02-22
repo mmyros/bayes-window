@@ -2,7 +2,7 @@
 Bayes Window
 ============
 .. image:: bw_logo.jpg
-   :scale: 8
+   :width: 120
    :align: center
 
 =================================
