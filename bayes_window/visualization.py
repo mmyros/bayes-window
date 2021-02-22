@@ -18,9 +18,9 @@ def facet(base_chart,
         raise RuntimeError('Need either column, or row, or both!')
     assert base_chart.data is not None
     if column:
-        assert column in base_chart.data.columns
+        assert column in base_chart.data.columns, f'{column} is not in {base_chart.data.columns}'
     if row:
-        assert row in base_chart.data.columns
+        assert row in base_chart.data.columns, f'{row} is not in {base_chart.data.columns}'
 
     def concat_charts(subdata, groupby_name, row_name='', row_val='', how='hconcat'):
         charts = []
@@ -61,8 +61,6 @@ def plot_data(df=None, x=None, y=None, color=':O', add_box=True, base_chart=None
         x = f'{x}:O'
     # Plot data:
     base = base_chart or alt.Chart(df)
-    # if len(base.data[color].unique())==1:
-    #     color=alt.Color(':N',legend=None)
     if (color[-2] != ':'):
         color = f'{color}:N'
     chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
@@ -81,13 +79,11 @@ def plot_data(df=None, x=None, y=None, color=':O', add_box=True, base_chart=None
 
 
 # from altair.vegalite.v4.api import Undefined
-def plot_posterior(df=None, title='', x=alt.X(':N'), do_make_change=True, base_chart=None, **kwargs):
+def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
-    # if not (x is Undefined):
-    #     assert (x in data.columns) | (x[:-2] in data.columns), print(x, data.columns)
-    #     if x[-2] != ':':
-    #         x = f'{x}:O'  # Ordinal
+    if x[-2] != ':':
+        x = f'{x}:O'  # Ordinal
     assert 'higher HDI' in data.columns
     assert 'lower HDI' in data.columns
     assert 'mean HDI' in data.columns

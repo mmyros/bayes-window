@@ -61,7 +61,7 @@ class BayesWindow():
         self.bname = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         if plot_index_cols is None:
-            plot_index_cols = self.levels[-1]
+            plot_index_cols = self.levels#[-1]
         # By convention, top condition is first in list of levels:
         top_condition = self.levels[0]
         # Transform conditions to integers as required by numpyro:
@@ -104,10 +104,12 @@ class BayesWindow():
          (not col == top_condition) and (col in df_result)]
         self.data_and_posterior = df_result
 
-    def plot_posteriors_slopes(self, x=None, color=None, add_box=True, independent_axes=False, add_data=True, **kwargs):
+    def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, add_data=True, **kwargs):
         # Set some options
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
+        if x[-2] != ':':
+            x += ':O'
         color = color or self.levels[0]
 
         # Plot posterior
@@ -125,7 +127,7 @@ class BayesWindow():
             assert hasattr(self, 'data_and_posterior')
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
                                               base_chart=base_chart)
-            self.chart = chart_d + chart_p  # Not chart_d + chart_p, or bayes means and HPD get scaled independently
+            self.chart = chart_d + chart_p
         else:
             self.chart = chart_p
         if independent_axes:

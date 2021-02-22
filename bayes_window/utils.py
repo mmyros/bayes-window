@@ -22,7 +22,7 @@ def add_data_to_posterior(df,
                           do_mean_over_trials=True,
                           ):
     if type(index_cols) == str:
-        index_cols=[index_cols]
+        index_cols = [index_cols]
     index_cols = list(index_cols)
 
     conditions = conditions or df[condition_name].drop_duplicates().sort_values().values
@@ -32,10 +32,8 @@ def add_data_to_posterior(df,
         index_cols.append(condition_name)
     if do_mean_over_trials:
         df = df.groupby(index_cols).mean().reset_index()
-    # Convert to dataframe and fill in original conditions:
-    df_bayes = trace2df(trace, df, b_name=b_name, group_name=group_name)
     if do_make_change:
-        # Make fold change #TODO add option of divide or subtract
+        # Make (fold) change
         df, y = make_fold_change(df,
                                  y=y,
                                  index_cols=index_cols,
@@ -45,17 +43,23 @@ def add_data_to_posterior(df,
                                  do_take_mean=False)
         # Condition is removed from both index columns and dfbayes
         index_cols.remove(condition_name)
-        df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')
+        # df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')
+    # Convert to dataframe and fill in data:
+    df_bayes = trace2df(trace, df, b_name=b_name, group_name=group_name)
     # Set multiindex and combine data with posterior
-    if index_cols is not None:
-        df_bayes = df_bayes.set_index(index_cols)
-        df = df.set_index(index_cols)
-    # TODO this misses first rows of data
-    df_both = df.append(df_bayes, sort=False).reset_index()
+    # if index_cols is not None:
+    #     df_bayes = df_bayes.set_index(index_cols)
+        # df = df.set_index(index_cols)
+
+    # df_bayes.loc[df_bayes.index.duplicated(keep='first'), ] = np.nan
+    # pd.concat([df,df_bayes],axis=1)
+    # df_both = \
+    #     pd.merge(df.reset_index(), df_bayes.reset_index(), on=index_cols, )  # [['isi','isi diff','mean HDI']]
+    # df_both = df.append(df_bayes, sort=False).reset_index()
     # This replaces zeros in bayes columns with nans TODO super strange. Try merge in line above instead
-    df_both.loc[(df_both.shape[0] - df_bayes.shape[0]):, 'mouse_code'] = np.nan
+    # df_both.loc[(df_both.shape[0] - df_bayes.shape[0]):, 'mouse_code'] = np.nan
     # df_both = pd.concat([df, df_bayes])
-    return df_both
+    return df_bayes
 
 
 def humanize_df(df):
@@ -85,49 +89,35 @@ def trace2df(trace, df, b_name='b_stim_per_condition', group_name='condition_cod
         df[group_name] = df[group_name].astype(int)
 
     def fill_row(group_val, rows):
-        # row = rows#.iloc[0].to_dict()
         this_hdi = df_bayes.loc[df_bayes[group_name] == group_val]
         for col in ['lower HDI', 'higher HDI', 'mean HDI']:
             rows.insert(df.shape[1] - 1, col, this_hdi[col].values.squeeze())
-        # try:
-        #     row['lower HDI'] = df_bayes.sel(Condition=row[group_name], CI='lower').values
-        # except KeyError:  # Sometimes it's string whereas it should be a number
-        #     row[group_name] = int(row[group_name])
-        #     row['lower HDI'] = df_bayes.sel(Condition=row[group_name], CI='lower').values
-        # row['higher HDI'] = df_bayes.sel(Condition=row[group_name], CI='higher').values
-        # row['mean HDI'] = df_bayes.sel(Condition=row[group_name], CI='mean').values
         return rows
 
     hdi = az.hdi(trace)[b_name]
     if hdi.ndim == 1:
-        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values
-                             ], coords={'hdi': ["mean"], }, dims='hdi')
+        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
+                            coords={'hdi': ["mean"], },
+                            dims='hdi')
         df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
         df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
+        df_bayes[group_name] = df[group_name].iloc[0]
         df_bayes.columns += ' HDI'
+        for col in ['lower HDI', 'higher HDI', 'mean HDI']:
+            df.insert(df.shape[1] - 1, col, df_bayes[col].values.squeeze())
+        df_bayes = df
     else:
         hdi = hdi.rename({f'{b_name}_dim_0': group_name})
-
-        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values
-                             ], coords={'hdi': ["mean"], group_name: hdi[group_name]}, dims=['hdi', group_name])
-        df_bayes = xr.concat([hdi, mean], 'hdi').rename('HDI').to_dataframe()  # .reset_index('hdi')
+        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
+                            coords={'hdi': ["mean"], group_name: hdi[group_name]},
+                            dims=['hdi', group_name])
+        df_bayes = xr.concat([hdi, mean], 'hdi').rename('HDI').to_dataframe()
         df_bayes = df_bayes.pivot_table(index=group_name, columns=['hdi', ]).reset_index()
         # Reset 2-level column from pivot_table:
         df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
         df_bayes.rename({f' {group_name}': group_name}, axis=1, inplace=True)
-
-        # hdi = az.hdi(trace[b_name].values)
-        # posterior_mean = trace[b_name].mean(['chain', 'draw']).values[:, None]
-        #
-        # hpd_condition = xr.DataArray(np.concatenate((hdi, posterior_mean), axis=1),
-        #                              dims=['Condition', 'CI'],
-        #                              coords=[range(hdi.shape[0]), ['ci_start', 'ci_end', 'mean']])
-        #
-
         rows = [fill_row(group_val, rows) for group_val, rows in df.groupby([group_name])]
-
         df_bayes = pd.concat(rows)
-    # df_bayes = humanize_df(df_bayes)
     return df_bayes
 
 
