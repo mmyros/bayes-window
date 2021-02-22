@@ -29,7 +29,7 @@ class BayesWindow():
         # Keep key for later use- maybe we don't need to in this case
         # key = dict(zip(range(len(le.classes_)), le.classes_))
         self.levels = list(levels)
-        self.data = df
+        self.data = df.copy()
         self.y = y
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
@@ -43,7 +43,7 @@ class BayesWindow():
                                  )
         # Add data back
         if add_data:
-            self.data_and_posterior = utils.add_data_to_posterior(df=self.data,
+            self.data_and_posterior = utils.add_data_to_posterior(df_data=self.data,
                                                                   trace=self.trace,
                                                                   y=self.y,
                                                                   index_cols=self.levels[:3],
@@ -61,7 +61,7 @@ class BayesWindow():
         self.bname = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         if plot_index_cols is None:
-            plot_index_cols = self.levels#[-1]
+            plot_index_cols = self.levels  # [-1]
         # By convention, top condition is first in list of levels:
         top_condition = self.levels[0]
         # Transform conditions to integers as required by numpyro:
@@ -88,7 +88,7 @@ class BayesWindow():
         self.add_data = add_data
         if add_data:
             # Add data back
-            df_result = utils.add_data_to_posterior(df=self.data,
+            df_result = utils.add_data_to_posterior(df_data=self.data,
                                                     trace=self.trace,
                                                     y=self.y,
                                                     index_cols=plot_index_cols,
@@ -102,8 +102,9 @@ class BayesWindow():
             from bayes_window.utils import trace2df
             df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.levels[-1])
 
-        [df_result[col].replace(key[col], inplace=True) for col in key.keys() if
-         (not col == top_condition) and (col in df_result)]
+        # Back to human-readable labels
+        [df_result[col].replace(key[col], inplace=True) for col in key.keys()
+         if (not col == top_condition) and (col in df_result)]
         self.data_and_posterior = df_result
 
     def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, **kwargs):
@@ -121,7 +122,7 @@ class BayesWindow():
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,
                                      base_chart=base_chart,
-                                     do_make_change=(self.do_make_change == 'divide'))
+                                     do_make_change=(self.do_make_change != 'divide'))
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
@@ -130,7 +131,7 @@ class BayesWindow():
             assert hasattr(self, 'data_and_posterior')
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
                                               base_chart=base_chart)
-            self.chart = chart_d + chart_p
+            self.chart = chart_p + chart_d
         else:
             self.chart = chart_p
         if independent_axes:

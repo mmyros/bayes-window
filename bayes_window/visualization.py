@@ -105,7 +105,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     # Make the zero line
     if do_make_change:
         data['zero'] = 0
-        chart += base_chart.mark_rule(color='black', size=.1, opacity=.4).encode(y='zero')
+        chart += base_chart.mark_rule(color='black', size=.1, opacity=.6).encode(y='zero')
         title = f'Δ {title}'
 
     # error_bars
@@ -115,17 +115,6 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                 title=title, scale=scale),
         y2='higher HDI:Q',
     )
-
-    return chart
-
-
-def plot_posterior_altair(trace, df,
-                          b_name='b_stim_per_condition', x='Stim phase',
-                          title='', group_name='condition_code'):
-    # Convert to dataframe and fill in original conditions:
-    df = utils.trace2df(trace, df, b_name, group_name=group_name)
-
-    chart = plot_posterior(df, title=title, x=x)
 
     return chart
 

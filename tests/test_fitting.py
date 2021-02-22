@@ -27,16 +27,16 @@ def test_fit_numpyro_serial():
                             progress_bar=True,
                             model=models.model_hier_normal_stim,
                             n_draws=100, num_chains=1, )
-        chart = visualization.plot_posterior_altair(trace,
-                                                    df,
-                                                    b_name='b_stim_per_condition',
-                                                    x='stim',
-                                                    group_name='neuron'
-                                                    )
-
-        assert ((type(chart) == FacetChart) |
-                (type(chart) == Chart) |
-                (type(chart) == LayerChart)), print(f'{type(chart)}')
+        # chart = visualization.plot_posterior_altair(trace,
+        #                                             df,
+        #                                             b_name='b_stim_per_condition',
+        #                                             x='stim',
+        #                                             group_name='neuron'
+        #                                             )
+        #
+        # assert ((type(chart) == FacetChart) |
+        #         (type(chart) == Chart) |
+        #         (type(chart) == LayerChart)), print(f'{type(chart)}')
         trace.to_dataframe().pipe(ck.has_no_nans)
 
 
