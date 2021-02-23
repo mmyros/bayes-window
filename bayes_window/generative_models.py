@@ -47,6 +47,11 @@ def generate_fake_spikes(n_trials=6,
                          trial_baseline_randomness=.2,
                          do_bad_mice=False,
                          ):
+    """
+    # mouse id affects slope of fr
+    # Stim affects Firing rates for slow more than fast neurons
+
+    """
     trans = LabelEncoder().fit_transform
 
     def firing_rate_over_time(rate, rate0=None, dur=10, time_randomness=None):
@@ -74,10 +79,7 @@ def generate_fake_spikes(n_trials=6,
         print(f'Stim response per mouse (in Hz) is {fast_rates - slow_rates}')
         print(f'Fast rates = {fast_rates},\n slow rates= {slow_rates}')
 
-    # mouse id affects slope of fr
-    # Stim affects Firing rates for slow more than fast neurons
     # make an Xarray of firing rates:
-
     slow = xr.DataArray(np.vstack(slow_rates).T,
                         dims=['Mouse', 'Neuron'],
                         coords=dict(Mouse=[f'm{i}bayes' for i in range(n_mice)],

@@ -21,14 +21,17 @@ from bayes_window.generative_models import generate_fake_lfp
 trans = LabelEncoder().fit_transform
 
 
-def plot_roc(y_scores, true_slopes):
+def plot_roc(y_scores, true_slopes, binary=True):
     import pandas as pd
     df = []
     for condition, y_score in y_scores.items():
         if y_score[0] is None:
             continue
         y_score = np.array(y_score)
-        fpr, tpr, _ = roc_curve(true_slopes > 0, y_score > 0)
+        if binary:
+            fpr, tpr, _ = roc_curve(true_slopes > 0, y_score > 0)
+        else:
+            fpr, tpr, _ = roc_curve(true_slopes > 0, y_score)
         roc_auc = round(auc(fpr, tpr), 5)
         df.append(pd.DataFrame({'False positive rate': fpr,
                                 'True positive rate': tpr,
@@ -74,16 +77,21 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
         return mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
 
 
-def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)])):
+def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
+                n_trials=range(8, 30, 7),
+                parallel=True):
     y_scores = {}
     for method, y, n_trials in tqdm(list(itertools.product(
         ['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],
         ['Log power', 'Power', ],
-        range(8, 30, 7)  # n trials
+        n_trials
     ))):
-        # y_scores[f'{method}, {y}']=[run_condition(true_slope,method,y) for true_slope in tqdm(true_slopes)]
-        y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
-            delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
+        if parallel:
+            y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
+                delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
+        else:
+            y_scores[f'{method}, {y}']=[run_condition(true_slope,method,y) for true_slope in tqdm(true_slopes)]
+
     return y_scores, true_slopes
 
 
