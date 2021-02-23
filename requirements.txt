@@ -25,3 +25,4 @@ sklearn
 inflection
 nbval
 nbsphinx
+statsmodels

@@ -26,3 +26,4 @@ inflection
 ipython # for chart.display()
 nbval
 nbsphinx
+statsmodels

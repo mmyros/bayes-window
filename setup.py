@@ -15,7 +15,7 @@ requirements = []
 setup_requirements = ['pytest-runner', 'joblib', 'numpy', 'numpyro', 'bulwark', 'elephant', 'xarray', 'altair',
                       # 'jax',
                       # 'jaxlib==0.1.51',
-                      'pandas', 'arviz', 'sklearn', 'inflection','nbsphinx','nbval']
+                      'pandas', 'arviz', 'sklearn', 'inflection','nbsphinx','nbval','statsmodels']
 
 test_requirements = ['pytest>=3', ]
 
