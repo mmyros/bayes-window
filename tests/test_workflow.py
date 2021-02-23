@@ -166,6 +166,9 @@ def test_plot_generic():
     bw = BayesWindow(df, y='isi', levels=('stim', 'mouse', 'neuron'))
     bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim, )
     bw.plot()
+    bw = BayesWindow(df, y='isi', levels=('stim', 'mouse', 'neuron'))
+    bw.fit_slopes(add_data=True, model=models.model_hier_lognormal_stim, )
+    bw.plot()
     # conditions:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
@@ -227,3 +230,12 @@ def test_single_condition_nodata():
                   do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+
+def test_single_condition_nodata_dists():
+    df, df_monster, index_cols, _ = generate_fake_lfp()
+    for dist in ['normal', 'lognormal', 'student']:
+        bw = BayesWindow(df, y='Log power', levels=('stim', 'mouse'))
+        bw.fit_slopes(add_data=False, model=models.model_hier_stim_one_codition,
+                      do_make_change='divide', dist_y=dist)
+        plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+        bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()

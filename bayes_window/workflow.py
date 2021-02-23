@@ -74,7 +74,7 @@ class BayesWindow():
         # Estimate model
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
-                                     stim_on=self.data[top_condition].values,
+                                     stim=self.data[top_condition].values,
                                      treat=self.data[self.levels[2]].values if len(self.levels) > 2 else None,
                                      subject=self.data[self.levels[1]].values,
                                      progress_bar=False,
@@ -82,8 +82,8 @@ class BayesWindow():
                                      n_draws=1000, num_chains=1,
                                      **kwargs)
         except TypeError:
-            # assert that model() has kwarg stim_on, because this is slopes
-            raise KeyError(f'Does your model {model} have "stim_on" argument? You asked for slopes!')
+            # assert that model() has kwarg stim, because this is slopes
+            raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
         self.levels.remove(top_condition)
 
         self.add_data = add_data

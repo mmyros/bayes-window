@@ -33,7 +33,7 @@ def test_plot_data_and_posterior():
     for y in (set(df.columns) - set(index_cols)):
         # Estimate model
         trace = fit_numpyro(y=df[y].values,
-                            stim_on=(df['stim']).astype(int).values,
+                            stim=(df['stim']).astype(int).values,
                             treat=trans(df['neuron']),
                             subject=trans(df['mouse']),
                             progress_bar=True,
