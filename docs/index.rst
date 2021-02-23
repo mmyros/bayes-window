@@ -8,6 +8,8 @@ Welcome to Bayes Window's documentation!
    readme
    installation
    usage
+   example_notebooks/motivation/multilevel_modeling_lfp
+   example_notebooks/motivation/multilevel_modeling_neurons
    example_notebooks/lfp_example/quick_lfp
    example_notebooks/lfp_example/lfp_roc
    example_notebooks/neurons_example/quickstart
