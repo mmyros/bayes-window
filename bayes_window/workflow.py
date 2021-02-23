@@ -2,12 +2,13 @@ import warnings
 from importlib import reload
 
 import altair as alt
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
@@ -122,7 +123,7 @@ class BayesWindow():
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,
                                      base_chart=base_chart,
-                                     do_make_change=(self.do_make_change != 'divide'))
+                                     do_make_change=self.do_make_change)
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do

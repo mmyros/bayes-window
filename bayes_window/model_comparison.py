@@ -1,19 +1,90 @@
+import itertools
+
+import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
-from joblib import Parallel, delayed
 import numpyro
+import statsmodels.api as sm
 from jax import random
-from numpyro.infer import MCMC, NUTS, Predictive, log_likelihood
-import arviz as az
-
+# roc_curve?
+from joblib import Parallel, delayed
+from numpyro.infer import MCMC, NUTS, Predictive
+from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from statsmodels.formula.api import ols, mixedlm
+from tqdm import tqdm
+
+from bayes_window import workflow, models
+from bayes_window.generative_models import generate_fake_lfp
 
 trans = LabelEncoder().fit_transform
 
 
-def split_train_predict1(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),
-                         draws=1000, warmup=500, num_chains=1, progress_bar=True):
+def plot_roc(y_scores, true_slopes):
+    import pandas as pd
+    df = []
+    for condition, y_score in y_scores.items():
+        if y_score[0] is None:
+            continue
+        y_score = np.array(y_score)
+        fpr, tpr, _ = roc_curve(true_slopes > 0, y_score > 0)
+        roc_auc = round(auc(fpr, tpr), 5)
+        df.append(pd.DataFrame({'False positive rate': fpr,
+                                'True positive rate': tpr,
+                                'Condition': condition,
+                                'AUC': roc_auc}))
+
+    df = pd.concat(df)
+    import altair as alt
+    chart = alt.Chart(df).mark_line(size=6, opacity=.7).encode(
+        x='False positive rate',
+        y='True positive rate',
+        color='Condition'
+    ) | \
+            alt.Chart(df).mark_bar().encode(
+                x='Condition',
+                y='AUC',
+                color='Condition'
+            ).interactive()
+    return chart
+
+
+def run_condition(true_slope, method='bw_student', y='Log power'):
+    df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
+                                                      n_trials=10)
+    if method[:2] == 'bw':
+        bw = workflow.BayesWindow(df, y=y, levels=('stim', 'mouse'))
+        bw.fit_slopes(
+            model=models.model_hier_stim_one_codition,
+            dist_y=method[3:], add_data=False, )
+        return bw.data_and_posterior['lower HDI'].iloc[0]
+    elif method[:5] == 'anova':
+        df = df.groupby('mouse').mean().reset_index().rename({'Log power': 'log_power'}, axis=1)
+        if y == 'Log power':
+            y = 'log_power'
+        lm = ols(f'{y}~stim', data=df).fit()
+        anova = sm.stats.anova_lm(lm, typ=2)
+        return anova['PR(>F)']['stim'] < 0.05
+    elif method == 'mlm':
+        df = df.rename({'Log power': 'log_power'}, axis=1)
+        if y == 'Log power':
+            y = 'log_power'
+        return mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
+
+
+def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)])):
+    y_scores = {}
+    for method, y in tqdm(list(itertools.product(['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],
+                                                 ['Log power', 'Power', ]))):
+        # y_scores[f'{method}, {y}']=[run_condition(true_slope,method,y) for true_slope in tqdm(true_slopes)]
+        y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
+            delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
+    return y_scores, true_slopes
+
+
+def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),
+                        draws=1000, warmup=500, num_chains=1, progress_bar=True):
     """
 
     :param data_cols: ['column_name1' 'column_name2']
@@ -60,9 +131,9 @@ def split_train_predict1(model, df, data_cols, fitting_args=None, index_cols=('m
     return trace
 
 
-def compare_models1(models: dict, df, data_cols: list, extra_args=None,
-                    index_cols=('mouse_code', 'neuron_code', 'stim'),
-                    draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
+def compare_models(models: dict, df, data_cols: list, extra_args=None,
+                   index_cols=('mouse_code', 'neuron_code', 'stim'),
+                   draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
     """
     compare_models(models={'Hier':bayes.Numpyro.model_hier,
                            'Hier+covariance':bayes.Numpyro.model_hier_covar,
@@ -99,14 +170,14 @@ def compare_models1(models: dict, df, data_cols: list, extra_args=None,
     # Run
     if do_parallel:
         # cant use utils because zip
-        traces = Parallel(n_jobs=14, verbose=3)(delayed(split_train_predict1)
+        traces = Parallel(n_jobs=14, verbose=3)(delayed(split_train_predict)
                                                 (model, df, data_cols, fitting_args, index_cols, draws, warmup,
                                                  num_chains,
                                                  progress_bar=False)
                                                 for model, fitting_args in
                                                 zip(models.values(), extra_args))
     else:
-        traces = [split_train_predict1(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
+        traces = [split_train_predict(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
                   for model, fitting_args in zip(models.values(), extra_args)]
 
     # save to results

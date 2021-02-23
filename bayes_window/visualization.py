@@ -98,7 +98,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Axis limits
-    scale = alt.Scale(zero=False,
+    scale = alt.Scale(zero=(do_make_change != False),
                       domain=[float(data['lower HDI'].min()),
                               float(data['higher HDI'].max())])
 
