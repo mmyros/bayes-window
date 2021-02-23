@@ -50,10 +50,10 @@ def plot_roc(y_scores, true_slopes):
     return chart
 
 
-def run_condition(true_slope, method='bw_student', y='Log power'):
+def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
     df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
                                                       n_mice=6,
-                                                      n_trials=10)
+                                                      n_trials=n_trials)
     if method[:2] == 'bw':
         bw = workflow.BayesWindow(df, y=y, levels=('stim', 'mouse'))
         bw.fit_slopes(
@@ -76,8 +76,11 @@ def run_condition(true_slope, method='bw_student', y='Log power'):
 
 def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)])):
     y_scores = {}
-    for method, y in tqdm(list(itertools.product(['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],
-                                                 ['Log power', 'Power', ]))):
+    for method, y, n_trials in tqdm(list(itertools.product(
+        ['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],
+        ['Log power', 'Power', ],
+        range(8, 30, 7)  # n trials
+    ))):
         # y_scores[f'{method}, {y}']=[run_condition(true_slope,method,y) for true_slope in tqdm(true_slopes)]
         y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
             delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
