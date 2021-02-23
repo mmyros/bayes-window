@@ -14,18 +14,19 @@ warnings.filterwarnings("ignore")
 
 # fake data generation
 def generate_fake_lfp(n_trials=10,
-                      n_neurons=10,
+                      n_mice=10,
                       dur=7,
                       mouse_response_slope=1.):
     # neuron becomes mouse to provide different baselines
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=n_trials,
-                                                         n_neurons=n_neurons,
-                                                         n_mice=5,
+                                                         n_neurons=n_mice,
+                                                         n_mice=2,
                                                          dur=dur,
+
                                                          mouse_response_slope=mouse_response_slope)
 
     df = df[df.mouse_code == 1]
-    df = df[df.neuron.astype(int) < n_neurons - 2]
+    df = df[df.neuron.astype(int) < n_mice - 2]
     df = df.drop('mouse', axis=1)
     # df_monster = df_monster.drop('mouse', axis=1)
     df = df.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)

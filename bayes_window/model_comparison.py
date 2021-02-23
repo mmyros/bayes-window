@@ -52,6 +52,7 @@ def plot_roc(y_scores, true_slopes):
 
 def run_condition(true_slope, method='bw_student', y='Log power'):
     df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
+                                                      n_mice=6,
                                                       n_trials=10)
     if method[:2] == 'bw':
         bw = workflow.BayesWindow(df, y=y, levels=('stim', 'mouse'))

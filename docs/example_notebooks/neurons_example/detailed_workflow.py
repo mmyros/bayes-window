@@ -13,9 +13,6 @@
 #     name: pycharm-d5912792
 # ---
 
-# + hideCode=false hidePrompt=false
-
-
 # + [markdown] hideCode=false hidePrompt=false
 # # Neurons example via low-level, flexible interface
 # ## Prepare
@@ -64,7 +61,7 @@ visualization.plot_data(x='neuron',y=dy, color='mouse_code',add_box=True,df=ddf)
 # + hideCode=false hidePrompt=false
 #y = list(set(df.columns) - set(index_cols))[0]
 trace = fit_numpyro(y=df[y].values,
-                    stim_on=(df['stim']).astype(int).values,
+                    stim=(df['stim']).astype(int).values,
                     treat=trans(df['neuron']),
                     subject=trans(df['mouse']),
                     progress_bar=True,
