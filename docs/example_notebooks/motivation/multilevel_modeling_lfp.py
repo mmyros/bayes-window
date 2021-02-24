@@ -7,22 +7,25 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.8.2
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: tf
 #     language: python
-#     name: python3
+#     name: tf
 # ---
 
+# + [markdown] slideshow={"slide_type": "slide"}
 # # Multilevel modeling of LFP
 # This is a slight reworking of the radon example from pymc3 https://docs.pymc.io/notebooks/multilevel_modeling.html
 #
 # Why this notebook? It's a common departure point to consider multilevel models in neuroscience.
 
+# + [markdown] slideshow={"slide_type": "fragment"}
 # Hierarchical or multilevel modeling is a generalization of regression modeling. *Multilevel models* are regression models in which the constituent model parameters are given **probability models**. This implies that model parameters are allowed to **vary by group**. Observational units are often naturally **clustered**. Clustering induces dependence between observations, despite random sampling of clusters and random sampling within clusters.
 #
 # A *hierarchical model* is a particular multilevel model where parameters are nested within one another. Some multilevel structures are not hierarchical -- e.g. "country" and "year" are not nested, but may represent separate, but overlapping, clusters of parameters. We will motivate this topic using a neuroscience example.
 
+# + [markdown] slideshow={"slide_type": "fragment"}
 # Example: LFP power (modified Gelman and Hill 2006)
 #
 # LFP power is a measure of neuronal activity. It can varies greatly from mouse to mouse.
@@ -36,12 +39,13 @@
 #
 #
 
+# + [markdown] slideshow={"slide_type": "skip"}
 # ## Data organization
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # First, we import the data from a local file, and extract data.
 
-# + pycharm={"is_executing": false} tags=["hide-input"]
+# + pycharm={"is_executing": false} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 import arviz as az
@@ -56,7 +60,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 RANDOM_SEED = 8924
 np.random.seed(286)
 
-# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 az.style.use("arviz-darkgrid")
@@ -66,10 +70,10 @@ srrs2.columns = srrs2.columns.map(str.strip)
 # Select a subset of "mice" from Minnesota
 srrs_mn = srrs2[srrs2.state=='MN'].copy()
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # Next, obtain the mouse-level predictor, power, by combining two variables.
 
-# + pycharm={"is_executing": false} tags=["hide-input"]
+# + pycharm={"is_executing": false} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 srrs_mn['fips'] = srrs_mn.stfips*1000 + srrs_mn.cntyfips
@@ -77,16 +81,16 @@ cty = pd.read_csv(pm.get_data('cty.dat'))
 cty_mn = cty[cty.st=='MN'].copy()
 cty_mn[ 'fips'] = 1000*cty_mn.stfips + cty_mn.ctfips
 
-# + pycharm={"name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 print(srrs_mn.columns,srrs_mn.shape)
 print(cty_mn.columns,cty_mn.shape)
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # Use the `merge` method to combine neuron- and mouse-level information in a single DataFrame.
 
-# + pycharm={"is_executing": false} tags=["hide-input"]
+# + pycharm={"is_executing": false} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 srrs_mn = srrs_mn.merge(cty_mn[['fips', 'Uppm']], on='fips')
@@ -95,11 +99,22 @@ u = np.log(srrs_mn.Uppm).unique()
 
 n = len(srrs_mn)
 
-# + pycharm={"is_executing": false} tags=["hide-input"]
+# + pycharm={"is_executing": false} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 srrs_mn['Uppm'].unique().shape,srrs_mn['activity'].unique().shape
 #plt.scatter(srrs_mn['Uppm'],srrs_mn['activity'])
+
+# HIDE CODE
+
+# Rename environmental variables to represent 
+# what we think of as a neuroscience example
+srrs_mn.rename({'floor':'no_stim','basement':'stim','county':'mouse',
+                'activity':'power'},axis=1,inplace=True)
+
+# HIDE CODE
+
+srrs_mn.head()
 
 # + pycharm={"is_executing": false} tags=["hide-input"]
 # HIDE CODE
@@ -114,10 +129,10 @@ srrs_mn.rename({'floor':'no_stim','basement':'stim','county':'mouse',
 
 srrs_mn.head()
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # We also need a lookup table (`dict`) for each unique mouse, for indexing.
 
-# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 srrs_mn.mouse = srrs_mn.mouse.map(str.strip)
@@ -125,10 +140,10 @@ mn_mice = srrs_mn.mouse.unique()
 n_mice = len(mn_mice)
 mouse_lookup = dict(zip(mn_mice, range(n_mice)))
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # Finally, create local copies of variables.
 
-# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 mouse = srrs_mn['mouse_code'] = srrs_mn.mouse.replace(mouse_lookup).values
@@ -136,15 +151,15 @@ power = srrs_mn.power
 srrs_mn['log_power'] = log_power = np.log(power + 0.1).values
 no_stim = srrs_mn.no_stim.values
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "slide"}
 # Distribution of power levels (log scale):
 
-# + pycharm={"name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "fragment"}
 # HIDE CODE
 
 srrs_mn.log_power.hist(bins=25);
-# -
 
+# + [markdown] slideshow={"slide_type": "slide"}
 # ## Conventional approaches
 #
 # The two conventional alternatives to modeling power exposure represent the two extremes of the bias-variance tradeoff:
@@ -165,12 +180,15 @@ srrs_mn.log_power.hist(bins=25);
 #
 # The errors $\epsilon_i$ may represent measurement error, temporal within-neuron variation, or variation among neurons.
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] slideshow={"slide_type": "slide"}
+# ## Complete pooling
+
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "fragment"}
 # We'll start by estimating the slope and intercept for the complete pooling model. You'll notice that we used an *index* variable instead of an *indicator* variable in the linear model below. There are two main reasons. One, this generalizes well to more-than-two-category cases. Two, this approach correctly considers that neither category has more prior uncertainty than the other. On the contrary, the indicator variable approach necessarily assumes that one of the categories has more uncertainty than the other: here, the cases when `no_stim=1` would take into account 2 priors ($\alpha + \beta$), whereas cases when `no_stim=0` would have only one prior ($\alpha$). But *a priori* we aren't more unsure about no_stim measurements than about stim measurements, so it makes sense to give them the same prior uncertainty.
 #
 # Now for the model:
 
-# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "fragment"}
 # HIDE CODE
 
 with pm.Model() as pooled_model:
@@ -183,10 +201,10 @@ with pm.Model() as pooled_model:
     
 pm.model_to_graphviz(pooled_model)
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # Before running the model let's do some prior predictive checks. Indeed, having sensible priors is not only a way to incorporate scientific knowledge into the model, it can also help and make the MCMC machinery faster -- here we are dealing with a simple linear regression, so no link function comes and distorts the outcome space; but one day this will happen to you and you'll need to think hard about your priors to help your MCMC sampler. So, better to train ourselves when it's quite easy than having to learn when it's very hard... There is a really neat function to do that in PyMC3:
 
-# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"is_executing": false, "name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 with pooled_model:
@@ -201,21 +219,21 @@ plt.xlabel("no_stim measurement (binary)")
 plt.xticks([0,1], ["stim", "no_stim"])
 plt.ylabel("Mean log power level");
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # I'm no expert in power levels, but, before seing the data, these priors seem to allow for quite a wide range of the mean log power level. But don't worry, we can always change these priors if sampling gives us hints that they might not be appropriate -- after all, priors are assumptions, not oaths; and as most assumptions, they can be tested.
 #
 # However, we can already think of an improvement. Do you see it? Remember what we said at the beginning: power levels tend to be higher in stims, so we could incorporate this prior scientific knowledge into our model by giving $a_{stim}$ a higher mean than $a_{no_stim}$. Here, there are so much data that the prior should be washed out anyway, but we should keep this fact in mind -- for future cases or if sampling proves more difficult than expected...
 #
 # Speaking of sampling, let's fire up the Bayesian machinery!
 
-# + tags=["hide-input"]
+# + tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 with pooled_model:
     pooled_trace = pm.fit()
 
 
-# + tags=["hide-input"]
+# + tags=["hide-input"] slideshow={"slide_type": "skip"}
  
 # HIDE CODE
 
@@ -224,19 +242,19 @@ with pooled_model:
     pooled_trace = pm.sample(1000, pm.NUTS(scaling=start), start=start, random_seed=RANDOM_SEED)
 az.summary(pooled_trace, round_to=2)
 
-# + pycharm={"name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "fragment"}
 # HIDE CODE
 
 with pooled_model:
     pooled_trace = pm.sample(1000, tune=2000, random_seed=RANDOM_SEED)
 az.summary(pooled_trace, round_to=2)
 
-# + [markdown] pycharm={"name": "#%% md\n"}
+# + [markdown] pycharm={"name": "#%% md\n"} slideshow={"slide_type": "skip"}
 # No divergences and a sampling that only took seconds -- this is the Flash of samplers! Here the chains look very good (good R hat, good effective sample size, small sd), but remember to check your chains after sampling -- `az.traceplot` is usually a good start.
 #
 # Let's see what it means on the outcome space: did the model pick-up the negative relationship between no_stim measurements and log power levels? What's the uncertainty around its estimates? To estimate the uncertainty around the neuron power levels (not the average level, but measurements that would be likely in neurons), we need to sample the likelihood `y` from the model. In another words, we need to do posterior predictive checks:
 
-# + pycharm={"name": "#%%\n"} tags=["hide-input"]
+# + pycharm={"name": "#%%\n"} tags=["hide-input"] slideshow={"slide_type": "skip"}
 # HIDE CODE
 
 with pooled_model:
@@ -247,6 +265,9 @@ power_stim, power_no_stim = ppc[:, 1], ppc[:, 0] # we know that no_stim=0/1 at t
 
 # + [markdown] pycharm={"name": "#%% md\n"}
 # We can then use these samples in our plot:
+
+# +
+# az.plot_hpd?
 
 # + pycharm={"name": "#%%\n"} tags=["hide-input"]
 # HIDE CODE
@@ -396,10 +417,10 @@ plt.tight_layout();
 
 # Neither of these models are satisfactory:
 #
-# * If we are trying to identify high-power mice, pooling is useless -- because, by definition, the pooled model estimates power at the state-level. In other words, pooling leads to maximal *underfitting*: the variation across mice is not taken into account and only the overall population is estimated.
-# * We do not trust extreme unpooled estimates produced by models using few observations. This leads to maximal *overfitting*: only the within-mouse variations are taken into account and the overall population (i.e the state-level, which tells us about similarites across mice) is not estimated. 
+# * If we are trying to identify high-power mice, pooling is useless -- because, by definition, the pooled model estimates power at the cohort-level. In other words, pooling leads to maximal *underfitting*: the variation across mice is not taken into account and only the overall population is estimated.
+# * We do not trust extreme unpooled estimates produced by models using few observations. This leads to maximal *overfitting*: only the within-mouse variations are taken into account and the overall population (i.e the cohort-level, which tells us about similarites across mice) is not estimated. 
 #
-# This issue is acute for small sample sizes, as seen above: in mice where we have few no_stim measurements, if power levels are higher for those data points than for stim ones (Aitkin, Koochiching, Ramsey), the model will estimate that power levels are higher in no_stims than stims for these mice. But we shouldn't trust this conclusion, because both scientific knowledge and the situation in other mice tell us that it is usually the reverse (stim power > no_stim power). So unless we have a lot of observations telling us otherwise for a given mouse, we should be skeptical and shrink our mouse-estimates to the state-estimates -- in other words, we should balance between cluster-level and population-level information, and the amount of shrinkage will depend on how extreme and how numerous the data in each cluster are. 
+# This issue is acute for small sample sizes, as seen above: in mice where we have few no_stim measurements, if power levels are higher for those data points than for stim ones (Aitkin, Koochiching, Ramsey), the model will estimate that power levels are higher in no_stims than stims for these mice. But we shouldn't trust this conclusion, because both scientific knowledge and the situation in other mice tell us that it is usually the reverse (stim power > no_stim power). So unless we have a lot of observations telling us otherwise for a given mouse, we should be skeptical and shrink our mouse-estimates to the cohort-estimates -- in other words, we should balance between cluster-level and population-level information, and the amount of shrinkage will depend on how extreme and how numerous the data in each cluster are. 
 #
 # But how do we do that? Well, ladies and gentlemen, let me introduce you to... hierarchical models!
 
@@ -426,9 +447,9 @@ plt.tight_layout();
 #
 # $$\hat{\alpha} \approx \frac{(n_j/\sigma_y^2)\bar{y}_j + (1/\sigma_{\alpha}^2)\bar{y}}{(n_j/\sigma_y^2) + (1/\sigma_{\alpha}^2)}$$
 #
-# Estimates for mice with smaller sample sizes will shrink towards the state-wide average.
+# Estimates for mice with smaller sample sizes will shrink towards the cohort-wide average.
 #
-# Estimates for mice with larger sample sizes will be closer to the unpooled mouse estimates and will influence the the state-wide average.
+# Estimates for mice with larger sample sizes will be closer to the unpooled mouse estimates and will influence the the cohort-wide average.
 
 # + tags=["hide-input"]
 # HIDE CODE
