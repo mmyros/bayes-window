@@ -16,7 +16,7 @@
 # # Neurons example: high-level interface
 # ## Generate some data
 
-from bayes_window import models
+from bayes_window import models, fake_spikes_explore
 from bayes_window.generative_models import generate_fake_spikes
 
 # +
@@ -32,7 +32,6 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=10,
 
 # +
 
-from bayes_window.visualization import fake_spikes_explore
 charts=fake_spikes_explore(df,df_monster,index_cols)
 [chart.display() for chart in charts];
 #fig_mice, fig_select, fig_neurons, fig_trials, fig_isi + fig_overlay, bar, box, fig_raster, bar_combined
