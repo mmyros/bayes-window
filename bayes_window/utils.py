@@ -1,7 +1,6 @@
 import warnings
 
 import arviz as az
-import inflection
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -21,6 +20,7 @@ def add_data_to_posterior(df_data,
                           do_make_change='subtract',
                           do_mean_over_trials=True,
                           ):
+    # group_name should be conditions
     if type(index_cols) == str:
         index_cols = [index_cols]
     index_cols = list(index_cols)
@@ -31,14 +31,16 @@ def add_data_to_posterior(df_data,
         index_cols.append(treatment_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(index_cols).mean().reset_index()
-        if 'combined_condition' in df_data:
-            # Back to string
-            df_data['combined_condition'] = df_data['combined_condition'].astype(str)
+        # TODO should still be string, but make_fold change will throw error.
+        # What happens if not do_mean_over_trials?
+        # if 'combined_condition' in df_data:
+        #     # Back to string
+        #     df_data['combined_condition'] = df_data['combined_condition'].astype(str)
     if do_make_change:
         # Make (fold) change
         df_data, y = make_fold_change(df_data,
                                       y=y,
-                                      index_cols=index_cols +['combined_condition'],
+                                      index_cols=index_cols,  # +['combined_condition'],
                                       treatment_name=treatment_name,
                                       treatments=conditions,
                                       fold_change_method=do_make_change,

@@ -1,8 +1,9 @@
-import statsmodels.formula.api as sm
 import warnings
 from importlib import reload
-import pandas as pd
+
 import altair as alt
+import pandas as pd
+import statsmodels.formula.api as sm
 from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import models
@@ -128,7 +129,8 @@ class BayesWindow():
                                                     index_cols=plot_index_cols,
                                                     treatment_name=self.treatment,
                                                     b_name=self.bname,
-                                                    group_name='combined_condition',
+                                                    group_name=self.condition,
+                                                    # TODO shoulnt this be comnined condition?
                                                     do_make_change=do_make_change,
                                                     do_mean_over_trials=True,
                                                     )
