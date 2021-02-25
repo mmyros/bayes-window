@@ -55,22 +55,16 @@ class BayesWindow():
 
     def fit_lme(self):
         # sm.stats.mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
-        # TODO LME
-        #
-        # A basic mixed model with fixed effects for the columns of
-        # ``exog`` and a random intercept for each distinct value of
-        # ``group``:
-        #
-        # Here is the statsmodels LME fit for a basic model with a random intercept. We are passing the endog and
-        # exog data directly to the LME init function as arrays. Also note that exog_re is specified explicitly in
-        # argument 4 as a random intercept (although this would also be the default if it were not specified).
-
-        model = MixedLM(endog=self.data[self.y],
-                        exog=self.data[self.condition],
-                        groups=self.data[self.group],
-                        # exog_re=exog.iloc[:, 0]
-                        )
-        result = model.fit()
+        # model = MixedLM(endog=self.data[self.y],
+        #                 exog=self.data[self.condition],
+        #                 groups=self.data[self.group],
+        #                 # exog_re=exog.iloc[:, 0]
+        #                 )
+        result= sm.mixedlm(f"{self.y} ~ 1+ {self.treatment}",
+                          self.data,
+                          groups=self.data[self.group]).fit()
+        # result.pvalues[self.treatment] < 0.05
+        # result = model.fit()
         res = result.summary().tables[1].iloc[:-1][['P>|z|', 'Coef.', '[0.025', '0.975]']].astype(float)
         res.rename({'P>|z|': 'p', 'Coef.': 'estimate', '[0.025': 'interval_lower', '0.975]': 'interval_higher'}, axis=1)
 
