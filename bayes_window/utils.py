@@ -57,7 +57,7 @@ def fill_row(group_val, rows, df_bayes, group_name):
     this_hdi = df_bayes.loc[df_bayes[group_name] == group_val]
     assert this_hdi.shape[0] > 0, \
         f'No such value {group_val} in {group_name}: it"s {df_bayes[group_name].unique()}'
-    for col in ['lower HDI', 'higher HDI', 'mean HDI']:
+    for col in ['lower interval', 'higher interval', 'mean interval']:
         rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
     return rows
 
@@ -67,7 +67,7 @@ def hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data):
     mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
                         coords={'hdi': ["mean"], group_name: hdi[group_name]},
                         dims=['hdi', group_name])
-    df_bayes = xr.concat([hdi, mean], 'hdi').rename('HDI').to_dataframe()
+    df_bayes = xr.concat([hdi, mean], 'hdi').rename('interval').to_dataframe()
     df_bayes = df_bayes.pivot_table(index=group_name, columns=['hdi', ]).reset_index()
     # Reset 2-level column from pivot_table:
     df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
@@ -86,9 +86,8 @@ def hdi2df_one_condition(trace, hdi, b_name, group_name, df_data):
     df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
     df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
     df_bayes[group_name] = df_data[group_name].iloc[0]
-    # TODO HDI-> interval
     for col in ['lower', 'higher', 'mean']:
-        df_data.insert(df_data.shape[1] - 1, col + ' HDI', df_bayes[col].values.squeeze())
+        df_data.insert(df_data.shape[1] - 1, col + ' interval', df_bayes[col].values.squeeze())
     return df_data
 
 

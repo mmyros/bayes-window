@@ -85,23 +85,23 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     data = base_chart.data if df is None else df
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
-    assert 'higher HDI' in data.columns
-    assert 'lower HDI' in data.columns
-    assert 'mean HDI' in data.columns
+    assert 'higher interval' in data.columns
+    assert 'lower interval' in data.columns
+    assert 'mean interval' in data.columns
     # alt.themes.enable('vox')
     alt.themes.enable('default')
     base_chart = base_chart or alt.Chart(data=df)
 
     # line
     chart = base_chart.mark_line(point=True, color='black').encode(
-        y=alt.Y('mean HDI:Q', impute=alt.ImputeParams(value='value')),
+        y=alt.Y('mean interval:Q', impute=alt.ImputeParams(value='value')),
         x=x,
     )
 
     # Axis limits
     scale = alt.Scale(zero=(do_make_change != False),
-                      domain=[float(data['lower HDI'].min()),
-                              float(data['higher HDI'].max())])
+                      domain=[float(data['lower interval'].min()),
+                              float(data['higher interval'].max())])
 
     # Make the zero line
     if do_make_change:
@@ -112,9 +112,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     # error_bars
     chart += base_chart.mark_rule().encode(
         x=x,
-        y=alt.Y('lower HDI:Q',
+        y=alt.Y('lower interval:Q',
                 title=title, scale=scale),
-        y2='higher HDI:Q',
+        y2='higher interval:Q',
     )
 
     return chart

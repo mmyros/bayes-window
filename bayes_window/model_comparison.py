@@ -62,7 +62,7 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
         bw.fit_slopes(
             model=models.model_hier_stim_one_codition,
             dist_y=method[3:], add_data=False, )
-        return bw.data_and_posterior['lower HDI'].iloc[0]
+        return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
         df = df.groupby('mouse').mean().reset_index().rename({'Log power': 'log_power'}, axis=1)
         if y == 'Log power':

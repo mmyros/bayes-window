@@ -31,9 +31,7 @@ Pretty and easy Bayesian estimation with data overlay
 
 TODO
 ----
-- API: separate conditions and treatment inputs
-   - Rename az trace variables/dims
-- Ensure return self on every method call - is that how it should work?
+- Rename az trace variables/dims
 - Enhance LMM integration
 - Diagnostic plots: bw.plot_diagnostics?
    - Need to rename az field names
