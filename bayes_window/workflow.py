@@ -24,18 +24,18 @@ class BayesWindow():
                  treatment,
                  condition=None,
                  group=None
-                 # levels=('stim', 'mouse', 'neuron'),
+                 # treatment='stim', condition='neuron', group='mouse',
                  ):
 
         # By convention, top condition is first in list of levels:
         # self.levels = list(levels)
-        self.condition = condition#self.levels[0] if len(self.levels) > 2 else None
+        self.condition = condition  # self.levels[0] if len(self.levels) > 2 else None
         # Estimate model
-        self.treatment = treatment#self.levels[2]
-        self.group = group #self.levels[1]  # Eg subject
+        self.treatment = treatment  # self.levels[2]
+        self.group = group  # self.levels[1]  # Eg subject
         self.y = y
         self.data = df.copy()
-        self.levels = self.condition+self.treatment+self.group # TODO get rid of levels altogether
+        self.levels = self.condition + self.treatment + self.group  # TODO get rid of levels altogether
 
         df['combined_condition'] = df[self.levels[0]].astype('str')
         for level in self.levels[1:]:

@@ -39,7 +39,7 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
 # Width works!
 reload(workflow)
 reload(visualization)
-bw=workflow.BayesWindow(df,y='isi',levels=('stim', 'mouse_code', 'neuron_code'),)
+bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron_code', group='mouse',)
 bw.plot().facet('neuron')
 
 bw.plot_posteriors_no_slope()
@@ -50,7 +50,7 @@ bw.facet(column='mouse',height=80,width=80)
 #facet,independent_axes=False, add data
 reload(workflow)
 reload(visualization)
-bw=workflow.BayesWindow(df,y='isi',levels=('stim', 'mouse', 'neuron'),)
+bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse',)
 
 bw.fit_conditions(model=models.model_single_normal,)
 
@@ -64,7 +64,7 @@ bw.facet(column='neuron', row='mouse',height=60).display()
 #Full: add_data=True, independent_axes=True
 reload(workflow)
 reload(visualization)
-bw = workflow.BayesWindow(df, y='isi', levels=('stim', 'mouse', 'neuron'))
+bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_conditions(model=models.model_single_normal)
 bw.plot(x='stim:O', independent_axes=True, add_data=True).display()
 bw.facet(column='neuron', row='mouse', width=90,height=120).display()

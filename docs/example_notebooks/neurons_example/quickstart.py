@@ -47,7 +47,7 @@ from importlib import reload
 reload(workflow)
 reload(visualization)
 
-bw=workflow.BayesWindow(df,y='isi', levels=('stim', 'mouse', 'neuron'))
+bw=workflow.BayesWindow(df,y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim,do_make_change='subtract',
              plot_index_cols=('stim', 'mouse', 'neuron'))
 

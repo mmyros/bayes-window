@@ -58,7 +58,7 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
                                                       n_mice=6,
                                                       n_trials=n_trials)
     if method[:2] == 'bw':
-        bw = workflow.BayesWindow(df, y=y, levels=('stim', 'mouse'))
+        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
         bw.fit_slopes(
             model=models.model_hier_stim_one_codition,
             dist_y=method[3:], add_data=False, )
