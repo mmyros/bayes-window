@@ -31,6 +31,9 @@ class BayesWindow():
         # Estimate model
         self.treatment = self.levels[2]
         self.group = self.levels[1]  # Eg subject
+        self.levels = list(levels)
+        self.y = y
+        self.data = df.copy()
 
         df['combined_condition'] = df[levels[0]].astype('str')
         for level in levels[1:]:
@@ -40,17 +43,13 @@ class BayesWindow():
         df['combined_condition'] = le.fit_transform(df['combined_condition'])
         # Transform conditions to integers as required by numpyro:
         self._key = dict()
-        self.levels = list(levels)
-        self.data = df.copy()
-        self.y = y
-
         for level in levels:
             self.data[level] = le.fit_transform(self.data[level])
             # Keep key for later use
             self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
 
     def fit_anova(self):
-        lm = sm.ols(f'{y}~stim', data=df).fit()
+        lm = sm.ols(f'{self.y}~stim', data=self.data).fit()
         anova = sm.stats.anova_lm(lm, typ=2)
         return anova['PR(>F)']['stim'] < 0.05
 
@@ -72,8 +71,8 @@ class BayesWindow():
                         # exog_re=exog.iloc[:, 0]
                         )
         result = model.fit()
-        model = sm.MixedLM(endog, exog, groups)
-        MixedLM(df[y], )
+        res = result.summary().tables[1].iloc[:-1][['P>|z|', 'Coef.', '[0.025', '0.975]']].astype(float)
+        res.rename({'P>|z|': 'p', 'Coef.': 'estimate', '[0.025': 'interval_lower', '0.975]': 'interval_higher'}, axis=1)
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 
