@@ -19,31 +19,33 @@ le = LabelEncoder()
 
 class BayesWindow():
     def __init__(self,
-                 df=None,
-                 y='isi',
-                 levels=('stim', 'mouse', 'neuron'),
-                 conditions=None,
-                 treatment=None
+                 df,
+                 y,
+                 treatment,
+                 condition=None,
+                 group=None
+                 # levels=('stim', 'mouse', 'neuron'),
                  ):
 
         # By convention, top condition is first in list of levels:
-        self.levels = list(levels)
-        self.condition = self.levels[0] if len(self.levels) > 2 else None
+        # self.levels = list(levels)
+        self.condition = condition#self.levels[0] if len(self.levels) > 2 else None
         # Estimate model
-        self.treatment = self.levels[2]
-        self.group = self.levels[1]  # Eg subject
+        self.treatment = treatment#self.levels[2]
+        self.group = group #self.levels[1]  # Eg subject
         self.y = y
         self.data = df.copy()
+        self.levels = self.condition+self.treatment+self.group # TODO get rid of levels altogether
 
-        df['combined_condition'] = df[levels[0]].astype('str')
-        for level in levels[1:]:
+        df['combined_condition'] = df[self.levels[0]].astype('str')
+        for level in self.levels[1:]:
             df['combined_condition'] += df[level].astype('str')
 
         # Transform conditions to integers as required by numpyro:
         df['combined_condition'] = le.fit_transform(df['combined_condition'])
         # Transform conditions to integers as required by numpyro:
         self._key = dict()
-        for level in levels:
+        for level in self.levels:
             self.data[level] = le.fit_transform(self.data[level])
             # Keep key for later use
             self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
@@ -97,7 +99,7 @@ class BayesWindow():
         assert do_make_change in ['subtract', 'divide']
         self.bname = 'b_stim_per_condition'
         self.do_make_change = do_make_change
-        self.add_data = add_data # We'll use this in plotting
+        self.add_data = add_data  # We'll use this in plotting
         if plot_index_cols is None:
             plot_index_cols = self.levels  # [-1]
         try:
