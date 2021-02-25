@@ -29,6 +29,20 @@ Pretty and easy Bayesian estimation with data overlay
 * Free software: MIT license
 * Documentation: https://bayes-window.readthedocs.io.
 
+TODO
+----
+- API: separate conditions and treatment inputs
+   - Rename az trace variables/dims
+- Ensure return self on every method call - is that how it should work?
+- Enhance LMM integration
+- Diagnostic plots: bw.plot_diagnostics?
+   - Need to rename az field names
+- Random-effect plots (eg intercepts): bw.plot_extras?
+- Universalize models.X
+   - y_dist input
+   - option to drop treatment
+- Model comparison: compare to no-treatment
+
 
 Features
 --------
