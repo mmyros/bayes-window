@@ -86,12 +86,9 @@ def hdi2df_one_condition(trace, hdi, b_name, group_name, df_data):
     df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
     df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
     df_bayes[group_name] = df_data[group_name].iloc[0]
-    df_bayes.columns += ' HDI'
-    # Check
-    if len(df_data[group_name].unique()) != len(df_bayes[group_name].unique()):
-        raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
-    for col in ['lower HDI', 'higher HDI', 'mean HDI']:
-        df_data.insert(df_data.shape[1] - 1, col, df_bayes[col].values.squeeze())
+    # TODO HDI-> interval
+    for col in ['lower', 'higher', 'mean']:
+        df_data.insert(df_data.shape[1] - 1, col + ' HDI', df_bayes[col].values.squeeze())
     return df_data
 
 

@@ -42,8 +42,8 @@ class BayesWindow():
             self.levels += [self.group]
 
         # String-valued combined condition
-        df['combined_condition'] = df[self.levels[1]].astype('str')
-        for level in self.levels[2:]:
+        df['combined_condition'] = df[self.levels[0]].astype('str')
+        for level in self.levels[1:]:
             df['combined_condition'] += df[level].astype('str')
 
         # Transform conditions to integers as required by numpyro:
@@ -107,6 +107,11 @@ class BayesWindow():
         self.add_data = add_data  # We'll use this in plotting
         if plot_index_cols is None:
             plot_index_cols = self.levels  # [-1]
+        if not self.condition:
+            warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
+            self.condition = 'dummy_condition'
+            import numpy as np
+            self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
                                      stim=self.data[self.treatment].values,
