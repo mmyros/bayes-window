@@ -20,18 +20,32 @@ class BayesWindow():
                  df=None,
                  y='isi',
                  levels=('stim', 'mouse', 'neuron'),
+                 conditions=None,
+                 treatment=None
                  ):
+
+        # By convention, top condition is first in list of levels:
+        self.condition = self.levels[0] if len(self.levels) > 2 else None
+        # Estimate model
+        self.treatment = self.levels[2]
+        self.group = self.levels[1]  # Eg subject
+
         df['combined_condition'] = df[levels[0]].astype('str')
         for level in levels[1:]:
             df['combined_condition'] += df[level].astype('str')
 
         # Transform conditions to integers as required by numpyro:
         df['combined_condition'] = le.fit_transform(df['combined_condition'])
-        # Keep key for later use- maybe we don't need to in this case
-        # key = dict(zip(range(len(le.classes_)), le.classes_))
+        # Transform conditions to integers as required by numpyro:
+        self._key = dict()
         self.levels = list(levels)
         self.data = df.copy()
         self.y = y
+
+        for level in levels:
+            self.data[level] = le.fit_transform(self.data[level])
+            # Keep key for later use
+            self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 
@@ -63,20 +77,11 @@ class BayesWindow():
         self.do_make_change = do_make_change
         if plot_index_cols is None:
             plot_index_cols = self.levels  # [-1]
-        # By convention, top condition is first in list of levels:
-        top_condition = self.levels[0]
-        # Transform conditions to integers as required by numpyro:
-        key = dict()
-        for level in self.levels:
-            self.data[level] = le.fit_transform(self.data[level])
-            # Keep key for later use
-            key[level] = dict(zip(range(len(le.classes_)), le.classes_))
-        # Estimate model
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
-                                     stim=self.data[top_condition].values,
-                                     treat=self.data[self.levels[2]].values if len(self.levels) > 2 else None,
-                                     subject=self.data[self.levels[1]].values,
+                                     stim=self.data[self.condition].values,
+                                     treat=self.data[self.treatment].values,
+                                     subject=self.data[self.group].values,
                                      progress_bar=False,
                                      model=model,
                                      n_draws=1000, num_chains=1,
@@ -84,7 +89,7 @@ class BayesWindow():
         except TypeError:
             # assert that model() has kwarg stim, because this is slopes
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
-        self.levels.remove(top_condition)
+        self.levels.remove(self.condition)
 
         self.add_data = add_data
         if add_data:
@@ -93,7 +98,7 @@ class BayesWindow():
                                                     trace=self.trace,
                                                     y=self.y,
                                                     index_cols=plot_index_cols,
-                                                    condition_name=top_condition,
+                                                    condition_name=self.condition,
                                                     b_name=self.bname,
                                                     group_name=self.levels[-1],
                                                     do_make_change=do_make_change,
@@ -104,9 +109,10 @@ class BayesWindow():
             df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.levels[-1])
 
         # Back to human-readable labels
-        [df_result[col].replace(key[col], inplace=True) for col in key.keys()
-         if (not col == top_condition) and (col in df_result)]
+        [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
+         if (not col == self.condition) and (col in df_result)]
         self.data_and_posterior = df_result
+        return self
 
     def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, **kwargs):
         # Set some options
