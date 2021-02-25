@@ -1,3 +1,5 @@
+from statsmodels.regression.mixed_linear_model import MixedLM
+import statsmodels.formula.api as sm
 import warnings
 from importlib import reload
 
@@ -46,6 +48,32 @@ class BayesWindow():
             self.data[level] = le.fit_transform(self.data[level])
             # Keep key for later use
             self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+
+    def fit_anova(self):
+        lm = sm.ols(f'{y}~stim', data=df).fit()
+        anova = sm.stats.anova_lm(lm, typ=2)
+        return anova['PR(>F)']['stim'] < 0.05
+
+    def fit_lme(self):
+        # sm.stats.mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
+        # TODO LME
+        #
+        # A basic mixed model with fixed effects for the columns of
+        # ``exog`` and a random intercept for each distinct value of
+        # ``group``:
+        #
+        # Here is the statsmodels LME fit for a basic model with a random intercept. We are passing the endog and
+        # exog data directly to the LME init function as arrays. Also note that exog_re is specified explicitly in
+        # argument 4 as a random intercept (although this would also be the default if it were not specified).
+
+        model = MixedLM(endog=self.data[self.y],
+                        exog=self.data[self.condition],
+                        groups=self.data[self.group],
+                        # exog_re=exog.iloc[:, 0]
+                        )
+        result = model.fit()
+        model = sm.MixedLM(endog, exog, groups)
+        MixedLM(df[y], )
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 
