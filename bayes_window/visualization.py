@@ -211,7 +211,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
         size=alt.value(2),
     )
 
-    data_fold_change, y = utils.make_fold_change(df, y='log_firing_rate', index_cols=index_cols,
+    data_fold_change, y = utils.make_fold_change(df, y='log_firing_rate',
+                                                 index_cols=list(set(index_cols)-{'i_spike'}),
                                                  treatment_name='stim',
                                                  treatments=(0, 1))
     box = alt.Chart(data=data_fold_change).mark_boxplot().encode(y=y).encode(

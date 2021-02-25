@@ -47,7 +47,7 @@ def add_data_to_posterior(df_data,
                                       do_take_mean=False)
         # Condition is removed from both index columns and dfbayes
         # index_cols.remove(treatment_name)
-        # df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')
+        # df_bayes = df_bayes.drop(treatment_name, axis=1, errors='ignore')
     # Convert to dataframe and fill in data:
     df_bayes = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
     return df_bayes
@@ -100,7 +100,6 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', group_name='conditio
     :return:
     """
 
-    # TODO this can be done by simply using Dataset.replace({})
     if df_data[group_name].dtype != 'int':
         warnings.warn(f"Was {group_name} a string? It's safer to recast it as integer. I'll try to do that...")
         df_data[group_name] = df_data[group_name].astype(int)
@@ -118,13 +117,13 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         assert treatment in df[treatment_name].unique(), f'{treatment} not in {df[treatment_name].unique()}'
     if y not in df.columns:
         raise ValueError(f'{y} is not a column in this dataset: {df.columns}')
-
+    index_cols = list(index_cols)
     # Take mean of trials:
     if do_take_mean:
-        df = df.groupby(list(index_cols)).mean().reset_index()
+        df = df.groupby(index_cols).mean().reset_index()
 
     # Make multiindex
-    mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()  # TODO get rid of i_spike
+    mdf = df.set_index(index_cols).copy()
     if (mdf.xs(treatments[1], level=treatment_name).size !=
         mdf.xs(treatments[0], level=treatment_name).size):
         raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
