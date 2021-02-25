@@ -52,7 +52,7 @@ def test_plot():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart = BayesWindow(df).plot(add_data=True)
+    chart = BayesWindow(df, y='isi', treatment='stim').plot(add_data=True)
     chart.display()
 
 

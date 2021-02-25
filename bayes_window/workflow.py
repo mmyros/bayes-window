@@ -1,8 +1,7 @@
-from statsmodels.regression.mixed_linear_model import MixedLM
 import statsmodels.formula.api as sm
 import warnings
 from importlib import reload
-
+import pandas as pd
 import altair as alt
 from sklearn.preprocessing import LabelEncoder
 
@@ -19,30 +18,35 @@ le = LabelEncoder()
 
 class BayesWindow():
     def __init__(self,
-                 df,
-                 y,
-                 treatment,
-                 condition=None,
-                 group=None
+                 df: pd.DataFrame,
+                 y: str,
+                 treatment: str,
+                 condition: str = None,
+                 group: str = None
                  # treatment='stim', condition='neuron', group='mouse',
                  ):
 
-        # By convention, top condition is first in list of levels:
-        # self.levels = list(levels)
-        self.condition = condition  # self.levels[0] if len(self.levels) > 2 else None
-        # Estimate model
-        self.treatment = treatment  # self.levels[2]
-        self.group = group  # self.levels[1]  # Eg subject
+        self.condition = condition  # if type(condition)=='list' else [condition]
+        # self.levels[0] if len(self.levels) > 2 else None
+        self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
+
+        self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.y = y
         self.data = df.copy()
-        self.levels = self.condition + self.treatment + self.group  # TODO get rid of levels altogether
+        # TODO get rid of levels altogether
+        self.levels = [self.treatment]
+        if condition:
+            self.levels += [self.condition]
+        if group:
+            self.levels += [self.group]
 
-        df['combined_condition'] = df[self.levels[0]].astype('str')
-        for level in self.levels[1:]:
+        # String-valued combined condition
+        df['combined_condition'] = df[self.levels[1]].astype('str')
+        for level in self.levels[2:]:
             df['combined_condition'] += df[level].astype('str')
 
         # Transform conditions to integers as required by numpyro:
-        df['combined_condition'] = le.fit_transform(df['combined_condition'])
+        self.data['combined_condition'] = le.fit_transform(df['combined_condition'])
         # Transform conditions to integers as required by numpyro:
         self._key = dict()
         for level in self.levels:
@@ -86,7 +90,7 @@ class BayesWindow():
                                                                   trace=self.trace,
                                                                   y=self.y,
                                                                   index_cols=self.levels[:3],
-                                                                  condition_name=self.levels[0],
+                                                                  treatment_name=self.levels[0],
                                                                   b_name=self.bname,
                                                                   group_name='combined_condition',
                                                                   do_mean_over_trials=False,
@@ -104,8 +108,8 @@ class BayesWindow():
             plot_index_cols = self.levels  # [-1]
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
-                                     stim=self.data[self.condition].values,
-                                     treat=self.data[self.treatment].values,
+                                     stim=self.data[self.treatment].values,
+                                     treat=self.data[self.condition].values,
                                      subject=self.data[self.group].values,
                                      progress_bar=False,
                                      model=model,
@@ -114,7 +118,7 @@ class BayesWindow():
         except TypeError:
             # assert that model() has kwarg stim, because this is slopes
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
-        self.levels.remove(self.condition)
+        # self.levels.remove(self.condition)
 
         if add_data:
             # Add data back
@@ -122,15 +126,15 @@ class BayesWindow():
                                                     trace=self.trace,
                                                     y=self.y,
                                                     index_cols=plot_index_cols,
-                                                    condition_name=self.condition,
+                                                    treatment_name=self.treatment,
                                                     b_name=self.bname,
-                                                    group_name=self.levels[-1],
+                                                    group_name='combined_condition',
                                                     do_make_change=do_make_change,
                                                     do_mean_over_trials=True,
                                                     )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
-            df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.levels[-1])
+            df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.group)
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
@@ -218,7 +222,9 @@ class BayesWindow():
         if not hasattr(self, 'bname'):
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
-            return visualization.plot_data(self.data, x=self.levels[0], y=self.y, color=self.levels[1], **kwargs)
+            return visualization.plot_data(self.data, x=self.levels[0], y=self.y,
+                                           color=self.levels[1] if len(self.levels) > 1 else None,
+                                           **kwargs)
 
         if self.bname == 'b_stim_per_condition':
             print('Plotting slopes')

@@ -48,10 +48,10 @@ reload(utils)
 y='isi'
 df['neuron']=df['neuron'].astype(int)
 ddf, dy = utils.make_fold_change(df,
-                         y=y,
-                         index_cols=('stim', 'mouse_code', 'neuron'),
-                         condition_name='stim',
-                         do_take_mean=True)
+                                 y=y,
+                                 index_cols=('stim', 'mouse_code', 'neuron'),
+                                 treatment_name='stim',
+                                 do_take_mean=True)
 
 visualization.plot_data(x='neuron',y=dy, color='mouse_code',add_box=True,df=ddf)
 
@@ -74,13 +74,13 @@ trace = fit_numpyro(y=df[y].values,
 # + hideCode=false hidePrompt=false
 reload(utils)
 df_both = utils.add_data_to_posterior(df,
-                                trace=trace,
-                                y=y,
-                                index_cols=['neuron', 'stim', 'mouse_code', ],
-                                condition_name='stim',
-                                b_name='b_stim_per_condition',  # for posterior
-                                group_name='neuron'  # for posterior
-                                )
+                                      trace=trace,
+                                      y=y,
+                                      index_cols=['neuron', 'stim', 'mouse_code', ],
+                                      treatment_name='stim',
+                                      b_name='b_stim_per_condition',  # for posterior
+                                      group_name='neuron'  # for posterior
+                                      )
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Plot data and posterior

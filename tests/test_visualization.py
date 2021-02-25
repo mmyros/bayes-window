@@ -45,7 +45,7 @@ def test_plot_data_and_posterior():
                               trace=trace,
                               y=y,
                               index_cols=['neuron', 'stim', 'mouse', ],
-                              condition_name='stim',
+                              treatment_name='stim',
                               conditions=(0, 1),
                               b_name='b_stim_per_condition',  # for posterior
                               group_name='neuron'  # for posterior

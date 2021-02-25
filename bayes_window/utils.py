@@ -14,7 +14,7 @@ def add_data_to_posterior(df_data,
                           trace,
                           y=None,  # Only for fold change
                           index_cols=None,
-                          condition_name='Event',
+                          treatment_name='Event',
                           conditions=None,  # eg ('stim_on', 'stim_stop')
                           b_name='b_stim_per_condition',  # for posterior
                           group_name='Condition code',  # for posterior
@@ -24,25 +24,27 @@ def add_data_to_posterior(df_data,
     if type(index_cols) == str:
         index_cols = [index_cols]
     index_cols = list(index_cols)
-
-    conditions = conditions or df_data[condition_name].drop_duplicates().sort_values().values
-    assert len(conditions) == 2, f'{condition_name}={conditions}. Should be only two instead!'
+    conditions = conditions or df_data[treatment_name].drop_duplicates().sort_values().values
+    assert len(conditions) == 2, f'{treatment_name}={conditions}. Should be only two instead!'
     assert do_make_change in [False, 'subtract', 'divide']
-    if not (condition_name in index_cols):
-        index_cols.append(condition_name)
+    if not (treatment_name in index_cols):
+        index_cols.append(treatment_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(index_cols).mean().reset_index()
+        if 'combined_condition' in df_data:
+            # Back to string
+            df_data['combined_condition'] = df_data['combined_condition'].astype(str)
     if do_make_change:
         # Make (fold) change
         df_data, y = make_fold_change(df_data,
                                       y=y,
-                                      index_cols=index_cols,
-                                      condition_name=condition_name,
-                                      conditions=conditions,
+                                      index_cols=index_cols +['combined_condition'],
+                                      treatment_name=treatment_name,
+                                      treatments=conditions,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
         # Condition is removed from both index columns and dfbayes
-        index_cols.remove(condition_name)
+        # index_cols.remove(treatment_name)
         # df_bayes = df_bayes.drop(condition_name, axis=1, errors='ignore')
     # Convert to dataframe and fill in data:
     df_bayes = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
@@ -51,6 +53,8 @@ def add_data_to_posterior(df_data,
 
 def fill_row(group_val, rows, df_bayes, group_name):
     this_hdi = df_bayes.loc[df_bayes[group_name] == group_val]
+    assert this_hdi.shape[0] > 0, \
+        f'No such value {group_val} in {group_name}: it"s {df_bayes[group_name].unique()}'
     for col in ['lower HDI', 'higher HDI', 'mean HDI']:
         rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
     return rows
@@ -66,6 +70,9 @@ def hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data):
     # Reset 2-level column from pivot_table:
     df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
     df_bayes.rename({f' {group_name}': group_name}, axis=1, inplace=True)
+    # Check
+    if len(df_data[group_name].unique()) != len(df_bayes[group_name].unique()):
+        raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
     rows = [fill_row(group_val, rows, df_bayes, group_name) for group_val, rows in df_data.groupby([group_name])]
     return pd.concat(rows)
 
@@ -78,6 +85,9 @@ def hdi2df_one_condition(trace, hdi, b_name, group_name, df_data):
     df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
     df_bayes[group_name] = df_data[group_name].iloc[0]
     df_bayes.columns += ' HDI'
+    # Check
+    if len(df_data[group_name].unique()) != len(df_bayes[group_name].unique()):
+        raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
     for col in ['lower HDI', 'higher HDI', 'mean HDI']:
         df_data.insert(df_data.shape[1] - 1, col, df_bayes[col].values.squeeze())
     return df_data
@@ -105,9 +115,9 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', group_name='conditio
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
-                     condition_name='stim', conditions=(0, 1), do_take_mean=False, fold_change_method='divide'):
-    for condition in conditions:
-        assert condition in df[condition_name].unique(), f'{condition} not in {df[condition_name].unique()}'
+                     treatment_name='stim', treatments=(0, 1), do_take_mean=False, fold_change_method='divide'):
+    for treatment in treatments:
+        assert treatment in df[treatment_name].unique(), f'{treatment} not in {df[treatment_name].unique()}'
     if y not in df.columns:
         raise ValueError(f'{y} is not a column in this dataset: {df.columns}')
 
@@ -116,33 +126,34 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         df = df.groupby(list(index_cols)).mean().reset_index()
 
     # Make multiindex
-    mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()
-    if (mdf.xs(conditions[1], level=condition_name).size !=
-        mdf.xs(conditions[0], level=condition_name).size):
+    mdf = df.set_index(list(set(index_cols) - {'i_spike'})).copy()  # TODO get rid of i_spike
+    if (mdf.xs(treatments[1], level=treatment_name).size !=
+        mdf.xs(treatments[0], level=treatment_name).size):
         raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
-                         f'{mdf.xs(conditions[0], level=condition_name).size, mdf.xs(conditions[1], level=condition_name).size}')
+                         f'{mdf.xs(treatments[0], level=treatment_name).size, mdf.xs(treatments[1], level=treatment_name).size}')
 
     # Subtract/divide
     try:
         if fold_change_method == 'subtract':
-            data = (mdf.xs(conditions[1], level=condition_name) -
-                    mdf.xs(conditions[0], level=condition_name)
-                    ).reset_index()
+            data = (
+                mdf.xs(treatments[1], level=treatment_name) -
+                mdf.xs(treatments[0], level=treatment_name)
+            ).reset_index()
         else:
-            data = (mdf.xs(conditions[1], level=condition_name) /
-                    mdf.xs(conditions[0], level=condition_name)
+            data = (mdf.xs(treatments[1], level=treatment_name) /
+                    mdf.xs(treatments[0], level=treatment_name)
                     ).reset_index()
     except Exception as e:
-        print(f'Try recasting {condition_name} as integer and try again. Alternatively, use bayes_window.workflow.'
+        print(f'Try recasting {treatment_name} as integer and try again. Alternatively, use bayes_window.workflow.'
               f' We do that automatically there ')
         raise e
     y1 = f'{y} diff'
     data.rename({y: y1}, axis=1, inplace=True)
     if np.isnan(data[y1]).all():
-        print(f'For {conditions}, data has all-nan {y1}: {data.head()}')
-        print(f'Condition 1: {mdf.xs(conditions[1], level=condition_name)[y].head()}')
-        print(f'Condition 2: {mdf.xs(conditions[0], level=condition_name)[y].head()}')
-        raise ValueError(f'For {conditions}, data has all-nan {y1}. Ensure there a similar condition to {y} does not'
+        print(f'For {treatments}, data has all-nan {y1}: {data.head()}')
+        print(f'Condition 1: {mdf.xs(treatments[1], level=treatment_name)[y].head()}')
+        print(f'Condition 2: {mdf.xs(treatments[0], level=treatment_name)[y].head()}')
+        raise ValueError(f'For {treatments}, data has all-nan {y1}. Ensure there a similar treatment to {y} does not'
                          f'shadow it!')
 
     y = y1

@@ -55,7 +55,8 @@ def facet(base_chart,
     return chart
 
 
-def plot_data(df=None, x=None, y=None, color=':O', add_box=True, base_chart=None, **kwargs):
+def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, **kwargs):
+    color = color or ':O'
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
@@ -211,8 +212,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
     )
 
     data_fold_change, y = utils.make_fold_change(df, y='log_firing_rate', index_cols=index_cols,
-                                                 condition_name='stim',
-                                                 conditions=(0, 1))
+                                                 treatment_name='stim',
+                                                 treatments=(0, 1))
     box = alt.Chart(data=data_fold_change).mark_boxplot().encode(y=y).encode(
         x=alt.X('neuron:N', ),
         y=alt.Y(y, scale=alt.Scale(zero=True)),
