@@ -1,11 +1,12 @@
 import bulwark.checks as ck
 from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_spikes
 from bayes_window.utils import add_data_to_posterior
 from bayes_window.visualization import fake_spikes_explore, plot_data_slope_trials
-from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
 
@@ -41,15 +42,15 @@ def test_plot_data_and_posterior():
                             n_draws=100, num_chains=1, )
 
         # Add data back
-        add_data_to_posterior(df,
-                              trace=trace,
-                              y=y,
-                              index_cols=['neuron', 'stim', 'mouse', ],
-                              treatment_name='stim',
-                              conditions=(0, 1),
-                              b_name='b_stim_per_condition',  # for posterior
-                              group_name='neuron'  # for posterior
-                              )
+        df_both, trace = add_data_to_posterior(df,
+                                               trace=trace,
+                                               y=y,
+                                               index_cols=['neuron', 'stim', 'mouse', ],
+                                               treatment_name='stim',
+                                               conditions=(0, 1),
+                                               b_name='b_stim_per_condition',  # for posterior
+                                               group_name='neuron'  # for posterior
+                                               )
 
         # Plot data and posterior
         # chart = plot_data_and_posterior(df=df_both, y=f'{y} diff', x='neuron', color='mouse', title=y)

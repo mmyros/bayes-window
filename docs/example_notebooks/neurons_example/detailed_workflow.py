@@ -17,14 +17,14 @@
 # # Neurons example via low-level, flexible interface
 # ## Prepare
 
+from sklearn.preprocessing import LabelEncoder
+
 # + hideCode=false hidePrompt=false
 from bayes_window import models
 from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_spikes
-from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
-
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Make some data
@@ -38,28 +38,30 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
 
 # + hideCode=false hidePrompt=false
 import numpy as np
-df['log_isi']=np.log10(df['isi'])
+
+df['log_isi'] = np.log10(df['isi'])
 
 # + hideCode=false hidePrompt=false
-from bayes_window import visualization,utils
+from bayes_window import visualization, utils
 from importlib import reload
+
 reload(visualization)
 reload(utils)
-y='isi'
-df['neuron']=df['neuron'].astype(int)
+y = 'isi'
+df['neuron'] = df['neuron'].astype(int)
 ddf, dy = utils.make_fold_change(df,
                                  y=y,
                                  index_cols=('stim', 'mouse_code', 'neuron'),
                                  treatment_name='stim',
                                  do_take_mean=True)
 
-visualization.plot_data(x='neuron',y=dy, color='mouse_code',add_box=True,df=ddf)
+visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=ddf)
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Estimate model
 
 # + hideCode=false hidePrompt=false
-#y = list(set(df.columns) - set(index_cols))[0]
+# y = list(set(df.columns) - set(index_cols))[0]
 trace = fit_numpyro(y=df[y].values,
                     stim=(df['stim']).astype(int).values,
                     treat=trans(df['neuron']),
@@ -73,31 +75,31 @@ trace = fit_numpyro(y=df[y].values,
 
 # + hideCode=false hidePrompt=false
 reload(utils)
-df_both = utils.add_data_to_posterior(df,
-                                      trace=trace,
-                                      y=y,
-                                      index_cols=['neuron', 'stim', 'mouse_code', ],
-                                      treatment_name='stim',
-                                      b_name='b_stim_per_condition',  # for posterior
-                                      group_name='neuron'  # for posterior
-                                      )
+df_both, trace = utils.add_data_to_posterior(df,
+                                             trace=trace,
+                                             y=y,
+                                             index_cols=['neuron', 'stim', 'mouse_code', ],
+                                             treatment_name='stim',
+                                             b_name='b_stim_per_condition',  # for posterior
+                                             group_name='neuron'  # for posterior
+                                             )
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Plot data and posterior
 
 # + hideCode=false hidePrompt=false
-#BayesWindow.plot_posteriors_slopes(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
+# BayesWindow.plot_posteriors_slopes(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
 
 
-chart_d = visualization.plot_data(df=df_both,x='neuron', y=f'{y} diff',color='mouse_code')
+chart_d = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code')
 chart_d
 
 # + hideCode=false hidePrompt=false
-chart_p = visualization.plot_posterior(df=df_both, title=f'd_{y}', x='neuron',)
+chart_p = visualization.plot_posterior(df=df_both, title=f'd_{y}', x='neuron', )
 chart_p
 
 # + hideCode=false hidePrompt=false
-(chart_d+chart_p).resolve_scale(y='independent')
+(chart_d + chart_p).resolve_scale(y='independent')
 
 # + hideCode=false hidePrompt=false
-(chart_d+chart_p).facet(column='neuron')
+(chart_d + chart_p).facet(column='neuron')

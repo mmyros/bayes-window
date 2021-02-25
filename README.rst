@@ -31,8 +31,8 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- Rename az trace variables/dims
 - Enhance LMM integration
+- Test more than one condition
 - Diagnostic plots: bw.plot_diagnostics?
    - Need to rename az field names
 - Random-effect plots (eg intercepts): bw.plot_extras?

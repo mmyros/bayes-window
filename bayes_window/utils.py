@@ -41,8 +41,8 @@ def add_data_to_posterior(df_data,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:
-    df_bayes = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
-    return df_bayes
+    df_bayes, trace = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
+    return df_bayes, trace
 
 
 def fill_row(group_val, rows, df_bayes, group_name):
@@ -55,7 +55,6 @@ def fill_row(group_val, rows, df_bayes, group_name):
 
 
 def hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data):
-    hdi = hdi.rename({f'{b_name}_dim_0': group_name})
     mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
                         coords={'hdi': ["mean"], group_name: hdi[group_name]},
                         dims=['hdi', group_name])
@@ -91,16 +90,22 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', group_name='conditio
     :param b_name:
     :return:
     """
-
+    # TODO this is lazy. There may be more than one condition, need to include them all instead of combined_condition
+    if f'{b_name}_dim_0' in trace:
+        trace = trace.rename({f'{b_name}_dim_0': group_name})
+    if f'a_subject_dim_0' in trace:
+        trace = trace.rename({f'a_subject_dim_0': 'subject'})
+    # if 'mu_per_condition_dim_0' in trace:
+    #     trace = trace.rename({'mu_per_condition_dim_0': group_name})
     if df_data[group_name].dtype != 'int':
         warnings.warn(f"Was {group_name} a string? It's safer to recast it as integer. I'll try to do that...")
         df_data[group_name] = df_data[group_name].astype(int)
 
     hdi = az.hdi(trace)[b_name]
     if hdi.ndim == 1:
-        return hdi2df_one_condition(trace, hdi, b_name, group_name, df_data)
+        return hdi2df_one_condition(trace, hdi, b_name, group_name, df_data), trace
     else:
-        return hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data)
+        return hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data), trace
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),

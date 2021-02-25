@@ -2,6 +2,7 @@ import warnings
 from importlib import reload
 
 import altair as alt
+import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
 from sklearn.preprocessing import LabelEncoder
@@ -24,16 +25,18 @@ class BayesWindow():
                  treatment: str,
                  condition: str = None,
                  group: str = None
-                 # treatment='stim', condition='neuron', group='mouse',
                  ):
 
         self.condition = condition  # if type(condition)=='list' else [condition]
         # self.levels[0] if len(self.levels) > 2 else None
         self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
-
         self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.y = y
         self.data = df.copy()
+        # Preallocate attributes:
+        # self.b_name = None  # Depends on model we'll fit
+        # self.do_make_change = None  # Depends on plotting input
+        # self.add_data = None  # We'll use this in plotting
         # TODO get rid of levels altogether
         self.levels = [self.treatment]
         if condition:
@@ -56,9 +59,9 @@ class BayesWindow():
             self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
 
     def fit_anova(self):
+        from statsmodels.stats.anova import anova_lm
         lm = sm.ols(f'{self.y}~stim', data=self.data).fit()
-        anova = sm.stats.anova_lm(lm, typ=2)
-        return anova['PR(>F)']['stim'] < 0.05
+        return anova_lm(lm, typ=2)['PR(>F)']['stim'] < 0.05
 
     def fit_lme(self):
         # sm.stats.mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
@@ -79,30 +82,31 @@ class BayesWindow():
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 
         self.model = model
-        self.bname = 'mu_per_condition'
+        self.b_name = 'mu_per_condition'
         # Estimate model
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  treat=self.data['combined_condition'].values,
                                  model=model,
                                  )
+
         # Add data back
         if add_data:
-            self.data_and_posterior = utils.add_data_to_posterior(df_data=self.data,
-                                                                  trace=self.trace,
-                                                                  y=self.y,
-                                                                  index_cols=self.levels[:3],
-                                                                  treatment_name=self.levels[0],
-                                                                  b_name=self.bname,
-                                                                  group_name='combined_condition',
-                                                                  do_mean_over_trials=False,
-                                                                  do_make_change=False
-                                                                  )
+            self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data,
+                                                                              trace=self.trace,
+                                                                              y=self.y,
+                                                                              index_cols=self.levels[:3],
+                                                                              treatment_name=self.levels[0],
+                                                                              b_name=self.b_name,
+                                                                              group_name='combined_condition',
+                                                                              do_mean_over_trials=False,
+                                                                              do_make_change=False
+                                                                              )
 
     def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
                    plot_index_cols=None, **kwargs):
         # TODO case with no group_name
         assert do_make_change in ['subtract', 'divide']
-        self.bname = 'b_stim_per_condition'
+        self.b_name = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         self.add_data = add_data  # We'll use this in plotting
         if plot_index_cols is None:
@@ -110,7 +114,6 @@ class BayesWindow():
         if not self.condition:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
             self.condition = 'dummy_condition'
-            import numpy as np
             self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
@@ -124,24 +127,22 @@ class BayesWindow():
         except TypeError:
             # assert that model() has kwarg stim, because this is slopes
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
-        # self.levels.remove(self.condition)
-
         if add_data:
             # Add data back
-            df_result = utils.add_data_to_posterior(df_data=self.data,
-                                                    trace=self.trace,
-                                                    y=self.y,
-                                                    index_cols=plot_index_cols,
-                                                    treatment_name=self.treatment,
-                                                    b_name=self.bname,
-                                                    group_name=self.condition,
-                                                    # TODO shoulnt this be comnined condition?
-                                                    do_make_change=do_make_change,
-                                                    do_mean_over_trials=True,
-                                                    )
+            df_result, self.trace = utils.add_data_to_posterior(df_data=self.data,
+                                                                trace=self.trace,
+                                                                y=self.y,
+                                                                index_cols=plot_index_cols,
+                                                                treatment_name=self.treatment,
+                                                                b_name=self.b_name,
+                                                                group_name=self.condition,
+                                                                # TODO shoulnt this be comnined condition?
+                                                                do_make_change=do_make_change,
+                                                                do_mean_over_trials=True,
+                                                                )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
-            df_result = trace2df(self.trace, self.data, b_name=self.bname, group_name=self.group)
+            df_result, self.trace = trace2df(self.trace, self.data, b_name=self.b_name, group_name=self.group)
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
@@ -226,17 +227,17 @@ class BayesWindow():
 
     def plot(self, **kwargs):
         # Convenience function
-        if not hasattr(self, 'bname'):
+        if not hasattr(self, 'b_name'):
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
             return visualization.plot_data(self.data, x=self.levels[0], y=self.y,
                                            color=self.levels[1] if len(self.levels) > 1 else None,
                                            **kwargs)
 
-        if self.bname == 'b_stim_per_condition':
+        if self.b_name == 'b_stim_per_condition':
             print('Plotting slopes')
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
-        elif self.bname == 'mu_per_condition':
+        elif self.b_name == 'mu_per_condition':
             print('Plotting posteriors')
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
         else:
