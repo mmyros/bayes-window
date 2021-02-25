@@ -31,23 +31,15 @@ def add_data_to_posterior(df_data,
         index_cols.append(treatment_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(index_cols).mean().reset_index()
-        # TODO should still be string, but make_fold change will throw error.
-        # What happens if not do_mean_over_trials?
-        # if 'combined_condition' in df_data:
-        #     # Back to string
-        #     df_data['combined_condition'] = df_data['combined_condition'].astype(str)
     if do_make_change:
         # Make (fold) change
         df_data, y = make_fold_change(df_data,
                                       y=y,
-                                      index_cols=index_cols,  # +['combined_condition'],
+                                      index_cols=index_cols,
                                       treatment_name=treatment_name,
                                       treatments=conditions,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
-        # Condition is removed from both index columns and dfbayes
-        # index_cols.remove(treatment_name)
-        # df_bayes = df_bayes.drop(treatment_name, axis=1, errors='ignore')
     # Convert to dataframe and fill in data:
     df_bayes = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
     return df_bayes
