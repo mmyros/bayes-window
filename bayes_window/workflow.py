@@ -27,11 +27,11 @@ class BayesWindow():
                  ):
 
         # By convention, top condition is first in list of levels:
+        self.levels = list(levels)
         self.condition = self.levels[0] if len(self.levels) > 2 else None
         # Estimate model
         self.treatment = self.levels[2]
         self.group = self.levels[1]  # Eg subject
-        self.levels = list(levels)
         self.y = y
         self.data = df.copy()
 
@@ -60,13 +60,14 @@ class BayesWindow():
         #                 groups=self.data[self.group],
         #                 # exog_re=exog.iloc[:, 0]
         #                 )
-        result= sm.mixedlm(f"{self.y} ~ 1+ {self.treatment}",
-                          self.data,
-                          groups=self.data[self.group]).fit()
+        result = sm.mixedlm(f"{self.y} ~ 1+ {self.treatment}",
+                            self.data,
+                            groups=self.data[self.group]).fit()
         # result.pvalues[self.treatment] < 0.05
         # result = model.fit()
         res = result.summary().tables[1].iloc[:-1][['P>|z|', 'Coef.', '[0.025', '0.975]']].astype(float)
         res.rename({'P>|z|': 'p', 'Coef.': 'estimate', '[0.025': 'interval_lower', '0.975]': 'interval_higher'}, axis=1)
+        return res
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 
@@ -96,6 +97,7 @@ class BayesWindow():
         assert do_make_change in ['subtract', 'divide']
         self.bname = 'b_stim_per_condition'
         self.do_make_change = do_make_change
+        self.add_data = add_data # We'll use this in plotting
         if plot_index_cols is None:
             plot_index_cols = self.levels  # [-1]
         try:
@@ -112,7 +114,6 @@ class BayesWindow():
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
         self.levels.remove(self.condition)
 
-        self.add_data = add_data
         if add_data:
             # Add data back
             df_result = utils.add_data_to_posterior(df_data=self.data,
