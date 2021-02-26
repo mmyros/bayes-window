@@ -284,12 +284,13 @@ class BayesWindow():
             print('Plotting posteriors')
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
-    def facet(self, row=None, column=None, width=50, height=60):
-        assert row or column
+    def facet(self, width=50, height=60, **kwargs):
+        
+        assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
         if self.independent_axes is None:
             raise RuntimeError('Plot first, then you can use facet')
         if self.independent_axes:
-            self.facetchart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)
+            self.facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         else:
-            self.facetchart = self.chart.properties(width=width, height=height).facet(row=row, column=column)
+            self.facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
         return self.facetchart

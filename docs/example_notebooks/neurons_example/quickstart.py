@@ -75,3 +75,16 @@ bw.plot(x='neuron',color='mouse',independent_axes=True)
 # ## Also TODO where is the zero line?
 
 bw.facet(column='neuron')
+
+    window=workflow.BayesWindow(df,y='isi',
+                                treatment='stim',
+                                condition='neuron',
+                                group='mouse')
+    window.fit_slopes(model=models.model_hier_normal_stim,
+                      #plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
+                     )
+    c=window.plot_posteriors_slopes(x='neuron', color='i_trial')
+
+    
+    window.plot_posteriors_slopes()#x='Stim phase', color='Fid')#,independent_axes=True)
+    window.facet(column='neuron',row='mouse')
