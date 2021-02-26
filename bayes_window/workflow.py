@@ -26,7 +26,12 @@ class BayesWindow():
                  condition: str = None,
                  group: str = None
                  ):
-
+        assert y in df.columns
+        assert treatment in df.columns
+        if condition:
+            assert condition in df.columns
+        if group:
+            assert group in df.columns
         self.condition = condition  # if type(condition)=='list' else [condition]
         # self.levels[0] if len(self.levels) > 2 else None
         self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
@@ -34,9 +39,9 @@ class BayesWindow():
         self.y = y
         self.data = df.copy()
         # Preallocate attributes:
-        # self.b_name = None  # Depends on model we'll fit
-        # self.do_make_change = None  # Depends on plotting input
-        # self.add_data = None  # We'll use this in plotting
+        self.b_name = None  # Depends on model we'll fit
+        self.do_make_change = None  # Depends on plotting input
+        self.add_data = None  # We'll use this in plotting
         # TODO get rid of levels altogether
         self.levels = [self.treatment]
         if condition:
@@ -63,21 +68,48 @@ class BayesWindow():
         lm = sm.ols(f'{self.y}~stim', data=self.data).fit()
         return anova_lm(lm, typ=2)['PR(>F)']['stim'] < 0.05
 
-    def fit_lme(self):
-        # sm.stats.mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
+    def fit_lme(self, add_data=False, do_make_change='divide'):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
         #                 # exog_re=exog.iloc[:, 0]
         #                 )
-        result = sm.mixedlm(f"{self.y} ~ 1+ {self.treatment}",
+        # dehumanize all columns and variable names for statsmodels:
+        [self.data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in self.data.columns]
+        self.y = self.y.replace(" ", "_")
+        self.group = self.group.replace(" ", "_")
+        self.treatment = self.treatment.replace(" ", "_")
+        if self.condition:
+            self.condition = self.condition.replace(" ", "_")
+            formula = f"{self.y} ~ {self.condition} + {self.treatment}"
+        else:
+            formula = f"{self.y} ~ 1 + {self.treatment}"
+        print(f'Using formula {formula}')
+        result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
-        # result.pvalues[self.treatment] < 0.05
-        # result = model.fit()
         res = result.summary().tables[1].iloc[:-1][['P>|z|', 'Coef.', '[0.025', '0.975]']].astype(float)
-        res.rename({'P>|z|': 'p', 'Coef.': 'estimate', '[0.025': 'interval_lower', '0.975]': 'interval_higher'}, axis=1)
-        return res
+        res = res.rename({'P>|z|': 'p',
+                          'Coef.': 'mean interval',
+                          '[0.025': 'higher interval',
+                          '0.975]': 'lower interval'}, axis=1)
+        if add_data:
+            if self.condition:
+                raise NotImplementedError("I don't understand if there is a way to get separate estimates "
+                                          "of slope per condition in LME, or do you just get an effect size estimate??")
+                # like in hdi2df:
+                rows = [fill_row(group_val, rows, res, group_name=self.condition)
+                        for group_val, rows in self.data.groupby([self.condition])
+                        ]
+                self.data_and_posterior = pd.concat(rows)
+            else:
+                # like in hdi2df_one_condition():
+                for col in ['lower interval', 'higher interval', 'mean interval']:
+                    self.data.insert(self.data.shape[1],
+                                     col,
+                                     res.loc[self.treatment, col])
+
+        return self
 
     def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
 

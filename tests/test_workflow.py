@@ -8,6 +8,26 @@ from bayes_window.workflow import BayesWindow
 trans = LabelEncoder().fit_transform
 
 
+def test_fit_lme():
+    df, df_monster, index_cols, _ = generate_fake_lfp()
+    bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    bw.fit_lme(add_data=False, )
+
+
+def test_fit_lme_w_data():
+    df, df_monster, index_cols, _ = generate_fake_lfp()
+
+    bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    bw.fit_lme(add_data=True, do_make_change='divide')
+
+
+def test_fit_lme_w_data_condition():
+    df, df_monster, index_cols, _ = generate_fake_spikes()
+
+    bw = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
+    bw.fit_lme(add_data=True, do_make_change='divide')
+
+
 def test_estimate_posteriors():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
@@ -240,3 +260,4 @@ def test_single_condition_nodata_dists():
                       do_make_change='divide', dist_y=dist)
         plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+
