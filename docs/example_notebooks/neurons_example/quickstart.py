@@ -49,6 +49,16 @@ reload(visualization)
 bw=workflow.BayesWindow(df,y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim,do_make_change='subtract',
              plot_index_cols=('stim', 'mouse', 'neuron'))
+# -
+
+bw.plot_posteriors_slopes(add_box=True, independent_axes=False,x='neuron:O',color='mouse')
+
+
+bw.plot_posteriors_slopes(add_box=False, independent_axes=True,x='neuron:O',color='mouse')
+
+
+bw.plot_posteriors_slopes(independent_axes=False,x='neuron:O',color='mouse')
+
 
 # +
 chart=bw.plot_posteriors_slopes(add_box=True, independent_axes=True,x='neuron:O',color='mouse')
@@ -60,5 +70,8 @@ chart.resolve_scale(y='independent')
 
 bw.plot(x='neuron',color='mouse',independent_axes=True)
 
+
+# This is not very helpful, bc why would you ever have all axes separate? 
+# ## Also TODO where is the zero line?
 
 bw.facet(column='neuron')

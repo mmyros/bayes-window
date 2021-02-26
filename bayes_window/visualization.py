@@ -88,22 +88,24 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     assert 'mean interval' in data.columns
     # alt.themes.enable('vox')
     alt.themes.enable('default')
-    base_chart = base_chart or alt.Chart(data=df)
+    base_chart = base_chart or alt.Chart(data=data)
 
     # line
-    chart = base_chart.mark_line(point=True, color='black').encode(
+    chart = base_chart.mark_line(clip=True, point=True, color='black').encode(
         y=alt.Y('mean interval:Q', impute=alt.ImputeParams(value='value')),
         x=x,
     )
+    do_make_change = do_make_change!=False
 
     # Axis limits
-    scale = alt.Scale(zero=(do_make_change != False),
-                      domain=[float(data['lower interval'].min()),
-                              float(data['higher interval'].max())])
+    minmax=[float(data['lower interval'].min()), 0,
+                              float(data['higher interval'].max())]
+    scale = alt.Scale(zero=do_make_change,  # Any string or True
+                      domain=[min(minmax), max(minmax)])
 
     # Make the zero line
     if do_make_change:
-        data['zero'] = 0
+        base_chart.data['zero'] = 0
         chart += base_chart.mark_rule(color='black', size=.1, opacity=.6).encode(y='zero')
         title = f'Δ {title}'
 

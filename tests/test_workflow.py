@@ -5,6 +5,19 @@ from bayes_window.workflow import BayesWindow
 
 trans = LabelEncoder().fit_transform
 
+def test_slopes_dont_make_change():
+    
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
+                                                                n_neurons=3,
+                                                                n_mice=4,
+                                                                dur=7,
+                                                               mouse_response_slope=16)
+    bw=BayesWindow(df,y='isi', treatment='stim', condition='neuron', group='mouse')
+    try:
+            bw.fit_slopes(add_data=False, model=models.model_hier_normal_stim,do_make_change=False,
+                          plot_index_cols=('stim', 'mouse', 'neuron'))
+    except ValueError:
+        pass
 
 def test_fit_lme():
     df, df_monster, index_cols, _ = generate_fake_lfp()

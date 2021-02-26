@@ -39,27 +39,60 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
 # Width works!
 reload(workflow)
 reload(visualization)
-bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron_code', group='mouse',)
+bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse',)
 bw.plot().facet('neuron')
+
+# # TODO this default is fishy
 
 bw.plot_posteriors_no_slope()
 
+# This is stil fishy: why vertical lines? all sources of variance should be accounted for
+
+bw.plot_posteriors_no_slope(x='stim', detail='neuron', color='mouse:O')
+
+# It's because of trial, look:
+
+bw.plot_posteriors_no_slope(x='stim', color='neuron:O')
+bw.facet(column='mouse')
+
+bw.detail='i_trial'
+bw.plot_posteriors_no_slope(x='stim', color='neuron:O')
+
+# # And this default is thus fishy,too
+
 bw.facet(column='mouse',height=80,width=80)
+
+# TODO posterior facets dont work
+
+# Is this bc chart_p and chart_d traded places?
+
+# +
+reload(workflow)
+reload(visualization)
+bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
+
+bw.fit_conditions(model=models.model_single_normal,)
+
+bw.plot_posteriors_no_slope(x='stim:O',independent_axes=False,add_data=False).display()
+
 
 # +
 #facet,independent_axes=False, add data
 reload(workflow)
 reload(visualization)
-bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse',)
+df.neuron=df.neuron.astype(int)
+bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
 
 bw.fit_conditions(model=models.model_single_normal,)
 
-bw.plot(x='stim:O',independent_axes=False,add_data=True).display()
+bw.plot_posteriors_no_slope(x='stim:O',independent_axes=False,add_data=True);
+
 #builtin facet
 bw.chart.properties(height=60).facet(column='neuron', row='mouse').display()
+# -
+
 # smart facet
 bw.facet(column='neuron', row='mouse',height=60).display()
-# -
 
 #Full: add_data=True, independent_axes=True
 reload(workflow)
