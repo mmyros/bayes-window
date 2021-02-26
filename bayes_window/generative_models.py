@@ -37,6 +37,14 @@ def generate_fake_lfp(n_trials=10,
     return df, None, index_cols, None
 
 
+def generate_spikes_stim_types(mouse_response_slope=3, **kwargs):
+    df1 = generate_fake_spikes(mouse_response_slope=mouse_response_slope, **kwargs)[0]
+    df1.insert(0, 'stim_strength', np.ones(df1.shape[0]))
+    df2 = generate_fake_spikes(mouse_response_slope=2 * mouse_response_slope, **kwargs)[0]
+    df2.insert(0, 'stim_strength', 2 * np.ones(df1.shape[0]))
+    return pd.concat([df1, df2])
+
+
 def generate_fake_spikes(n_trials=6,
                          n_neurons=8,
                          n_mice=10,

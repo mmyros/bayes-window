@@ -1,7 +1,5 @@
-from sklearn.preprocessing import LabelEncoder
-
 from bayes_window import models
-from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
+from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
 
@@ -94,6 +92,22 @@ def test_estimate_posteriors_slope():
     chart.display()
 
 
+def test_estimate_posteriors_slope_strengths():
+    df = generate_spikes_stim_types(mouse_response_slope=3,
+                                    n_trials=2,
+                                    n_neurons=3,
+                                    n_mice=4,
+                                    dur=2, )
+    if 1:  # TODO this will be hairy
+        bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+        bw.fit_slopes(models.model_hier_lognormal_stim, do_mean_over_trials=False, plot_index_cols=None)
+
+        chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse', add_data=False)
+        chart.display()
+        chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code', add_data=False)
+        chart.display()
+
+
 def test_estimate_posteriors_data_overlay_slope():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
@@ -116,7 +130,7 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope():
     bw.fit_slopes(model=models.model_hier_lognormal_stim)
     chart = bw.plot(independent_axes=True, add_data=True, )
     chart.display()
-    chart = bw.facet(column='neuron_code', row='mouse_code')
+    chart = bw.facet(column='neuron_code', row='mouse')
     chart.display()
 
 
@@ -263,4 +277,3 @@ def test_single_condition_nodata_dists():
                       do_make_change='divide', dist_y=dist)
         plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
-

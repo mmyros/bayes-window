@@ -29,6 +29,8 @@ def add_data_to_posterior(df_data,
     assert do_make_change in [False, 'subtract', 'divide']
     if not (treatment_name in index_cols):
         index_cols.append(treatment_name)
+    if not (group_name in index_cols):
+        index_cols.append(group_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(index_cols).mean().reset_index()
     if do_make_change:
@@ -131,12 +133,12 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
     try:
         if fold_change_method == 'subtract':
             data = (
-                mdf.xs(treatments[1], level=treatment_name) -
-                mdf.xs(treatments[0], level=treatment_name)
+                mdf.xs(treatments[1], level=treatment_name)[y] -
+                mdf.xs(treatments[0], level=treatment_name)[y]
             ).reset_index()
         else:
-            data = (mdf.xs(treatments[1], level=treatment_name) /
-                    mdf.xs(treatments[0], level=treatment_name)
+            data = (mdf.xs(treatments[1], level=treatment_name)[y] /
+                    mdf.xs(treatments[0], level=treatment_name)[y]
                     ).reset_index()
     except Exception as e:
         print(f'Try recasting {treatment_name} as integer and try again. Alternatively, use bayes_window.workflow.'
@@ -151,5 +153,4 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         raise ValueError(f'For {treatments}, data has all-nan {y1}. Ensure there a similar treatment to {y} does not'
                          f'shadow it!')
 
-    y = y1
-    return data, y
+    return data, y1

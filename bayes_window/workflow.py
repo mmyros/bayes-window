@@ -1,5 +1,4 @@
 import warnings
-from importlib import reload
 
 import altair as alt
 import numpy as np
@@ -13,8 +12,6 @@ from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.visualization import plot_posterior
 
-reload(visualization)
-reload(utils)
 le = LabelEncoder()
 
 
@@ -23,16 +20,16 @@ class BayesWindow():
                  df: pd.DataFrame,
                  y: str,
                  treatment: str,
-                 condition: str = None,
+                 condition: str or list = None,
                  group: str = None
                  ):
         assert y in df.columns
         assert treatment in df.columns
-        if condition:
-            assert condition in df.columns
         if group:
             assert group in df.columns
-        self.condition = condition  # if type(condition)=='list' else [condition]
+        self.condition = condition if type(condition) == list else [condition]
+        if self.condition[0]:
+            assert self.condition[0] in df.columns
         # self.levels[0] if len(self.levels) > 2 else None
         self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
         self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
@@ -42,10 +39,12 @@ class BayesWindow():
         self.b_name = None  # Depends on model we'll fit
         self.do_make_change = None  # Depends on plotting input
         self.add_data = None  # We'll use this in plotting
+        self.independent_axes = None
+        self.data_and_posterior = None
         # TODO get rid of levels altogether
         self.levels = [self.treatment]
-        if condition:
-            self.levels += [self.condition]
+        if self.condition[0]:
+            self.levels += self.condition
         if group:
             self.levels += [self.group]
 
@@ -79,9 +78,11 @@ class BayesWindow():
         self.y = self.y.replace(" ", "_")
         self.group = self.group.replace(" ", "_")
         self.treatment = self.treatment.replace(" ", "_")
-        if self.condition:
-            self.condition = self.condition.replace(" ", "_")
-            formula = f"{self.y} ~ {self.condition} + {self.treatment}"
+        if self.condition[0]:
+            if len(self.condition) > 0:
+                raise NotImplementedError
+            self.condition[0] = self.condition[0].replace(" ", "_")
+            formula = f"{self.y} ~ {self.condition[0]} + {self.treatment}"
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
         print(f'Using formula {formula}')
@@ -94,12 +95,12 @@ class BayesWindow():
                           '[0.025': 'higher interval',
                           '0.975]': 'lower interval'}, axis=1)
         if add_data:
-            if self.condition:
+            if self.condition[0]:
                 raise NotImplementedError("I don't understand if there is a way to get separate estimates "
                                           "of slope per condition in LME, or do you just get an effect size estimate??")
                 # like in hdi2df:
-                rows = [fill_row(group_val, rows, res, group_name=self.condition)
-                        for group_val, rows in self.data.groupby([self.condition])
+                rows = [fill_row(group_val, rows, res, group_name=self.condition[0])
+                        for group_val, rows in self.data.groupby([self.condition[0]])
                         ]
                 self.data_and_posterior = pd.concat(rows)
             else:
@@ -135,7 +136,7 @@ class BayesWindow():
                                                                               )
 
     def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
-                   plot_index_cols=None, **kwargs):
+                   plot_index_cols=None, do_mean_over_trials=True, **kwargs):
         # TODO case with no group_name
         assert do_make_change in ['subtract', 'divide']
         self.b_name = 'b_stim_per_condition'
@@ -143,14 +144,14 @@ class BayesWindow():
         self.add_data = add_data  # We'll use this in plotting
         if plot_index_cols is None:
             plot_index_cols = self.levels  # [-1]
-        if not self.condition:
+        if not self.condition[0]:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
-            self.condition = 'dummy_condition'
+            self.condition[0] = 'dummy_condition'
             self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
                                      stim=self.data[self.treatment].values,
-                                     treat=self.data[self.condition].values,
+                                     treat=self.data[self.condition[0]].values,
                                      subject=self.data[self.group].values,
                                      progress_bar=False,
                                      model=model,
@@ -167,10 +168,10 @@ class BayesWindow():
                                                                 index_cols=plot_index_cols,
                                                                 treatment_name=self.treatment,
                                                                 b_name=self.b_name,
-                                                                group_name=self.condition,
+                                                                group_name=self.condition[0],
                                                                 # TODO shoulnt this be comnined condition?
                                                                 do_make_change=do_make_change,
-                                                                do_mean_over_trials=True,
+                                                                do_mean_over_trials=do_mean_over_trials,
                                                                 )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
@@ -178,7 +179,7 @@ class BayesWindow():
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
-         if (not col == self.condition) and (col in df_result)]
+         if (not col == self.treatment) and (col in df_result)]
         self.data_and_posterior = df_result
         return self
 
@@ -191,7 +192,7 @@ class BayesWindow():
         color = color or self.levels[0]
 
         # Plot posterior
-        if hasattr(self, 'data_and_posterior'):
+        if self.data_and_posterior is not None:
             add_data = self.add_data
             base_chart = alt.Chart(self.data_and_posterior)
             chart_p = plot_posterior(title=f'{self.y}',
@@ -203,7 +204,7 @@ class BayesWindow():
             add_data = True  # Otherwise nothing to do
 
         if add_data:
-            assert hasattr(self, 'data_and_posterior')
+            assert self.data_and_posterior is not None
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
                                               base_chart=base_chart)
             self.chart = chart_p + chart_d
@@ -221,12 +222,11 @@ class BayesWindow():
                                  color=None,
                                  detail='i_trial',
                                  **kwargs):
-        reload(visualization)
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
         color = color or self.levels[0]
         # TODO default for detail
-        if hasattr(self, 'data_and_posterior'):
+        if self.data_and_posterior is not None:
             base_chart = alt.Chart(self.data_and_posterior)
             # Plot posterior
             chart_p = visualization.plot_posterior(x=x,
@@ -250,7 +250,7 @@ class BayesWindow():
                                                            detail=detail,
                                                            base_chart=base_chart)
 
-            if not hasattr(self, 'data_and_posterior'):
+            if self.data_and_posterior is None:
                 self.chart = chart_d  # we're done
             else:
                 self.chart = chart_p + chart_d
@@ -259,7 +259,7 @@ class BayesWindow():
 
     def plot(self, **kwargs):
         # Convenience function
-        if not hasattr(self, 'b_name'):
+        if not self.b_name:
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
             return visualization.plot_data(self.data, x=self.levels[0], y=self.y,
@@ -272,12 +272,10 @@ class BayesWindow():
         elif self.b_name == 'mu_per_condition':
             print('Plotting posteriors')
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
-        else:
-            raise RuntimeError('Unknown model! please modify plotting code')
 
     def facet(self, row=None, column=None, width=50, height=60):
         assert row or column
-        if not hasattr(self, 'independent_axes'):
+        if self.independent_axes is None:
             raise RuntimeError('Plot first, then you can use facet')
         if self.independent_axes:
             self.facetchart = visualization.facet(self.chart, row=row, column=column, width=width, height=height)

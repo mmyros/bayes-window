@@ -31,11 +31,12 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- Enhance LMM integration
-- Test more than one condition
+- Test more than one condition in jupyter
+- Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Diagnostic plots: bw.plot_diagnostics?
    - Need to rename az field names
 - Random-effect plots (eg intercepts): bw.plot_extras?
+   - see lfp notebook
 - Universalize models.X
    - y_dist input
    - option to drop treatment
