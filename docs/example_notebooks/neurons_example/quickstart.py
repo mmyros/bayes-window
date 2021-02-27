@@ -43,48 +43,42 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 from bayes_window import workflow
 from bayes_window import visualization
 from importlib import reload
+
 reload(workflow)
 reload(visualization)
 
-bw=workflow.BayesWindow(df,y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim,do_make_change='subtract',
-             plot_index_cols=('stim', 'mouse', 'neuron'))
+bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
+              plot_index_cols=('stim', 'mouse', 'neuron'))
 # -
 
-bw.plot_posteriors_slopes(add_box=True, independent_axes=False,x='neuron:O',color='mouse')
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
+bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
 
-bw.plot_posteriors_slopes(add_box=False, independent_axes=True,x='neuron:O',color='mouse')
+bw.plot_posteriors_slopes(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
 
-
-bw.plot_posteriors_slopes(independent_axes=False,x='neuron:O',color='mouse')
-
+bw.plot_posteriors_slopes(independent_axes=False, x='neuron:O', color='mouse')
 
 # +
-chart=bw.plot_posteriors_slopes(add_box=True, independent_axes=True,x='neuron:O',color='mouse')
+chart = bw.plot_posteriors_slopes(add_box=True, independent_axes=True, x='neuron:O', color='mouse')
 
 chart
 # -
 
 chart.resolve_scale(y='independent')
 
-bw.plot(x='neuron',color='mouse',independent_axes=True)
-
-
-# This is not very helpful, bc why would you ever have all axes separate? 
-# ## Also TODO where is the zero line?
-
 bw.facet(column='neuron')
 
-    window=workflow.BayesWindow(df,y='isi',
-                                treatment='stim',
-                                condition='neuron',
-                                group='mouse')
-    window.fit_slopes(model=models.model_hier_normal_stim,
-                      #plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
-                     )
-    c=window.plot_posteriors_slopes(x='neuron', color='i_trial')
+# +
+window = workflow.BayesWindow(df, y='isi',
+                              treatment='stim',
+                              condition='neuron',
+                              group='mouse')
+window.fit_slopes(model=models.model_hier_normal_stim,
+                  # plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
+                  )
+c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
 
-    
-    window.plot_posteriors_slopes()#x='Stim phase', color='Fid')#,independent_axes=True)
-    window.facet(column='neuron',row='mouse')
+window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
+window.facet(column='neuron', row='mouse')

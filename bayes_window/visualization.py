@@ -54,7 +54,7 @@ def facet(base_chart,
         chart = alt.vconcat(*[concat_charts(subdata, groupby_name=column,
                                             row_name=row, row_val=val, how='hconcat')
                               for val, subdata in base_chart.data.groupby(row)])
-    if finalize:
+    if finalize:  # TODO is there a way to do this in theme instead?
         chart = chart.configure_view(
             stroke=None
         )
@@ -71,18 +71,26 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     if color[-2] != ':':
         color = f'{color}:N'
     charts = []
+    axis = alt.Axis()
+
     if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
-        charts.append(base.mark_line(fill=None, opacity=.5, size=3).encode(
+        charts.append(base.mark_line(clip=True, fill=None, opacity=.5, size=2.5).encode(
             x=x,
             color=f'{color}',
-            y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False))
+            y=alt.Y(f'mean({y})',
+                    scale=alt.Scale(zero=False,
+                                    domain=list(np.quantile(base_chart.data[y], [.05, .95])))),
         ))
+        axis = alt.Axis(labels=False, tickCount=0, title='')
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
-        charts.append(base.mark_boxplot(opacity=.3, size=12, color='black').encode(
+        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=12, color='black').encode(
             x=x,
-            y=alt.Y(f'{y}:Q', scale=alt.Scale(zero=False))
+            y=alt.Y(f'{y}:Q',
+                    scale=alt.Scale(zero=False,
+                                    domain=list(np.quantile(base_chart.data[y], [.05, .95]))),
+                    axis=axis)
         ))
     return alt.layer(*charts)
 
