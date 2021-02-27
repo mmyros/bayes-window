@@ -79,7 +79,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
             color=f'{color}',
             y=alt.Y(f'mean({y})',
                     scale=alt.Scale(zero=False,
-                                    domain=list(np.quantile(base_chart.data[y], [.05, .95])))),
+                                    domain=list(np.quantile(base.data[y], [.05, .95])))),
         ))
         axis = alt.Axis(labels=False, tickCount=0, title='')
     if add_box:
@@ -89,7 +89,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
             x=x,
             y=alt.Y(f'{y}:Q',
                     scale=alt.Scale(zero=False,
-                                    domain=list(np.quantile(base_chart.data[y], [.05, .95]))),
+                                    domain=list(np.quantile(base.data[y], [.05, .95]))),
                     axis=axis)
         ))
     return alt.layer(*charts)

@@ -96,7 +96,8 @@ class BayesWindow:
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
-        res = result.summary().tables[1].iloc[:-1][['P>|z|', 'Coef.', '[0.025', '0.975]']].astype(float)
+        res = result.summary().tables[1]
+        res = res.iloc[:-1].astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
         res = res.rename({'P>|z|': 'p',
                           'Coef.': 'mean interval',
                           '[0.025': 'higher interval',
