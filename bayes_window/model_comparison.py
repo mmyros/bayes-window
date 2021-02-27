@@ -1,13 +1,14 @@
 import itertools
 
+import altair as alt
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import numpyro
+import pandas as pd
 from bayes_window import workflow, models
 from bayes_window.generative_models import generate_fake_lfp
 from jax import random
-# roc_curve?
 from joblib import Parallel, delayed
 from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.metrics import roc_curve, auc
@@ -19,7 +20,6 @@ trans = LabelEncoder().fit_transform
 
 
 def plot_roc(y_scores, true_slopes, binary=True):
-    import pandas as pd
     df = []
     for condition, y_score in y_scores.items():
         if y_score[0] is None:
@@ -36,12 +36,11 @@ def plot_roc(y_scores, true_slopes, binary=True):
                                 'AUC': roc_auc}))
 
     df = pd.concat(df)
-    import altair as alt
-    chart = alt.Chart(df).mark_line(size=6, opacity=.7).encode(
+    chart = alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
         x='False positive rate',
         y='True positive rate',
         color='Condition'
-    ) | \
+    ).interactive() | \
             alt.Chart(df).mark_bar().encode(
                 x='Condition',
                 y='AUC',
@@ -50,33 +49,35 @@ def plot_roc(y_scores, true_slopes, binary=True):
     return chart
 
 
-def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
+def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10, **kwargs):
     df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
                                                       n_mice=6,
-                                                      n_trials=n_trials)
+                                                      n_trials=n_trials,
+                                                      **kwargs
+                                                      )
+    bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
     if method[:2] == 'bw':
-        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
         bw.fit_slopes(model=models.model_hier_stim_one_codition,
                       dist_y=method[3:],
                       add_data=False)
         return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
-        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
-        return bw.fit_anova()
+        return bw.fit_anova()  # Returns p-value
 
     elif method == 'mlm':
-        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
         return bw.fit_lme(add_data=False).posterior['lower interval'].iloc[0]
 
 
 def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
                 n_trials=range(8, 30, 7),
+                trial_baseline_randomness=(.2, .4, 1.8),
                 parallel=False):
     y_scores = {}
-    for method, y, n_trials in tqdm(list(itertools.product(
-        ['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],
+    for method, y, n_trials, randomness in tqdm(list(itertools.product(
+        ['bw_lognormal', 'bw_normal', 'mlm', 'anova', ],  # 'bw_student'
         ['Log power', 'Power', ],
-        n_trials
+        n_trials,
+        trial_baseline_randomness
     ))):
         if parallel:
             y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(

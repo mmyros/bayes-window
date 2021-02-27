@@ -102,7 +102,7 @@ class BayesWindow:
             formula = f"{self.y} ~ 1 + {self.treatment}"
         if self.group:
             formula += f' + {self.group}'
-        print(f'Using formula {formula}')
+        # print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
@@ -295,10 +295,8 @@ class BayesWindow:
                                            **kwargs)
 
         if self.b_name == 'b_stim_per_condition':
-            print('Plotting slopes')
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
-            print('Plotting posteriors')
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
     def facet(self, width=50, height=60, **kwargs):
@@ -311,3 +309,8 @@ class BayesWindow:
         else:
             self.facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
         return self.facetchart
+
+    def plot_model_quality(self, var_names=None):
+        import arviz as az
+        assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
+        az.plot_trace(self.trace, var_names=var_names, show=True)

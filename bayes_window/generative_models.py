@@ -19,14 +19,15 @@ warnings.filterwarnings("ignore")
 def generate_fake_lfp(n_trials=10,
                       n_mice=10,
                       dur=7,
-                      mouse_response_slope=1.):
+                      mouse_response_slope=1.,
+                      **kwargs):
     # neuron becomes mouse to provide different baselines
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=n_trials,
                                                          n_neurons=n_mice,
                                                          n_mice=2,
                                                          dur=dur,
-
-                                                         mouse_response_slope=mouse_response_slope)
+                                                         mouse_response_slope=mouse_response_slope,
+                                                         **kwargs)
 
     df = df[df.mouse_code == 1]
     df = df[df.neuron.astype(int) < n_mice - 2]

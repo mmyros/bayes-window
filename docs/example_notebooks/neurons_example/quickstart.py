@@ -54,6 +54,7 @@ bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='su
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
+
 bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
 
 bw.plot_posteriors_slopes(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
@@ -82,3 +83,6 @@ c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
 
 window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
 window.facet(column='neuron', row='mouse')
+# -
+
+window.plot_model_quality()

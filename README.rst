@@ -31,16 +31,13 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- Universalize models.X
-   - y_dist input
-   - option to drop treatment
 - Model comparison
    - compare to no-treatment
-   - include LME in non-binary ROC
+   - summary or plot
    - confusion matrix
+- Diagnostic plots: bw.plot_diagnostics?
 - delete facet attribute of chart if independent_axes=True
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
-- Diagnostic plots: bw.plot_diagnostics?
 - Random-effect plots (eg intercepts): bw.plot_extras?
    - see lfp notebook
 - Decide on Vega theme
