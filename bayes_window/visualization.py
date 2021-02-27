@@ -70,23 +70,21 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     base = base_chart or alt.Chart(df)
     if color[-2] != ':':
         color = f'{color}:N'
-    if len(base.data[x[:-2]].unique()) > 1:
-        chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
+    charts = []
+    if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
+        charts.append(base.mark_line(fill=None, opacity=.5, size=3).encode(
             x=x,
             color=f'{color}',
             y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False))
-        )
-    else:
-        chart = base
-
+        ))
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
-        chart += base.mark_boxplot(opacity=.3, size=12, color='black').encode(
+        charts.append(base.mark_boxplot(opacity=.3, size=12, color='black').encode(
             x=x,
             y=alt.Y(f'{y}:Q', scale=alt.Scale(zero=False))
-        )
-    return chart
+        ))
+    return alt.layer(*charts)
 
 
 # from altair.vegalite.v4.api import Undefined
