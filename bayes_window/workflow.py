@@ -122,7 +122,7 @@ class BayesWindow:
 
         return self
 
-    def fit_conditions(self, model=models.model_single_lognormal, add_data=True):
+    def fit_conditions(self, model=models.model_single, add_data=True):
 
         self.model = model
         self.b_name = 'mu_per_condition'

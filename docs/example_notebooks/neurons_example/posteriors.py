@@ -71,7 +71,7 @@ reload(workflow)
 reload(visualization)
 bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
 
-bw.fit_conditions(model=models.model_single_normal,)
+bw.fit_conditions(model=models.model_single, )
 
 bw.plot_posteriors_no_slope(x='stim:O',independent_axes=False,add_data=False).display()
 
@@ -83,7 +83,7 @@ reload(visualization)
 df.neuron=df.neuron.astype(int)
 bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
 
-bw.fit_conditions(model=models.model_single_normal,)
+bw.fit_conditions(model=models.model_single, )
 
 bw.plot_posteriors_no_slope(x='stim:O',independent_axes=False,add_data=True);
 
@@ -98,7 +98,7 @@ bw.facet(column='neuron', row='mouse',height=60).display()
 reload(workflow)
 reload(visualization)
 bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_conditions(model=models.model_single_normal)
+bw.fit_conditions(model=models.model_single)
 bw.plot(x='stim:O', independent_axes=True, add_data=True).display()
 bw.facet(column='neuron', row='mouse', width=90,height=120).display()
 

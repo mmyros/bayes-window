@@ -5,19 +5,20 @@ from bayes_window.workflow import BayesWindow
 
 trans = LabelEncoder().fit_transform
 
-def test_slopes_dont_make_change():
 
+def test_slopes_dont_make_change():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
-                                                                n_neurons=3,
-                                                                n_mice=4,
-                                                                dur=7,
-                                                               mouse_response_slope=16)
-    bw=BayesWindow(df,y='isi', treatment='stim', condition='neuron', group='mouse')
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=7,
+                                                                    mouse_response_slope=16)
+    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     try:
-            bw.fit_slopes(add_data=False, model=models.model_hierarchical, do_make_change=False,
-                          plot_index_cols=('stim', 'mouse', 'neuron'))
+        bw.fit_slopes(add_data=False, model=models.model_hierarchical, do_make_change=False,
+                      plot_index_cols=('stim', 'mouse', 'neuron'))
     except ValueError:
         pass
+
 
 def test_fit_lme():
     df, df_monster, index_cols, _ = generate_fake_lfp()
@@ -48,7 +49,7 @@ def test_estimate_posteriors():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
-    bw.fit_conditions(model=models.model_single_lognormal)
+    bw.fit_conditions(model=models.model_single)
 
     chart = bw.plot(x='stim:O', column='neuron', row='mouse', add_data=False)
     chart.display()
@@ -62,7 +63,7 @@ def test_estimate_posteriors_data_overlay():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    bw.fit_conditions(model=models.model_single_lognormal)
+    bw.fit_conditions(model=models.model_single)
     chart = bw.plot(x='stim:O', independent_axes=False, add_data=True,
                     column='neuron_code', row='mouse_code')
     chart.display()
@@ -74,7 +75,7 @@ def test_estimate_posteriors_data_overlay_indep_axes():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    bw.fit_conditions(model=models.model_single_lognormal)
+    bw.fit_conditions(model=models.model_single)
     chart = bw.plot(x='stim:O', independent_axes=True, add_data=True,
                     column='neuron_code', row='mouse_code')
     chart.display()
@@ -174,7 +175,7 @@ def test_fit_conditions():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-
+    # TODO combined condition here somehow
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     bw.fit_conditions(add_data=True)
 
@@ -226,7 +227,7 @@ def test_plot_generic():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_conditions(model=models.model_single_lognormal)
+    bw.fit_conditions(model=models.model_single)
     bw.plot()
 
 
@@ -246,7 +247,7 @@ def test_facet():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_conditions(model=models.model_single_lognormal)
+    bw.fit_conditions(model=models.model_single)
     bw.plot().facet('neuron', width=40)
 
 
