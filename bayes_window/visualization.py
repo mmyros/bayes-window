@@ -10,22 +10,29 @@ def facet(base_chart,
           row=None,
           width=80,
           height=150,
+          finalize=False
           ):
-    alt.themes.enable('vox')
     if column is None and row is None:
         raise RuntimeError('Need either column, or row, or both!')
     assert base_chart.data is not None
     if column:
         assert column in base_chart.data.columns, f'{column} is not in {base_chart.data.columns}'
+        # sanitize a little:
+        base_chart.data[column] = base_chart.data[column].astype(str)
     if row:
         assert row in base_chart.data.columns, f'{row} is not in {base_chart.data.columns}'
+        # sanitize a little:
+        base_chart.data[row] = base_chart.data[row].astype(str)
 
     def concat_charts(subdata, groupby_name, row_name='', row_val='', how='hconcat'):
+
         charts = []
-        for i_group, group_val in enumerate(subdata[groupby_name].unique()):
+        for i_group, group_val in enumerate(subdata[groupby_name].drop_duplicates().sort_values()):
             title = f"{groupby_name} {group_val} {row_name} {row_val}"  # if i_group == 0 else ''
             charts.append(alt.layer(
-                base_chart, title=title, data=base_chart.data
+                base_chart,
+                title=title,
+                data=base_chart.data
             ).transform_filter(
                 alt.datum[groupby_name] == group_val
             ).resolve_scale(
@@ -47,9 +54,10 @@ def facet(base_chart,
         chart = alt.vconcat(*[concat_charts(subdata, groupby_name=column,
                                             row_name=row, row_val=val, how='hconcat')
                               for val, subdata in base_chart.data.groupby(row)])
-    chart = chart.configure_view(
-        stroke=None
-    )
+    if finalize:
+        chart = chart.configure_view(
+            stroke=None
+        )
     return chart
 
 
@@ -60,13 +68,17 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         x = f'{x}:O'
     # Plot data:
     base = base_chart or alt.Chart(df)
-    if (color[-2] != ':'):
+    if color[-2] != ':':
         color = f'{color}:N'
-    chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
-        x=x,
-        color=f'{color}',
-        y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False))
-    )
+    if len(base.data[x[:-2]].unique()) > 1:
+        chart = base.mark_line(fill=None, opacity=.5, size=3).encode(
+            x=x,
+            color=f'{color}',
+            y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False))
+        )
+    else:
+        chart = base
+
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
@@ -86,20 +98,18 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     assert 'higher interval' in data.columns
     assert 'lower interval' in data.columns
     assert 'mean interval' in data.columns
-    # alt.themes.enable('vox')
-    alt.themes.enable('default')
     base_chart = base_chart or alt.Chart(data=data)
 
     # line
-    chart = base_chart.mark_line(clip=True, point=True, color='black').encode(
+    chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
         y=alt.Y('mean interval:Q', impute=alt.ImputeParams(value='value')),
         x=x,
     )
-    do_make_change = do_make_change!=False
+    do_make_change = do_make_change is not False
 
     # Axis limits
-    minmax=[float(data['lower interval'].min()), 0,
-                              float(data['higher interval'].max())]
+    minmax = [float(data['lower interval'].min()), 0,
+              float(data['higher interval'].max())]
     scale = alt.Scale(zero=do_make_change,  # Any string or True
                       domain=[min(minmax), max(minmax)])
 
