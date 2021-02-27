@@ -39,7 +39,7 @@ def model_single(y, condition, dist_y='normal'):
     sample_y(dist_y=dist_y, theta=theta, sigma_obs=sigma_obs, y=y)
 
 
-def model_hierarchical(y, treatment, condition, subject, dist_y='normal'):
+def model_hierarchical(y, condition, subject, treatment=None, dist_y='normal'):
     n_conditions = np.unique(condition).shape[0]
     n_subjects = np.unique(subject).shape[0]
     a = numpyro.sample('a', dist.Normal(0, 1))
@@ -54,12 +54,13 @@ def model_hierarchical(y, treatment, condition, subject, dist_y='normal'):
     sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
     b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.Normal(jnp.tile(0, n_conditions), .5))
 
-    theta = (a + a_subject[subject] * sigma_a_subject +
-             (  # b
-                 # + b_subject[subject] * sigma_b_subject
-                 + b_stim_per_condition[condition] * sigma_b_condition
-             ) * treatment
-             )
+    theta = a + a_subject[subject] * sigma_a_subject + (  # b
+        # + b_subject[subject] * sigma_b_subject
+        + b_stim_per_condition[condition] * sigma_b_condition
+    )
+    if treatment is not None:
+        theta = theta * treatment
+
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
     sample_y(dist_y=dist_y, theta=theta, sigma_obs=sigma_obs, y=y)
 
