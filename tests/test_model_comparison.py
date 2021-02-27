@@ -18,8 +18,10 @@ def test_compare_models():
                                                                     n_mice=4,
                                                                     dur=2, )
     df['neuron'] = df['neuron'].astype(int)
-    df = df.rename({'neuron': 'treat', 'isi': 'y'}, axis=1)
+    df = df.rename({'neuron': 'condition', 'stim': 'treatment', 'isi': 'y'}, axis=1)
     df['subject'] = df['mouse_code']
     compare_models({'1': models.model_hierarchical},
                    df=df,
-                   data_cols=['stim', 'subject', 'treat', 'y'], )
+                   data_cols=['treatment', 'subject', 'condition', 'y'],
+                   index_cols=('mouse', 'condition', 'treatment')
+                   )

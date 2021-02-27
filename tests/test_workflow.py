@@ -21,20 +21,20 @@ def test_slopes_dont_make_change():
 
 
 def test_fit_lme():
-    df, df_monster, index_cols, _ = generate_fake_lfp()
+    df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_lme(add_data=False, )
 
 
 def test_fit_lme_w_data():
-    df, df_monster, index_cols, _ = generate_fake_lfp()
+    df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
 
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_lme(add_data=True, do_make_change='divide')
 
 
 def test_fit_lme_w_data_condition():
-    df, df_monster, index_cols, _ = generate_fake_spikes()
+    df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
 
     bw = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
     try:

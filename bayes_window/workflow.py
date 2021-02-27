@@ -97,7 +97,10 @@ class BayesWindow:
                             self.data,
                             groups=self.data[self.group]).fit()
         res = result.summary().tables[1]
-        res = res.iloc[:-1].astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
+        try:
+            res = res.iloc[:-1].astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
+        except Exception as e:
+            raise RuntimeError(f'somehow LME failed to estimate confidence intervals: {e} \n=>\n {res}')
         res = res.rename({'P>|z|': 'p',
                           'Coef.': 'mean interval',
                           '[0.025': 'higher interval',
