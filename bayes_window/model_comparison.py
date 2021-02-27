@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpyro
 import statsmodels.api as sm
+from bayes_window import workflow, models
+from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 # roc_curve?
 from joblib import Parallel, delayed
@@ -14,9 +16,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from statsmodels.formula.api import ols, mixedlm
 from tqdm import tqdm
-
-from bayes_window import workflow, models
-from bayes_window.generative_models import generate_fake_lfp
 
 trans = LabelEncoder().fit_transform
 
@@ -90,7 +89,7 @@ def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]
             y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
                 delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
         else:
-            y_scores[f'{method}, {y}']=[run_condition(true_slope,method,y) for true_slope in tqdm(true_slopes)]
+            y_scores[f'{method}, {y}'] = [run_condition(true_slope, method, y) for true_slope in tqdm(true_slopes)]
 
     return y_scores, true_slopes
 

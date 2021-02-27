@@ -259,8 +259,8 @@ def fake_spikes_explore(df, df_monster, index_cols):
         (df_monster['mouse'] == f'm{df_monster["mouse_code"].astype(int).max()}bayes')
         ]
     fig_isi = alt.Chart(df_isi).mark_tick(opacity=.2).encode(
-        x=alt.Y('stim'),
-        y=alt.X('log_1/isi', scale=alt.Scale(zero=False), ),
+        x=alt.X('stim'),
+        y=alt.Y('mean(log_1/isi)', scale=alt.Scale(zero=False), ),
         color='neuron:N',
         detail='i_spike:Q',  # Crucial: Q!
     ).properties(
