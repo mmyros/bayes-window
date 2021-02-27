@@ -21,11 +21,11 @@ def test_fit_numpyro_serial():
 
     for y in (set(df.columns) - set(index_cols)):
         trace = fit_numpyro(y=df[y].values,
-                            stim=trans(df['stim']),
-                            treat=trans(df['neuron']),
+                            treatment=trans(df['stim']),
+                            condition=trans(df['neuron']),
                             subject=trans(df['mouse']),
                             progress_bar=True,
-                            model=models.model_hier_normal_stim,
+                            model=models.model_hierarchical,
                             n_draws=100, num_chains=1, )
         # chart = visualization.plot_posterior_altair(trace,
         #                                             df,
@@ -49,11 +49,11 @@ def test_fit_numpyro_parallel():
                       # backend='multiprocessing'
                       )(
         delayed(fit_numpyro)(y=y,
-                             stim=(df['stim']).astype(int).values,
-                             treat=trans(df['neuron']),
+                             treatment=(df['stim']).astype(int).values,
+                             condition=trans(df['neuron']),
                              subject=trans(df['mouse']),
                              progress_bar=False,
-                             model=models.model_hier_normal_stim,
+                             model=models.model_hierarchical,
                              n_draws=10
                              )
         for y in [df[y].values for y in meas])

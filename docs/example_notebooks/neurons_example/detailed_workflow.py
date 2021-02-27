@@ -63,11 +63,11 @@ visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=d
 # + hideCode=false hidePrompt=false
 # y = list(set(df.columns) - set(index_cols))[0]
 trace = fit_numpyro(y=df[y].values,
-                    stim=(df['stim']).astype(int).values,
-                    treat=trans(df['neuron']),
+                    treatment=(df['stim']).astype(int).values,
+                    condition=trans(df['neuron']),
                     subject=trans(df['mouse']),
                     progress_bar=True,
-                    model=models.model_hier_normal_stim,
+                    model=models.model_hierarchical,
                     n_draws=100, num_chains=1, )
 
 # + [markdown] hideCode=false hidePrompt=false

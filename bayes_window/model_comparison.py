@@ -109,8 +109,8 @@ def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mo
     :param progress_bar:
     :param kwargs: eg:
         y=df['con_coherence_magnitude_near'].values,
-        stim_on=trans(df['event'].values),
-        treat=trans(df['condition_code'].values),
+        treatment=trans(df['event'].values),
+        condition=trans(df['condition_code'].values),
         subject=trans(df['subject'].values),
     :return:
     """

@@ -65,34 +65,8 @@ def model_single_lognormal(y, treat):
     numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=y)
 
 
-def model_hier_lognormal_stim(y, stim, treat, subject):
-    # Subject = intercept
-    # Treat=slope
-    # stim=overall slope
-    n_conditions = np.unique(treat).shape[0]
-    n_subjects = np.unique(subject).shape[0]
-    a = numpyro.sample('a', dist.LogNormal(0, 1))
-    # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
-    # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
-    a_subject = numpyro.sample('a_subject', dist.LogNormal(jnp.tile(0, n_subjects), 1))
-    sigma_a_subject = numpyro.sample('sigma_a_subject', dist.HalfNormal(1))
-    # b = numpyro.sample('b', dist.Normal(0, 1))
-    sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
-    b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.LogNormal(jnp.tile(0, n_conditions), .5))
-
-    theta = (a + a_subject[subject] * sigma_a_subject +
-             (  # b
-                 # + b_subject[subject] * sigma_b_subject
-                 + b_stim_per_condition[treat] * sigma_b_condition
-             ) * stim
-             )
-
-    sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
-    numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=y)
-
-
-def model_hier_normal_stim(y, stim, treat, subject):
-    n_conditions = np.unique(treat).shape[0]
+def model_hierarchical(y, treatment, condition, subject, dist_y='normal'):
+    n_conditions = np.unique(condition).shape[0]
     n_subjects = np.unique(subject).shape[0]
     a = numpyro.sample('a', dist.Normal(0, 1))
 
@@ -109,16 +83,22 @@ def model_hier_normal_stim(y, stim, treat, subject):
     theta = (a + a_subject[subject] * sigma_a_subject +
              (  # b
                  # + b_subject[subject] * sigma_b_subject
-                 + b_stim_per_condition[treat] * sigma_b_condition
-             ) * stim
+                 + b_stim_per_condition[condition] * sigma_b_condition
+             ) * treatment
              )
-
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
-    nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
-    numpyro.sample('y', dist.StudentT(nu_y, theta, sigma_obs), obs=y)
+    if dist_y == 'student':
+        nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
+        numpyro.sample('y', dist.StudentT(nu_y, theta, sigma_obs), obs=y)
+    elif dist_y == 'normal':
+        numpyro.sample('y', dist.Normal(theta, sigma_obs), obs=y)
+    elif dist_y == 'lognormal':
+        numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=y)
+    else:
+        raise ValueError
 
 
-def model_hier_stim_one_codition(y, stim, subject, dist_y='student', **kwargs):
+def model_hier_stim_one_codition(y, treatment, subject, dist_y='student', **kwargs):
     n_subjects = np.unique(subject).shape[0]
     a = numpyro.sample('a', dist.Normal(0, 1))
 
@@ -130,11 +110,11 @@ def model_hier_stim_one_codition(y, stim, subject, dist_y='student', **kwargs):
 
     b = numpyro.sample('b_stim_per_condition', dist.Normal(0, 1))
 
-    theta = a + a_subject[subject] * sigma_a_subject + b * stim
+    theta = a + a_subject[subject] * sigma_a_subject + b * treatment
 
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
-    nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
     if dist_y == 'student':
+        nu_y = numpyro.sample('nu_y', dist.Gamma(1, .1))
         numpyro.sample('y', dist.StudentT(nu_y, theta, sigma_obs), obs=y)
     elif dist_y == 'normal':
         numpyro.sample('y', dist.Normal(theta, sigma_obs), obs=y)

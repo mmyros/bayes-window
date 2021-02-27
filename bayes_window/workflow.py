@@ -128,7 +128,7 @@ class BayesWindow:
         self.b_name = 'mu_per_condition'
         # Estimate model
         self.trace = fit_numpyro(y=self.data[self.y].values,
-                                 treat=self.data['combined_condition'].values,
+                                 condition=self.data['combined_condition'].values,
                                  model=model,
                                  )
 
@@ -145,7 +145,7 @@ class BayesWindow:
                                                                               do_make_change=False
                                                                               )
 
-    def fit_slopes(self, add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
+    def fit_slopes(self, add_data=True, model=models.model_hierarchical, do_make_change='subtract',
                    plot_index_cols=None, do_mean_over_trials=True, **kwargs):
         # TODO case with no group_name
         if do_make_change not in ['subtract', 'divide']:
@@ -163,8 +163,8 @@ class BayesWindow:
             self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
-                                     stim=self.data[self.treatment].values,
-                                     treat=self.data[self.condition[0]].values,
+                                     treatment=self.data[self.treatment].values,
+                                     condition=self.data[self.condition[0]].values,
                                      subject=self.data[self.group].values,
                                      progress_bar=False,
                                      model=model,

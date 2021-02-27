@@ -48,7 +48,7 @@ reload(workflow)
 reload(visualization)
 
 bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hier_normal_stim, do_make_change='subtract',
+bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
               plot_index_cols=('stim', 'mouse', 'neuron'))
 # -
 
@@ -75,7 +75,7 @@ window = workflow.BayesWindow(df, y='isi',
                               treatment='stim',
                               condition='neuron',
                               group='mouse')
-window.fit_slopes(model=models.model_hier_normal_stim,
+window.fit_slopes(model=models.model_hierarchical,
                   # plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
                   )
 c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
