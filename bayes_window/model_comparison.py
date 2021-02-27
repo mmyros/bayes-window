@@ -66,7 +66,7 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
 
     elif method == 'mlm':
         bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
-        return bw.fit_lme(add_data=False).posterior
+        return bw.fit_lme(add_data=False).posterior['lower interval'].iloc[0]
 
 
 def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
