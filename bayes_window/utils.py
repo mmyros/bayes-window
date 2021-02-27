@@ -136,16 +136,15 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
                 mdf.xs(treatments[1], level=treatment_name)[y] -
                 mdf.xs(treatments[0], level=treatment_name)[y]
             ).reset_index()
-            y1 = f'{y} diff'
         else:
             data = (mdf.xs(treatments[1], level=treatment_name)[y] /
                     mdf.xs(treatments[0], level=treatment_name)[y]
                     ).reset_index()
-            y1 = f'{y} ratio'
     except Exception as e:
         print(f'Try recasting {treatment_name} as integer and try again. Alternatively, use bayes_window.workflow.'
               f' We do that automatically there ')
         raise e
+    y1 = f'{y} diff'
     data.rename({y: y1}, axis=1, inplace=True)
     if np.isnan(data[y1]).all():
         print(f'For {treatments}, data has all-nan {y1}: {data.head()}')

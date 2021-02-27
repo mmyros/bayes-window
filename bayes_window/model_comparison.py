@@ -4,7 +4,6 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import numpyro
-import statsmodels.api as sm
 from bayes_window import workflow, models
 from bayes_window.generative_models import generate_fake_lfp
 from jax import random
@@ -14,7 +13,6 @@ from numpyro.infer import MCMC, NUTS, Predictive
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from statsmodels.formula.api import ols, mixedlm
 from tqdm import tqdm
 
 trans = LabelEncoder().fit_transform
@@ -58,27 +56,22 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10):
                                                       n_trials=n_trials)
     if method[:2] == 'bw':
         bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
-        bw.fit_slopes(
-            model=models.model_hier_stim_one_codition,
-            dist_y=method[3:], add_data=False, )
+        bw.fit_slopes(model=models.model_hier_stim_one_codition,
+                      dist_y=method[3:],
+                      add_data=False)
         return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
-        df = df.groupby('mouse').mean().reset_index().rename({'Log power': 'log_power'}, axis=1)
-        if y == 'Log power':
-            y = 'log_power'
-        lm = ols(f'{y}~stim', data=df).fit()
-        anova = sm.stats.anova_lm(lm, typ=2)
-        return anova['PR(>F)']['stim'] < 0.05
+        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
+        return bw.fit_anova()
+
     elif method == 'mlm':
-        df = df.rename({'Log power': 'log_power'}, axis=1)
-        if y == 'Log power':
-            y = 'log_power'
-        return mixedlm(f"{y} ~ stim", df, groups=df["mouse"]).fit().pvalues['stim'] < 0.05
+        bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
+        return bw.fit_lme(add_data=False).posterior
 
 
 def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
                 n_trials=range(8, 30, 7),
-                parallel=True):
+                parallel=False):
     y_scores = {}
     for method, y, n_trials in tqdm(list(itertools.product(
         ['mlm', 'anova', 'bw_lognormal', 'bw_student', 'bw_normal'],

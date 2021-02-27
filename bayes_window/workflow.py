@@ -53,6 +53,7 @@ class BayesWindow:
             self.levels += [self.group]
 
         # String-valued combined condition
+        # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
         df['combined_condition'] = df[self.levels[0]].astype('str')
         for level in self.levels[1:]:
             df['combined_condition'] += df[level].astype('str')
@@ -64,11 +65,20 @@ class BayesWindow:
         for level in self.levels:
             self.data[level] = le.fit_transform(self.data[level])
             # Keep key for later use
+            # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
             self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
 
     def fit_anova(self):
         from statsmodels.stats.anova import anova_lm
-        lm = sm.ols(f'{self.y}~stim', data=self.data).fit()
+        if self.group:
+            # Average over group:
+            data = self.data.groupby('mouse').mean().reset_index()
+        else:
+            data = self.data
+        # dehumanize all columns and variable names for statsmodels:
+        [data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in data.columns]
+        self.y = self.y.replace(" ", "_")
+        lm = sm.ols(f'{self.y}~{self.treatment}', data=data).fit()
         return anova_lm(lm, typ=2)['PR(>F)']['stim'] < 0.05
 
     def fit_lme(self, add_data=False, do_make_change='divide'):
@@ -159,6 +169,7 @@ class BayesWindow:
         self.do_make_change = do_make_change
         self.add_data = add_data  # We'll use this in plotting
         if plot_index_cols is None:
+            # TODO case with no plot_index_cols should include any multiindex?
             plot_index_cols = self.levels  # [-1]
         if not self.condition[0]:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
@@ -173,9 +184,9 @@ class BayesWindow:
                                      model=model,
                                      n_draws=1000, num_chains=1,
                                      **kwargs)
-        except TypeError:
+        except TypeError as e:
             # assert that model() has kwarg stim, because this is slopes
-            raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!')
+            raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!{e}')
         if add_data:
             # Add data back
             df_result, self.trace = utils.add_data_to_posterior(df_data=self.data,
