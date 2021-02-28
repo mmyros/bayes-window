@@ -34,8 +34,6 @@ TODO
 - Model comparison
    - compare to no-treatment
    - summary or plot
-   - confusion matrix
-- Diagnostic plots: bw.plot_diagnostics?
 - delete facet attribute of chart if independent_axes=True
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?
