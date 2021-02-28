@@ -1,4 +1,4 @@
-import itertools
+from itertools import product
 
 import altair as alt
 import arviz as az
@@ -11,6 +11,7 @@ from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
 from numpyro.infer import MCMC, NUTS, Predictive
+from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -19,42 +20,92 @@ from tqdm import tqdm
 trans = LabelEncoder().fit_transform
 
 
-def plot_roc(y_scores, true_slopes, binary=True):
+def make_confusion_matrix(res, groups):
     df = []
-    for condition, y_score in y_scores.items():
-        if y_score[0] is None:
-            continue
-        y_score = np.array(y_score)
+    for _, this_res in res.groupby(list(groups)):
+        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        this_res['true_slope'] = this_res['true_slope'] > 0
+        this_res['score'] = this_res['score'] > 0
+
+        cm = confusion_matrix(this_res['true_slope'],
+                              this_res['score'],
+                              labels=this_res['true_slope'].unique())
+        cm = [y for i in cm for y in i]
+        roll = list(product(np.unique(this_res['true_slope']), repeat=2))
+        this_res = this_res.drop(['true_slope', 'score'], axis=1)
+        for i in range(len(roll)):
+            rez = {'actual': roll[i][0],
+                   'predicted': roll[i][1],
+                   'Occurences': cm[i],
+                   }
+            rez.update(this_res.iloc[0].to_dict())
+            df.append(rez)
+        # Remove raw scores to reduce confusion
+    return pd.DataFrame.from_records(df)
+
+
+def plot_confusion(df):
+    # plot
+    base = alt.Chart(df)
+    heat = base.mark_rect().encode(
+        x="predicted",
+        y="actual",
+        color='Occurences:O'
+    ).properties(width=180, height=180)
+    # Configure text
+    # Doesnt work without mean; mean is meaningless without groupby
+    text = base.mark_text(baseline='middle').encode(
+        text=alt.Text('mean(Occurences)', format=",.1f", ),
+        x="predicted",
+        y="actual",
+        # color=alt.condition(
+        #    alt.datum.Occurences > df['Occurences'].mean(),
+        #    alt.value('black'),
+        #    alt.value('white')
+        # )
+    )
+    return heat
+
+
+def plot_roc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
+    # Make ROC and AUC
+    df = []
+    for _, this_res in res.groupby(list(groups)):
+        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        this_res['true_slope'] = this_res['true_slope'] > 0
         if binary:
-            fpr, tpr, _ = roc_curve(true_slopes > 0, y_score > 0)
+            this_res['score'] = this_res['score'] > 0
         else:
-            fpr, tpr, _ = roc_curve(true_slopes > 0, y_score)
-        roc_auc = round(auc(fpr, tpr), 5)
-        df.append(pd.DataFrame({'False positive rate': fpr,
-                                'True positive rate': tpr,
-                                'Condition': condition,
-                                'AUC': roc_auc}))
+            this_res = this_res.dropna(subset=['score'])  # drop nans to prevent errors
+        fpr, tpr, _ = roc_curve(this_res['true_slope'], this_res['score'])
 
+        # Remove raw scores to reduce confusion
+        this_res = this_res.drop(['true_slope', 'score'], axis=1)
+
+        # Only keep the number of rows that will be useful for keeping ROC
+        this_res = this_res.reset_index(drop=True).iloc[:len(fpr)]
+
+        this_res['False positive rate'] = fpr
+        this_res['True positive rate'] = tpr
+        this_res['AUC'] = round(auc(fpr, tpr), 5)
+
+        df.append(this_res)
     df = pd.concat(df)
-    chart = alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
+
+    roc = alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
         x='False positive rate',
-        y='True positive rate',
-        color='Condition'
-    ).interactive() | \
-            alt.Chart(df).mark_bar().encode(
-                x='Condition',
-                y='AUC',
-                color='Condition'
-            ).interactive()
-    return chart
+        y='mean(True positive rate)',
+        color='method'
+    ).interactive().properties(width=150)
+    bars = alt.Chart(df).mark_bar().encode(
+        x='method',
+        y='AUC',
+        color='method'
+    ).interactive()
+    return bars, roc
 
 
-def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10, **kwargs):
-    df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
-                                                      n_mice=6,
-                                                      n_trials=n_trials,
-                                                      **kwargs
-                                                      )
+def run_method(df, method='bw_student', y='Log power'):
     bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
     if method[:2] == 'bw':
         bw.fit_slopes(model=models.model_hier_stim_one_codition,
@@ -65,27 +116,45 @@ def run_condition(true_slope, method='bw_student', y='Log power', n_trials=10, *
         return bw.fit_anova()  # Returns p-value
 
     elif method == 'mlm':
-        return bw.fit_lme(add_data=False).posterior['lower interval'].iloc[0]
+        posterior = bw.fit_lme(add_data=False).posterior
+        try:
+            return posterior['lower interval'].iloc[0]
+        except AttributeError:
+            return posterior['lower interval']
 
 
-def run_methods(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
-                n_trials=range(8, 30, 7),
-                trial_baseline_randomness=(.2, .4, 1.8),
-                parallel=False):
-    y_scores = {}
-    for method, y, n_trials, randomness in tqdm(list(itertools.product(
-        ['bw_lognormal', 'bw_normal', 'mlm', 'anova', ],  # 'bw_student'
-        ['Log power', 'Power', ],
-        n_trials,
-        trial_baseline_randomness
-    ))):
-        if parallel:
-            y_scores[f'{method}, {y}'] = Parallel(n_jobs=12, verbose=0)(
-                delayed(run_condition)(true_slope, method, y) for true_slope in true_slopes)
-        else:
-            y_scores[f'{method}, {y}'] = [run_condition(true_slope, method, y) for true_slope in tqdm(true_slopes)]
+def run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False):
+    df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=true_slope,
+                                                      n_mice=6,
+                                                      n_trials=n_trials,
+                                                      trial_baseline_randomness=randomness
+                                                      )
+    if parallel:
+        res = Parallel(n_jobs=len(methods) * len(ys), verbose=0)(delayed(run_method)(df=df, method=method, y=y)
+                                                                 for y, method in product(ys, methods))
+    else:
+        res = [run_method(df=df, method=method, y=y) for y, method in tqdm(product(ys, methods))]
+    # Save result in dict
+    return pd.DataFrame.from_records([{'method': method, 'y': y, 'score': mres, 'true_slope': true_slope,
+                                       'n_trials': n_trials, 'randomness': randomness}
+                                      for (method, y), mres in zip(product(methods, ys), res)])
 
-    return y_scores, true_slopes
+
+def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 140)]),
+                   n_trials=range(8, 30, 7),
+                   trial_baseline_randomness=(.2, .4, 1.8),
+                   parallel=False,
+                   methods=('bw_lognormal', 'bw_normal', 'mlm', 'anova',),  # 'bw_student'
+                   ys=('Log power', 'Power',)):
+    conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
+    if parallel:
+        res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
+                                  for true_slope, n_trials, randomness in tqdm(conditions))
+    else:
+        res = [run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False)
+               for true_slope, n_trials, randomness in tqdm(conditions)]
+
+    return pd.concat(res)
 
 
 def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),

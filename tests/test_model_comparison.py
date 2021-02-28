@@ -2,7 +2,7 @@ from bayes_window.model_comparison import *
 
 
 def test_run_methods():
-    y_scores, true_slopes = run_methods(
+    y_scores, true_slopes = run_conditions(
         true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
         n_trials=[7],
         parallel=True

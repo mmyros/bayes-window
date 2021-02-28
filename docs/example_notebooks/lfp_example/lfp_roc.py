@@ -23,59 +23,43 @@ from importlib import reload
 reload(model_comparison)
 
 # + slideshow={"slide_type": "skip"}
-y_scores, true_slopes = model_comparison.run_methods(np.hstack([np.zeros(160), np.linspace(.03, 18, 140)]),
-                                                     parallel=True)
+res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(50), np.linspace(.03, 18, 80)]),
+                                      n_trials=range(5, 90, 10),
+                                      trial_baseline_randomness=(.2, 5, 10.8),
+
+                                      parallel=True)
 
 # + [markdown] slideshow={"slide_type": "slide"}
 # ## Binary
 
 # + slideshow={"slide_type": "fragment"}
 reload(model_comparison)
-model_comparison.plot_roc(y_scores, true_slopes)
+bars, roc = model_comparison.plot_roc(res, binary=True)
+bars.facet(column='n_trials', row='y').display()
+bars.facet(column='randomness', row='y').display()
+
+# + slideshow={"slide_type": "fragment"}
+roc.properties(width=150).facet(column='n_trials', row='y').display()
 
 # + [markdown] slideshow={"slide_type": "slide"}
 # ## Non-Binary
 # For models that have CI
 
 # + slideshow={"slide_type": "fragment"}
-model_comparison.plot_roc(y_scores, true_slopes, binary=False)
+reload(model_comparison)
+bars, roc = model_comparison.plot_roc(res, binary=False)
+bars.facet(column='randomness', row='y')
 # -
+
+roc.facet(column='randomness', row='y')
 
 # ## CM
 
 # +
-from itertools import product
-import altair as alt
-from sklearn.metrics import confusion_matrix
-import pandas as pd
+# def plot_roc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
+# Make ROC and AUC
+reload(model_comparison)
 
-columns = ["actual", "predicted", "Occurences", "Method", 'y']
-
-df = pd.DataFrame(columns=columns)
-
-y_true = true_slopes > 0
-for col in y_scores.keys():
-    y_pred = np.array(y_scores[col]) > 0
-    labels = np.unique(y_true)
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
-    cm = [y for i in cm for y in i]
-    roll = list(product(np.unique(y_true), repeat=2))
-    for i in range(len(roll)):
-        df = df.append({'actual': roll[i][0],
-                        'predicted': roll[i][1],
-                        'Occurences': cm[i],
-                        'Method': col.split(',')[0],
-                        'y': col.split(',')[1],
-                        }, ignore_index=True)
-
-
-# plot figure
-def make_example():
-    return alt.Chart(df).mark_rect().encode(
-        x="predicted",
-        y="actual",
-        color='Occurences:O'
-    ).properties(width=180, height=180)
-
-
-make_example().facet(column='Method', row='y')
+model_comparison.plot_confusion(
+    model_comparison.make_confusion_matrix(res, ('method', 'y', 'randomness', 'n_trials')
+                                           )).facet(column='method', row='y')
