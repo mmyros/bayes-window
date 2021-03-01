@@ -67,7 +67,50 @@ def plot_confusion(df):
     return heat
 
 
-def plot_roc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
+def make_roc_auc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
+    """ Vary as function of true_slope """
+    df = []
+    for head, this_res in res.groupby(list(groups)):
+        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        if binary:
+            this_res['score'] = this_res['score'] > 0
+        else:
+            this_res = this_res.dropna(subset=['score'])  # drop nans to prevent errors
+        fprs = []
+        tprs = []
+        slopes = []
+        # Loop over true_slopes
+
+        for ts in this_res[this_res['true_slope'] > 0]['true_slope'].unique():
+            # Select all no-slopes and this slope:
+            x = this_res[(this_res['true_slope'] == 0) |
+                         (this_res['true_slope'] == ts)]
+            # Binarize:
+            x['true_slope'] = x['true_slope'] > 0
+            fpr, tpr, _ = roc_curve(x['true_slope'], x['score'])
+            if len(fpr) < 3:
+                print(f"Yes for {head} {round(ts, 2)}: {fpr, tpr}")
+                print(f"{x['true_slope'].values},\n {x['score'].values}")
+                fprs.extend(fpr)
+                tprs.extend(tpr)
+                slopes.extend(np.repeat(ts, len(fpr)))
+        rocs = {'False positive rate': fprs,
+                'True positive rate': tprs,
+                'AUC': round(auc(fpr, tpr), 5),
+                'true_slope': slopes
+                }
+
+        rocs = pd.DataFrame(rocs)
+
+        # Remove raw scores to reduce confusion
+        this_res = this_res.drop(['true_slope', 'score'], axis=1)
+        for col in this_res.columns:
+            rocs[col] = this_res[col].iloc[0]
+        df.append(rocs)
+    return pd.concat(df)
+
+
+def make_roc_auc_old(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
     # Make ROC and AUC
     df = []
     for _, this_res in res.groupby(list(groups)):
@@ -90,13 +133,19 @@ def plot_roc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials'))
         this_res['AUC'] = round(auc(fpr, tpr), 5)
 
         df.append(this_res)
-    df = pd.concat(df)
+    return pd.concat(df)
 
-    roc = alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
+
+def plot_roc(df):
+    roc = (alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
         x='False positive rate',
         y='mean(True positive rate)',
         color='method'
-    ).interactive().properties(width=150)
+    ) + alt.Chart(df).mark_point(size=22.6, opacity=.7).encode(
+        x='False positive rate',
+        y='mean(True positive rate)',
+        color='method'
+    )).interactive().properties(width=150)
     bars = alt.Chart(df).mark_bar().encode(
         x='method',
         y='AUC',
