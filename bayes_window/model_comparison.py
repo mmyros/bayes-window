@@ -226,8 +226,9 @@ def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mo
         subject=trans(df['subject'].values),
     :return:
     """
-    if fitting_args is None:
-        fitting_args = {}
+
+    fitting_args = fitting_args or {}
+
     # split into training and test
     df_train, df_test = train_test_split(df, train_size=.5, test_size=.5, stratify=df[list(index_cols)])
 
@@ -254,7 +255,7 @@ def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mo
     return trace
 
 
-def compare_models(models: dict, df, data_cols: list, extra_args=None,
+def compare_models(models_to_compare: dict, df, data_cols: list, extra_args=None,
                    index_cols=('mouse_code', 'neuron_code', 'stim'),
                    draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
     """
@@ -265,14 +266,6 @@ def compare_models(models: dict, df, data_cols: list, extra_args=None,
                           },
                    data=[df,df,df_monster,df_monster],
                    extra_args=[{}, {}, {'prior':'Exponential'}, {'prior':'Gamma'}])
-    :param models:
-    :param data:
-    :param extra_args:
-    :param index_cols:
-    :param draws:
-    :param warmup:
-    :param num_chains:
-    :return:
     """
 
     def r2(trace):
@@ -288,7 +281,7 @@ def compare_models(models: dict, df, data_cols: list, extra_args=None,
             print(e)
 
     if extra_args is None:
-        extra_args = np.tile({}, len(models))
+        extra_args = np.tile({}, len(models_to_compare))
     numpyro.set_host_device_count(10)
     # Run
     if do_parallel:
@@ -298,14 +291,14 @@ def compare_models(models: dict, df, data_cols: list, extra_args=None,
                                                  num_chains,
                                                  progress_bar=False)
                                                 for model, fitting_args in
-                                                zip(models.values(), extra_args))
+                                                zip(models_to_compare.values(), extra_args))
     else:
         traces = [split_train_predict(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
-                  for model, fitting_args in zip(models.values(), extra_args)]
+                  for model, fitting_args in zip(models_to_compare.values(), extra_args)]
 
     # save to results
     traces_dict = {}  # initialize results
-    for key, trace in zip(models.keys(), traces):
+    for key, trace in zip(models_to_compare.keys(), traces):
         traces_dict[key] = trace
 
     for trace_name in traces_dict.keys():
