@@ -17,12 +17,11 @@
 # # Neurons example via low-level, flexible interface
 # ## Prepare
 
-from sklearn.preprocessing import LabelEncoder
-
 # + hideCode=false hidePrompt=false
 from bayes_window import models
 from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_spikes
+from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
 
@@ -76,7 +75,7 @@ trace = fit_numpyro(y=df[y].values,
 # + hideCode=false hidePrompt=false
 reload(utils)
 df_both, trace = utils.add_data_to_posterior(df,
-                                             trace=trace,
+                                             posterior=trace.posterior,
                                              y=y,
                                              index_cols=['neuron', 'stim', 'mouse_code', ],
                                              treatment_name='stim',

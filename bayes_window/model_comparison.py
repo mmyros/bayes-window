@@ -88,12 +88,11 @@ def make_roc_auc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trial
             # Binarize:
             x['true_slope'] = x['true_slope'] > 0
             fpr, tpr, _ = roc_curve(x['true_slope'], x['score'])
-            if len(fpr) < 3:
-                print(f"Yes for {head} {round(ts, 2)}: {fpr, tpr}")
-                print(f"{x['true_slope'].values},\n {x['score'].values}")
-                fprs.extend(fpr)
-                tprs.extend(tpr)
-                slopes.extend(np.repeat(ts, len(fpr)))
+            # print(f"Yes for {head} {round(ts, 2)}: {fpr, tpr}")
+            # print(f"{x['true_slope'].values},\n {x['score'].values}")
+            fprs.extend(fpr)
+            tprs.extend(tpr)
+            slopes.extend(np.repeat(ts, len(fpr)))
         rocs = {'False positive rate': fprs,
                 'True positive rate': tprs,
                 'AUC': round(auc(fpr, tpr), 5),

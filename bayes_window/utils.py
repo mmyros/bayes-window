@@ -10,7 +10,7 @@ trans = LabelEncoder().fit_transform
 
 
 def add_data_to_posterior(df_data,
-                          trace,
+                          posterior,
                           y=None,  # Only for fold change
                           index_cols=None,
                           treatment_name='Event',
@@ -43,8 +43,8 @@ def add_data_to_posterior(df_data,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:
-    df_bayes, trace = trace2df(trace, df_data, b_name=b_name, group_name=group_name)
-    return df_bayes, trace
+    df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, group_name=group_name)
+    return df_bayes, posterior
 
 
 def fill_row(group_val, rows, df_bayes, group_name):

@@ -17,4 +17,4 @@ def fit_numpyro(progress_bar=False, model=None, n_draws=1000, num_chains=1, **kw
     # Print diagnostics
     if trace.sample_stats.diverging.sum(['chain', 'draw']).values > 0:
         print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
-    return trace.posterior
+    return trace

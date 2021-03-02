@@ -146,12 +146,12 @@ class BayesWindow:
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  condition=self.data['combined_condition'].values,
                                  model=model,
-                                 )
+                                 ).posterior
 
         # Add data back
         if add_data:
             self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data,
-                                                                              trace=self.trace,
+                                                                              posterior=self.trace,
                                                                               y=self.y,
                                                                               index_cols=self.levels[:3],
                                                                               treatment_name=self.levels[0],
@@ -192,20 +192,21 @@ class BayesWindow:
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!{e}')
         if add_data:
             # Add data back
-            df_result, self.trace = utils.add_data_to_posterior(df_data=self.data,
-                                                                trace=self.trace,
-                                                                y=self.y,
-                                                                index_cols=plot_index_cols,
-                                                                treatment_name=self.treatment,
-                                                                b_name=self.b_name,
-                                                                group_name=self.condition[0],
-                                                                # TODO shoulnt this be comnined condition?
-                                                                do_make_change=do_make_change,
-                                                                do_mean_over_trials=do_mean_over_trials,
-                                                                )
+            df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
+                                                                          posterior=self.trace.posterior,
+                                                                          y=self.y,
+                                                                          index_cols=plot_index_cols,
+                                                                          treatment_name=self.treatment,
+                                                                          b_name=self.b_name,
+                                                                          group_name=self.condition[0],
+                                                                          # TODO shoulnt this be comnined condition?
+                                                                          do_make_change=do_make_change,
+                                                                          do_mean_over_trials=do_mean_over_trials,
+                                                                          )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
-            df_result, self.trace = trace2df(self.trace, self.data, b_name=self.b_name, group_name=self.group)
+            df_result, self.trace.posterior = trace2df(self.trace.posterior,
+                                                       self.data, b_name=self.b_name, group_name=self.group)
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()

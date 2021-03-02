@@ -1,14 +1,10 @@
 import bulwark.checks as ck
 import xarray as xr
-from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
+from bayes_window import models
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_spikes
 from joblib import delayed, Parallel
 from sklearn.preprocessing import LabelEncoder
-
-from bayes_window import visualization
-from bayes_window.generative_models import generate_fake_spikes
-from bayes_window import models
-
-from bayes_window.fitting import fit_numpyro
 
 trans = LabelEncoder().fit_transform
 
@@ -37,7 +33,7 @@ def test_fit_numpyro_serial():
         # assert ((type(chart) == FacetChart) |
         #         (type(chart) == Chart) |
         #         (type(chart) == LayerChart)), print(f'{type(chart)}')
-        trace.to_dataframe().pipe(ck.has_no_nans)
+        trace.posterior.to_dataframe().pipe(ck.has_no_nans)
 
 
 def test_fit_numpyro_parallel():
@@ -57,5 +53,5 @@ def test_fit_numpyro_parallel():
                              n_draws=10
                              )
         for y in [df[y].values for y in meas])
-    assert type(traces[0]) == xr.Dataset
-    [trace.to_dataframe().pipe(ck.has_no_nans) for trace in traces]
+    assert type(traces[0].posterior) == xr.Dataset
+    [trace.posterior.to_dataframe().pipe(ck.has_no_nans) for trace in traces]
