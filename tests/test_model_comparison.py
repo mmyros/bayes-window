@@ -14,15 +14,20 @@ def test_run_methods():
 def test_compare_models():
     from bayes_window.generative_models import generate_fake_spikes
 
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=10,
+                                                                    n_neurons=10,
                                                                     n_mice=4,
                                                                     dur=2, )
     df['neuron'] = df['neuron'].astype(int)
-    df = df.rename({'neuron': 'condition', 'stim': 'treatment', 'isi': 'y'}, axis=1)
-    df['subject'] = df['mouse_code']
-    compare_models({'1': models.model_hierarchical},
-                   df=df,
-                   data_cols=['treatment', 'subject', 'condition', 'y'],
-                   index_cols=('mouse', 'condition', 'treatment')
-                   )
+    # df = df.rename({'neuron': 'condition', 'stim': 'treatment', 'isi': 'y'}, axis=1)
+    # df['subject'] = df['mouse_code']
+    # compare_models(df=df,
+    #                models={'1': models.model_hierarchical},
+    #                y='isi',
+    #                fit_method='fit_slopes',
+    #                treatment='stim',
+    #                group='mouse',
+    #                condition='neuron'
+    #                # data_cols=['treatment', 'subject', 'condition', 'y'],
+    #                # index_cols=('mouse', 'condition', 'treatment')
+    #                )

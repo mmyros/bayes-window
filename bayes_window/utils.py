@@ -9,6 +9,15 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
+def parse_levels(treatment, condition, group):
+    levels = [treatment]
+    if condition[0]:
+        levels += condition
+    if group:
+        levels += [group]
+    return levels
+
+
 def add_data_to_posterior(df_data,
                           posterior,
                           y=None,  # Only for fold change
@@ -16,9 +25,10 @@ def add_data_to_posterior(df_data,
                           treatment_name='Event',
                           conditions=None,  # eg ('stim_on', 'stim_stop')
                           b_name='b_stim_per_condition',  # for posterior
-                          group_name='Condition code',  # for posterior
+                          posterior_index_name='',  # for posterior
                           do_make_change='subtract',
                           do_mean_over_trials=True,
+                          add_data=False
                           ):
     # group_name should be conditions
     if type(index_cols) == str:
@@ -29,8 +39,8 @@ def add_data_to_posterior(df_data,
     assert do_make_change in [False, 'subtract', 'divide']
     if not (treatment_name in index_cols):
         index_cols.append(treatment_name)
-    if not (group_name in index_cols):
-        index_cols.append(group_name)
+    # if not (group_name in index_cols):
+    #     index_cols.append(group_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(index_cols).mean().reset_index()
     if do_make_change:
@@ -43,28 +53,21 @@ def add_data_to_posterior(df_data,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:
-    df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, group_name=group_name)
+    df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, posterior_index_name=posterior_index_name,
+                                   add_data=add_data)
     return df_bayes, posterior
 
 
-def fill_row(group_val, rows, df_bayes, group_name):
-    this_hdi = df_bayes.loc[df_bayes[group_name] == group_val]
+def fill_row(condition_val, rows, df_bayes, condition_name):
+    this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
     assert this_hdi.shape[0] > 0, \
-        f'No such value {group_val} in {group_name}: it"s {df_bayes[group_name].unique()}'
+        f'No such value {condition_val} in {condition_name}: it"s {df_bayes[condition_name].unique()}'
     for col in ['lower interval', 'higher interval', 'mean interval']:
         rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
     return rows
 
 
-def hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data):
-    mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
-                        coords={'hdi': ["mean"], group_name: hdi[group_name]},
-                        dims=['hdi', group_name])
-    df_bayes = xr.concat([hdi, mean], 'hdi').rename('interval').to_dataframe()
-    df_bayes = df_bayes.pivot_table(index=group_name, columns=['hdi', ]).reset_index()
-    # Reset 2-level column from pivot_table:
-    df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
-    df_bayes.rename({f' {group_name}': group_name}, axis=1, inplace=True)
+def hdi2df_many_conditions(df_bayes, group_name, df_data):
     # Check
     if len(df_data[group_name].unique()) != len(df_bayes[group_name].unique()):
         raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
@@ -73,42 +76,53 @@ def hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data):
     return pd.concat(rows)
 
 
-def hdi2df_one_condition(trace, hdi, b_name, group_name, df_data):
-    mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
-                        coords={'hdi': ["mean"], },
-                        dims='hdi')
-    df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
-    df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
+def hdi2df_one_condition(df_bayes, group_name, df_data):
     df_bayes[group_name] = df_data[group_name].iloc[0]
-    for col in ['lower', 'higher', 'mean']:
-        df_data.insert(df_data.shape[1], col + ' interval', df_bayes[col].values.squeeze())
+    for col in ['lower interval', 'higher interval', 'mean interval']:
+        df_data.insert(df_data.shape[1], col, df_bayes[col].values.squeeze())
     return df_data
 
 
-def trace2df(trace, df_data, b_name='b_stim_per_condition', group_name='condition_code'):
+def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False):
     """
     # Convert to dataframe and fill in original conditions
-    :param trace:
-    :param df_data:
-    :param b_name:
-    :return:
+    group name is whatever was used to index posterior
     """
     # TODO this is lazy. There may be more than one condition, need to include them all instead of combined_condition
     if f'{b_name}_dim_0' in trace:
-        trace = trace.rename({f'{b_name}_dim_0': group_name})
+        trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'a_subject_dim_0' in trace:
         trace = trace.rename({f'a_subject_dim_0': 'subject'})
-    # if 'mu_per_condition_dim_0' in trace:
-    #     trace = trace.rename({'mu_per_condition_dim_0': group_name})
-    if df_data[group_name].dtype != 'int':
-        warnings.warn(f"Was {group_name} a string? It's safer to recast it as integer. I'll try to do that...")
-        df_data[group_name] = df_data[group_name].astype(int)
+    if add_data and (df_data[posterior_index_name].dtype != 'int'):
+        warnings.warn(
+            f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that...")
+        df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
     hdi = az.hdi(trace)[b_name]
     if hdi.ndim == 1:
-        return hdi2df_one_condition(trace, hdi, b_name, group_name, df_data), trace
+
+        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
+                            coords={'hdi': ["mean"], },
+                            dims='hdi')
+        df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
+        df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
+        if not add_data:  # Done
+            df_bayes.columns += ' interval'
+            return df_bayes, trace
+        return hdi2df_one_condition(df_bayes, posterior_index_name, df_data), trace
     else:
-        return hdi2df_many_conditions(trace, hdi, b_name, group_name, df_data), trace
+        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
+                            coords={'hdi': ["mean"], posterior_index_name: hdi[posterior_index_name]},
+                            dims=['hdi', posterior_index_name])
+
+        df_bayes = xr.concat([hdi, mean], 'hdi').rename('interval').to_dataframe()
+        df_bayes = df_bayes.pivot_table(index=posterior_index_name, columns=['hdi', ]).reset_index()
+        # Reset 2-level column from pivot_table:
+        df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
+        df_bayes.rename({f' {posterior_index_name}': posterior_index_name}, axis=1, inplace=True)
+        if not add_data:  # Done
+            return df_bayes, trace
+        return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),

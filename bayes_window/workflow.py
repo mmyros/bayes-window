@@ -16,6 +16,25 @@ reload(visualization)
 le = LabelEncoder()
 
 
+def combined_condition(df, levels):
+    # String-valued combined condition
+    # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
+    df['combined_condition'] = df[levels[0]].astype('str')
+    for level in levels[1:]:
+        df['combined_condition'] += df[level].astype('str')
+    data = df.copy()
+    # Transform conditions to integers as required by numpyro:
+    data['combined_condition'] = le.fit_transform(df['combined_condition'])
+    # Transform conditions to integers as required by numpyro:
+    key = dict()
+    for level in levels:
+        data[level] = le.fit_transform(data[level])
+        # Keep key for later use
+        # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
+        key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+    return data, key
+
+
 class BayesWindow:
     def __init__(self,
                  df: pd.DataFrame,
@@ -29,15 +48,16 @@ class BayesWindow:
         assert treatment in df.columns
         if group:
             assert group in df.columns
+        self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
+        self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
             assert self.condition[0] in df.columns
-        # self.levels[0] if len(self.levels) > 2 else None
-        self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
-        self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
+        self.levels = utils.parse_levels(self.treatment, self.condition, self.group)
+        self.data, self._key = combined_condition(df, self.levels)
         self.detail = detail
         self.y = y
-        self.data = df.copy()
+
         # Preallocate attributes:
         self.b_name = None  # Depends on model we'll fit
         self.do_make_change = None  # Depends on plotting input
@@ -45,28 +65,7 @@ class BayesWindow:
         self.independent_axes = None
         self.data_and_posterior = None
         self.posterior = None
-        # TODO get rid of levels altogether
-        self.levels = [self.treatment]
-        if self.condition[0]:
-            self.levels += self.condition
-        if group:
-            self.levels += [self.group]
-
-        # String-valued combined condition
-        # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
-        df['combined_condition'] = df[self.levels[0]].astype('str')
-        for level in self.levels[1:]:
-            df['combined_condition'] += df[level].astype('str')
-
-        # Transform conditions to integers as required by numpyro:
-        self.data['combined_condition'] = le.fit_transform(df['combined_condition'])
-        # Transform conditions to integers as required by numpyro:
-        self._key = dict()
-        for level in self.levels:
-            self.data[level] = le.fit_transform(self.data[level])
-            # Keep key for later use
-            # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
-            self._key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+        self.trace = None
 
     def fit_anova(self):
         from statsmodels.stats.anova import anova_lm
@@ -156,13 +155,13 @@ class BayesWindow:
                                                                               index_cols=self.levels[:3],
                                                                               treatment_name=self.levels[0],
                                                                               b_name=self.b_name,
-                                                                              group_name='combined_condition',
+                                                                              posterior_index_name='combined_condition',
                                                                               do_mean_over_trials=False,
                                                                               do_make_change=False
                                                                               )
 
-    def fit_slopes(self, add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-                   plot_index_cols=None, do_mean_over_trials=True, **kwargs):
+    def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract',
+                   plot_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):
         # TODO case with no group_name
         if do_make_change not in ['subtract', 'divide']:
             raise ValueError(
@@ -171,6 +170,7 @@ class BayesWindow:
         self.b_name = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         self.add_data = add_data  # We'll use this in plotting
+        # TODO handle no-group case
         if plot_index_cols is None:
             # TODO case with no plot_index_cols should include any multiindex?
             plot_index_cols = self.levels  # [-1]
@@ -198,15 +198,16 @@ class BayesWindow:
                                                                           index_cols=plot_index_cols,
                                                                           treatment_name=self.treatment,
                                                                           b_name=self.b_name,
-                                                                          group_name=self.condition[0],
+                                                                          posterior_index_name=self.group,
                                                                           # TODO shoulnt this be comnined condition?
                                                                           do_make_change=do_make_change,
                                                                           do_mean_over_trials=do_mean_over_trials,
                                                                           )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
+            # TODO we add data regardless. Is there a way to not use self.data?
             df_result, self.trace.posterior = trace2df(self.trace.posterior,
-                                                       self.data, b_name=self.b_name, group_name=self.group)
+                                                       self.data, b_name=self.b_name, posterior_index_name=self.group)
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()

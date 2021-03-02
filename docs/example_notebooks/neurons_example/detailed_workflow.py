@@ -80,7 +80,7 @@ df_both, trace = utils.add_data_to_posterior(df,
                                              index_cols=['neuron', 'stim', 'mouse_code', ],
                                              treatment_name='stim',
                                              b_name='b_stim_per_condition',  # for posterior
-                                             group_name='neuron'  # for posterior
+                                             posterior_index_name='neuron'  # for posterior
                                              )
 
 # + [markdown] hideCode=false hidePrompt=false

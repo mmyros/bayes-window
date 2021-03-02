@@ -4,13 +4,12 @@ import altair as alt
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
-import numpyro
 import pandas as pd
 from bayes_window import workflow, models
 from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
-from numpyro.infer import MCMC, NUTS, Predictive
+from numpyro.infer import Predictive
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
@@ -205,58 +204,78 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
     return pd.concat(res)
 
 
-def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),
-                        draws=1000, warmup=500, num_chains=1, progress_bar=True):
+# def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),
+#                         draws=1000, warmup=500, num_chains=1, progress_bar=True):
+def split_train_predict(df, model, fit_method, y, treatment, condition, group):
     """
 
-    :param data_cols: ['column_name1' 'column_name2']
-    :param model:  model function
-    :param df:
-    :param fitting_args:
-    :param index_cols:
-    :param draws:
-    :param warmup:
-    :param num_chains:
-    :param progress_bar:
-    :param kwargs: eg:
         y=df['con_coherence_magnitude_near'].values,
         treatment=trans(df['event'].values),
         condition=trans(df['condition_code'].values),
         subject=trans(df['subject'].values),
     :return:
     """
-
-    fitting_args = fitting_args or {}
+    from bayes_window import utils
+    from bayes_window import BayesWindow
+    assert hasattr(BayesWindow, fit_method)
+    fitting_args = {}
+    condition = condition if type(condition) == list else [condition]
+    if condition[0]:
+        assert condition[0] in df.columns
+    levels = utils.parse_levels(treatment, condition, group)
 
     # split into training and test
-    df_train, df_test = train_test_split(df, train_size=.5, test_size=.5, stratify=df[list(index_cols)])
+    df_train, df_test = train_test_split(df, train_size=.5, test_size=.5,
+                                         stratify=df[levels])
 
-    # fit
-    mcmc = MCMC(NUTS(model), warmup, draws, num_chains=num_chains, progress_bar=progress_bar)
-    data_args = {col: df_train[col].values for col in data_cols}
-    mcmc.run(random.PRNGKey(16), **data_args, **fitting_args)
+    window = BayesWindow(df_train, y, treatment=treatment, condition=condition, group=group)
+    window = getattr(window, fit_method)(add_data=False, model=model)
+    # eg window.fit_slopes(add_data=False, model=model)
 
-    # Test
-    data_args = {col: df_test[col].values for col in data_cols}
-    ppc = Predictive(model, num_samples=draws, parallel=False)
+    data_args = {col: df_test[col].values for col in levels}
+    ppc = Predictive(model, parallel=False)
     ppc = ppc(
         random.PRNGKey(17),
         **data_args,
         **fitting_args
     )
 
-    trace = az.from_numpyro(mcmc,
+    trace = az.from_numpyro(window.trace,
                             posterior_predictive=ppc,
                             # coords={"mouse": df_test['mouse_code']},
                             # dims={"y": ["mouse"]},
                             )
 
     return trace
+    # # fit
+    #
+    # fitting_args = fitting_args or {}
+    # mcmc = MCMC(NUTS(model), warmup, draws, num_chains=num_chains, progress_bar=progress_bar)
+    # data_args = {col: df_train[col].values for col in data_cols}
+    # mcmc.run(random.PRNGKey(16), **data_args, **fitting_args)
+    #
+    # # Test
+    # data_args = {col: df_test[col].values for col in data_cols}
+    # ppc = Predictive(model, num_samples=draws, parallel=False)
+    # ppc = ppc(
+    #     random.PRNGKey(17),
+    #     **data_args,
+    #     **fitting_args
+    # )
+    #
+    # trace = az.from_numpyro(mcmc,
+    #                         posterior_predictive=ppc,
+    #                         # coords={"mouse": df_test['mouse_code']},
+    #                         # dims={"y": ["mouse"]},
+    #                         )
+    #
+    # return trace
 
 
-def compare_models(models_to_compare: dict, df, data_cols: list, extra_args=None,
-                   index_cols=('mouse_code', 'neuron_code', 'stim'),
-                   draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
+# def compare_models(models_to_compare: dict, df, data_cols: list, extra_args=None,
+#                    index_cols=('mouse_code', 'neuron_code', 'stim'),
+#                    draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
+def compare_models(df, models: dict, fit_method, y, treatment, condition=None, group=None, parallel=False):
     """
     compare_models(models={'Hier':bayes.Numpyro.model_hier,
                            'Hier+covariance':bayes.Numpyro.model_hier_covar,
@@ -279,44 +298,35 @@ def compare_models(models_to_compare: dict, df, data_cols: list, extra_args=None
         except (TypeError, ValueError) as e:
             print(e)
 
-    if extra_args is None:
-        extra_args = np.tile({}, len(models_to_compare))
-    numpyro.set_host_device_count(10)
+    # if extra_args is None:
+    #     extra_args = np.tile({}, len(models))
+    # numpyro.set_host_device_count(10)
     # Run
-    if do_parallel:
+    if parallel:
         # cant use utils because zip
-        traces = Parallel(n_jobs=14, verbose=3)(delayed(split_train_predict)
-                                                (model, df, data_cols, fitting_args, index_cols, draws, warmup,
-                                                 num_chains,
-                                                 progress_bar=False)
-                                                for model, fitting_args in
-                                                zip(models_to_compare.values(), extra_args))
+        pass
+        # traces = Parallel(n_jobs=14, verbose=3)(delayed(split_train_predict)
+        #                                         (model, df, data_cols, fitting_args, index_cols, draws, warmup,
+        #                                          num_chains,
+        #                                          progress_bar=False)
+        #                                         for model, fitting_args in
+        #                                         zip(models.values(), extra_args))
     else:
-        traces = [split_train_predict(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
-                  for model, fitting_args in zip(models_to_compare.values(), extra_args)]
+        # traces = [split_train_predict(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
+        #           for model, fitting_args in zip(models_to_compare.values(), extra_args)]
+        traces = [split_train_predict(df, model, fit_method, y, treatment, condition, group)
+                  for model in models.values()]
 
     # save to results
     traces_dict = {}  # initialize results
-    for key, trace in zip(models_to_compare.keys(), traces):
+    for key, trace in zip(models.keys(), traces):
         traces_dict[key] = trace
 
     for trace_name in traces_dict.keys():
 
-        trace = traces_dict[trace_name]
-        # Print diagnostics and effect size
-        print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
-        try:
-            try:
-                slope = trace.posterior['v_mu'].sel({'v_mu_dim_0': 1}).mean(['chain']).values
-            except Exception:
-                slope = trace.posterior['b'].mean(['chain']).values
-            print(f'Effect size={(slope.mean() / slope.std()).round(2)}  == {trace_name}')
-        except Exception:
-            pass
-
         # Plot PPC
         az.plot_ppc(trace,
-                    flatten=[data_cols[2]],
+                    flatten=[treatment],
                     # flatten_pp=data_cols[2],
                     mean=False,
                     # num_pp_samples=1000,

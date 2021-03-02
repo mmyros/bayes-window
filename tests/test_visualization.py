@@ -48,7 +48,7 @@ def test_plot_data_and_posterior():
                                                          treatment_name='stim',
                                                          conditions=(0, 1),
                                                          b_name='b_stim_per_condition',  # for posterior
-                                                         group_name='neuron'  # for posterior
+                                                         posterior_index_name='neuron'  # for posterior
                                                          )
 
         # Plot data and posterior
