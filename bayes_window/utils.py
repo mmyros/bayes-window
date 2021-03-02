@@ -45,7 +45,7 @@ def add_data_to_posterior(df_data,
         df_data = df_data.groupby(index_cols).mean().reset_index()
     if do_make_change:
         # Make (fold) change
-        df_data, y = make_fold_change(df_data,
+        df_data, _ = make_fold_change(df_data,
                                       y=y,
                                       index_cols=index_cols,
                                       treatment_name=treatment_name,
@@ -67,12 +67,12 @@ def fill_row(condition_val, rows, df_bayes, condition_name):
     return rows
 
 
-def hdi2df_many_conditions(df_bayes, group_name, df_data):
+def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     # Check
-    if len(df_data[group_name].unique()) != len(df_bayes[group_name].unique()):
+    if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
         raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
-    rows = [fill_row(group_val, rows, df_bayes, group_name)
-            for group_val, rows in df_data.groupby([group_name])]
+    rows = [fill_row(group_val, rows, df_bayes, posterior_index_name)
+            for group_val, rows in df_data.groupby([posterior_index_name])]
     return pd.concat(rows)
 
 
@@ -106,8 +106,10 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
                             dims='hdi')
         df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
         df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
-        if not add_data:  # Done
+        if not df_bayes.columns.str.contains('interval').any():
+            # This may be always?
             df_bayes.columns += ' interval'
+        if not add_data:  # Done
             return df_bayes, trace
         return hdi2df_one_condition(df_bayes, posterior_index_name, df_data), trace
     else:

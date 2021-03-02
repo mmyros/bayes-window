@@ -178,6 +178,7 @@ class BayesWindow:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
             self.condition[0] = 'dummy_condition'
             self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
+            plot_index_cols.append('dummy_condition')
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
                                      treatment=self.data[self.treatment].values,
@@ -192,22 +193,24 @@ class BayesWindow:
             raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!{e}')
         if add_data:
             # Add data back
+            # TODO posterior_index_name=self.condition[0] will not work if need combined_condition
             df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
                                                                           posterior=self.trace.posterior,
                                                                           y=self.y,
                                                                           index_cols=plot_index_cols,
                                                                           treatment_name=self.treatment,
                                                                           b_name=self.b_name,
-                                                                          posterior_index_name=self.group,
-                                                                          # TODO shoulnt this be comnined condition?
+                                                                          posterior_index_name=self.condition[0],
                                                                           do_make_change=do_make_change,
                                                                           do_mean_over_trials=do_mean_over_trials,
+                                                                          add_data=self.add_data
                                                                           )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
             # TODO we add data regardless. Is there a way to not use self.data?
             df_result, self.trace.posterior = trace2df(self.trace.posterior,
-                                                       self.data, b_name=self.b_name, posterior_index_name=self.group)
+                                                       self.data, b_name=self.b_name,
+                                                       posterior_index_name=self.condition[0])
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()

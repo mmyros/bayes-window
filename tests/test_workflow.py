@@ -217,10 +217,10 @@ def test_plot_generic():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=False, model=models.model_hierarchical, )
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
     bw.plot()
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(add_data=False, model=models.model_hierarchical, )
     bw.plot()
     # conditions:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
