@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from bayes_window import workflow, models
+from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
@@ -204,78 +205,66 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
     return pd.concat(res)
 
 
-# def split_train_predict(model, df, data_cols, fitting_args=None, index_cols=('mouse_code', 'neuron_code', 'stim'),
-#                         draws=1000, warmup=500, num_chains=1, progress_bar=True):
-def split_train_predict(df, model, fit_method, y, treatment, condition, group):
+def split_train_predict(df, model, y, **kwargs):
     """
 
         y=df['con_coherence_magnitude_near'].values,
         treatment=trans(df['event'].values),
         condition=trans(df['condition_code'].values),
-        subject=trans(df['subject'].values),
+        group=trans(df['subject'].values),
     :return:
     """
+    # condition = condition if type(condition) == list else [condition]
+    # if condition[0]:
+    #     assert condition[0] in df.columns
+    level_names = ['treatment', 'condition', 'group']
+    level_names = [level_name for level_name in level_names if (level_name in kwargs.keys())]
+    level_names = [level_name for level_name in level_names if kwargs[level_name] is not None]
+    for level_name in level_names:
+        print(level_name)
+    # Corresponding df labels:
     from bayes_window import utils
-    from bayes_window import BayesWindow
-    assert hasattr(BayesWindow, fit_method)
-    fitting_args = {}
-    condition = condition if type(condition) == list else [condition]
-    if condition[0]:
-        assert condition[0] in df.columns
-    levels = utils.parse_levels(treatment, condition, group)
+    # df_cols = utils.parse_levels(*level_names)
+
+    df_cols = [utils.level_to_data_column(level_name, kwargs) for level_name in level_names]
 
     # split into training and test
-    df_train, df_test = train_test_split(df, train_size=.5, test_size=.5,
-                                         stratify=df[levels])
+    if len(df_cols) > 0:
+        df_train, df_test = train_test_split(df, train_size=.5, test_size=.5, stratify=df[df_cols])
+    else:
+        df_train, df_test = train_test_split(df, train_size=.5, test_size=.5)
+    model_args = {'y': df_test[y].values}
+    model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
-    window = BayesWindow(df_train, y, treatment=treatment, condition=condition, group=group)
-    window = getattr(window, fit_method)(add_data=False, model=model)
-    # eg window.fit_slopes(add_data=False, model=model)
+    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False)
+    ppc = Predictive(model, parallel=False, num_samples=1000)
+    ppc = ppc(random.PRNGKey(17), **model_args)
 
-    data_args = {col: df_test[col].values for col in levels}
-    ppc = Predictive(model, parallel=False)
-    ppc = ppc(
-        random.PRNGKey(17),
-        **data_args,
-        **fitting_args
-    )
+    predictive = az.from_numpyro(mcmc,
+                                 posterior_predictive=ppc,
+                                 # coords={"mouse": df_test['mouse_code']},
+                                 # dims={"y": ["mouse"]},
+                                 )
 
-    trace = az.from_numpyro(window.trace,
-                            posterior_predictive=ppc,
-                            # coords={"mouse": df_test['mouse_code']},
-                            # dims={"y": ["mouse"]},
-                            )
-
-    return trace
-    # # fit
-    #
-    # fitting_args = fitting_args or {}
-    # mcmc = MCMC(NUTS(model), warmup, draws, num_chains=num_chains, progress_bar=progress_bar)
-    # data_args = {col: df_train[col].values for col in data_cols}
-    # mcmc.run(random.PRNGKey(16), **data_args, **fitting_args)
-    #
-    # # Test
-    # data_args = {col: df_test[col].values for col in data_cols}
-    # ppc = Predictive(model, num_samples=draws, parallel=False)
-    # ppc = ppc(
-    #     random.PRNGKey(17),
-    #     **data_args,
-    #     **fitting_args
-    # )
-    #
-    # trace = az.from_numpyro(mcmc,
-    #                         posterior_predictive=ppc,
-    #                         # coords={"mouse": df_test['mouse_code']},
-    #                         # dims={"y": ["mouse"]},
-    #                         )
-    #
-    # return trace
+    return predictive
 
 
-# def compare_models(models_to_compare: dict, df, data_cols: list, extra_args=None,
-#                    index_cols=('mouse_code', 'neuron_code', 'stim'),
-#                    draws=1000, warmup=500, num_chains=1, do_parallel=False, ):
-def compare_models(df, models: dict, fit_method, y, treatment, condition=None, group=None, parallel=False):
+def r2(trace):
+    """
+    R squared
+    :param trace:
+    """
+    y_true = trace.observed_data["y"].values
+    y_pred = trace.posterior_predictive.stack(sample=("chain", "draw"))["y"].values.T
+    try:
+        print(az.r2_score(y_true, y_pred))
+    except (TypeError, ValueError) as e:
+        print(e)
+
+
+def compare_models(df, models: dict,
+                   extra_model_args: list = None,
+                   parallel=False, plotose=False, **kwargs):
     """
     compare_models(models={'Hier':bayes.Numpyro.model_hier,
                            'Hier+covariance':bayes.Numpyro.model_hier_covar,
@@ -286,86 +275,60 @@ def compare_models(df, models: dict, fit_method, y, treatment, condition=None, g
                    extra_args=[{}, {}, {'prior':'Exponential'}, {'prior':'Gamma'}])
     """
 
-    def r2(trace):
-        """
-        R squared
-        :param trace:
-        """
-        y_true = trace.observed_data["y"].values
-        y_pred = trace.posterior_predictive.stack(sample=("chain", "draw"))["y"].values.T
-        try:
-            print(az.r2_score(y_true, y_pred))
-        except (TypeError, ValueError) as e:
-            print(e)
-
-    # if extra_args is None:
-    #     extra_args = np.tile({}, len(models))
     # numpyro.set_host_device_count(10)
-    # Run
+    extra_model_args = extra_model_args or np.tile({}, len(models))
     if parallel:
-        # cant use utils because zip
-        pass
-        # traces = Parallel(n_jobs=14, verbose=3)(delayed(split_train_predict)
-        #                                         (model, df, data_cols, fitting_args, index_cols, draws, warmup,
-        #                                          num_chains,
-        #                                          progress_bar=False)
-        #                                         for model, fitting_args in
-        #                                         zip(models.values(), extra_args))
+        traces = Parallel(n_jobs=len(models))(delayed(split_train_predict)
+                                              (df, model, **kwargs, **extra_model_arg)
+                                              for model, extra_model_arg in
+                                              zip(models.values(), extra_model_args))
     else:
-        # traces = [split_train_predict(model, df, data_cols, fitting_args, index_cols, draws, warmup, num_chains)
-        #           for model, fitting_args in zip(models_to_compare.values(), extra_args)]
-        traces = [split_train_predict(df, model, fit_method, y, treatment, condition, group)
-                  for model in models.values()]
+        traces = [split_train_predict(df, model, **kwargs, **extra_model_arg)
+                  for model, extra_model_arg in zip(models.values(), extra_model_args)]
 
-    # save to results
+    # save tp dict
     traces_dict = {}  # initialize results
     for key, trace in zip(models.keys(), traces):
         traces_dict[key] = trace
 
-    for trace_name in traces_dict.keys():
+    if plotose:
+        for trace_name, trace in traces_dict.items():
 
-        # Plot PPC
-        az.plot_ppc(trace,
-                    flatten=[treatment],
-                    # flatten_pp=data_cols[2],
-                    mean=False,
-                    # num_pp_samples=1000,
-                    # kind='cumulative'
-                    )
-        plt.title(trace_name)
-        plt.show()
-        r2(trace)
-        # Weird that r2=1
-        # Waic
+            # Plot PPC
+            az.plot_ppc(trace,
+                        # flatten=[treatment],
+                        # flatten_pp=data_cols[2],
+                        mean=False,
+                        # num_pp_samples=1000,
+                        # kind='cumulative'
+                        )
+            plt.title(trace_name)
+            plt.show()
+            r2(trace)
+            # Weird that r2=1
+            # Waic
+            try:
+                print('======= WAIC (higher is better): =========')
+                print(az.waic(trace, pointwise=True))
+                print(az.waic(trace, var_name='y'))
+            except TypeError:
+                pass
+
         try:
-            print('======= WAIC (higher is better): =========')
-            print(az.waic(trace, pointwise=True))
-            print(az.waic(trace, var_name='y'))
-        except TypeError:
+            for trace_name in traces_dict.keys():
+                trace = traces_dict[trace_name]
+                # Print diagnostics and effect size
+                print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
+                try:
+                    slope = trace.posterior['v_mu'].sel({'v_mu_dim_0': 1}).mean(['chain']).values
+                except Exception:
+                    slope = trace.posterior['b'].mean(['chain']).values
+                print(f'Effect size={(slope.mean() / slope.std()).round(2)}  == {trace_name}')
+        except Exception:
             pass
 
-    try:
-        for trace_name in traces_dict.keys():
-            trace = traces_dict[trace_name]
-            # Print diagnostics and effect size
-            print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
-            try:
-                slope = trace.posterior['v_mu'].sel({'v_mu_dim_0': 1}).mean(['chain']).values
-            except Exception:
-                slope = trace.posterior['b'].mean(['chain']).values
-            print(f'Effect size={(slope.mean() / slope.std()).round(2)}  == {trace_name}')
-    except Exception:
-        pass
-
-    try:
-        model_compare = az.compare(traces_dict)  # , var_name='y')
-        az.plot_compare(model_compare, textsize=12)
-        print(model_compare)
-        model_compare = az.compare(traces_dict)  # , var_name='y_isi')
-        az.plot_compare(model_compare, textsize=12)
-        print(model_compare)
-    except Exception as e:
-        print(e)
-        model_compare = []
+    model_compare = az.compare(traces_dict)  # , var_name='y')
+    az.plot_compare(model_compare, textsize=12)
+    print(model_compare)
 
     return traces_dict, model_compare

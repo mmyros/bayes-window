@@ -17,10 +17,12 @@
 # # Compare to ANOVA and LMM: ROC curve
 
 # + slideshow={"slide_type": "skip"}
-from bayes_window import model_comparison
+from bayes_window import model_comparison, models
+from bayes_window.generative_models import generate_fake_lfp
 
 import numpy as np
 from importlib import reload
+
 reload(model_comparison)
 
 # + slideshow={"slide_type": "skip"}
@@ -45,20 +47,6 @@ bars, roc = model_comparison.plot_roc(df)
 bars.facet(column='y').properties().display()
 roc.facet(column='y').properties()
 
-# + [markdown] slideshow={"slide_type": "slide"}
-# ## Non-Binary
-# For models that have CI
-
-# + slideshow={"slide_type": "fragment"}
-reload(model_comparison)
-dfnb = model_comparison.make_roc_auc(
-    res, binary=False, groups=('method', 'y', 'randomness', 'n_trials'))
-bars, roc = model_comparison.plot_roc(dfnb)
-bars.facet(column='n_trials', row='y')
-# -
-
-roc.facet(column='n_trials', row='y')
-
 # ## CM
 
 # +
@@ -69,3 +57,30 @@ reload(model_comparison)
 model_comparison.plot_confusion(
     model_comparison.make_confusion_matrix(res, ('method', 'y', 'randomness', 'n_trials')
                                            )).facet(column='method', row='y')
+# -
+
+# ## Model comparison
+
+reload(model_comparison)
+df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=13,
+                                                  n_trials=40)
+model_comparison.compare_models(df=df,
+                                models={
+                                    'no_teratment': models.model_hierarchical,
+                                    'no_group': models.model_hierarchical,
+                                    'full_normal': models.model_hierarchical,
+                                    'full_student': models.model_hierarchical,
+                                    'full_lognogmal': models.model_hierarchical,
+
+                                },
+                                extra_model_args=[
+                                    {'treatment': None},
+                                    {'group': None},
+                                    {'treatment': 'stim'},
+                                    {'treatment': 'stim', 'dist_y': 'student'},
+                                    {'treatment': 'stim', 'dist_y': 'lognormal'},
+                                ],
+                                y='isi',
+                                condition=None,
+                                parallel=False
+                                );

@@ -35,7 +35,7 @@ def test_plot_data_and_posterior():
         trace = fit_numpyro(y=df[y].values,
                             treatment=(df['stim']).astype(int).values,
                             condition=trans(df['neuron']),
-                            subject=trans(df['mouse']),
+                            group=trans(df['mouse']),
                             progress_bar=True,
                             model=models.model_hierarchical,
                             n_draws=100, num_chains=1, )

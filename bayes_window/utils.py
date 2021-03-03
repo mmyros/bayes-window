@@ -9,8 +9,24 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
+def level_to_data_column(level_name, kwargs):
+    from collections import Iterable
+    # import itertools
+    # flatten = itertools.chain.from_iterable
+    x = kwargs[level_name]
+    if isinstance(x, Iterable) and not isinstance(x, (str, bytes)):
+        if len(x) > 1:
+            raise ValueError(f'Multiple conditions are not supported:{x}')
+        # list(flatten(level_name))
+        return kwargs[level_name][0]
+    else:
+        return kwargs[level_name]
+
+
 def parse_levels(treatment, condition, group):
-    levels = [treatment]
+    levels = []
+    if treatment:
+        levels += [treatment]
     if condition[0]:
         levels += condition
     if group:

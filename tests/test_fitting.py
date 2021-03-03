@@ -19,7 +19,7 @@ def test_fit_numpyro_serial():
         trace = fit_numpyro(y=df[y].values,
                             treatment=trans(df['stim']),
                             condition=trans(df['neuron']),
-                            subject=trans(df['mouse']),
+                            group=trans(df['mouse']),
                             progress_bar=True,
                             model=models.model_hierarchical,
                             n_draws=100, num_chains=1, )
@@ -47,7 +47,7 @@ def test_fit_numpyro_parallel():
         delayed(fit_numpyro)(y=y,
                              treatment=(df['stim']).astype(int).values,
                              condition=trans(df['neuron']),
-                             subject=trans(df['mouse']),
+                             group=trans(df['mouse']),
                              progress_bar=False,
                              model=models.model_hierarchical,
                              n_draws=10

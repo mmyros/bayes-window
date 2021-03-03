@@ -9,6 +9,7 @@ from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
+from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
 from sklearn.preprocessing import LabelEncoder
 
@@ -66,6 +67,7 @@ class BayesWindow:
         self.data_and_posterior = None
         self.posterior = None
         self.trace = None
+        self.model = None
 
     def fit_anova(self):
         from statsmodels.stats.anova import anova_lm
@@ -164,12 +166,12 @@ class BayesWindow:
                    plot_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):
         # TODO case with no group_name
         if do_make_change not in ['subtract', 'divide']:
-            raise ValueError(
-                f'If we are fitting slopes, do_make_change should be subtract or divide, not {do_make_change}')
+            raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
         self.b_name = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         self.add_data = add_data  # We'll use this in plotting
+        self.model = model
         # TODO handle no-group case
         if plot_index_cols is None:
             # TODO case with no plot_index_cols should include any multiindex?
@@ -183,7 +185,7 @@ class BayesWindow:
             self.trace = fit_numpyro(y=self.data[self.y].values,
                                      treatment=self.data[self.treatment].values,
                                      condition=self.data[self.condition[0]].values,
-                                     subject=self.data[self.group].values,
+                                     group=self.data[self.group].values,
                                      progress_bar=False,
                                      model=model,
                                      n_draws=1000, num_chains=1,
@@ -322,3 +324,53 @@ class BayesWindow:
         import arviz as az
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
         az.plot_trace(self.trace, var_names=var_names, show=True)
+
+    def explore_models(self, parallel=True):
+        if self.b_name is None:
+            raise ValueError('Fit a model first')
+        elif self.b_name == 'mu_per_condition':
+            compare_models(df=self.data,
+                           models={'no_neuron': self.model,
+                                   'no-treatment': self.model,
+                                   'full_normal': self.model,
+                                   'full_student': self.model,
+                                   'full_lognogmal': self.model,
+                                   },
+                           extra_model_args=[
+                               {'treatment': self.treatment, 'condition': None},
+                               {'treatment': None, 'condition': None},
+                               {'treatment': None, 'condition': 'neuron'},
+                               {'treatment': self.treatment, 'condition': 'neuron'},
+                               {'treatment': self.treatment, 'condition': 'neuron', 'dist_y': 'student'},
+                               {'treatment': self.treatment, 'condition': 'neuron', 'dist_y': 'lognormal'},
+                           ],
+                           y='isi',
+                           group='mouse',
+                           parallel=True
+                           )
+
+        elif self.b_name == 'b_stim_per_condition':
+            compare_models(df=self.data,
+                           models={
+                               'full_normal': self.model,
+                               'no_condition': self.model,
+                               'no_condition_or_treatment': self.model,
+                               'no-treatment': self.model,
+                               'no_group': self.model,
+                               'full_student': self.model,
+                               'full_lognogmal': self.model,
+                           },
+                           extra_model_args=[
+                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
+                               {'treatment': self.treatment, 'condition': None},
+                               {'treatment': None, 'condition': None},
+                               {'treatment': None, 'condition': self.condition},
+                               {'treatment': self.treatment, 'condition': self.condition, 'group': None},
+                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                'dist_y': 'student', },
+                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                'dist_y': 'lognormal'},
+                           ],
+                           y=self.y,
+                           parallel=parallel
+                           )
