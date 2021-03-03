@@ -22,7 +22,6 @@ from bayes_window.generative_models import generate_fake_lfp
 
 import numpy as np
 from importlib import reload
-
 reload(model_comparison)
 
 # + slideshow={"slide_type": "skip"}
