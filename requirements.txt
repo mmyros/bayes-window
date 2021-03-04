@@ -13,7 +13,7 @@ pytest-runner==5.1
 joblib
 elephant
 numpy
-numpyro
+# numpyro # some kind of conflict for new users, needs pinning
 bulwark
 xarray
 altair
