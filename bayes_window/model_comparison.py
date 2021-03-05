@@ -5,9 +5,6 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bayes_window import workflow, models
-from bayes_window.fitting import fit_numpyro
-from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
 from numpyro.infer import Predictive
@@ -16,6 +13,10 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
+
+from bayes_window import workflow, models
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_lfp
 
 trans = LabelEncoder().fit_transform
 
@@ -329,6 +330,4 @@ def compare_models(df, models: dict,
 
     model_compare = az.compare(traces_dict)  # , var_name='y')
     az.plot_compare(model_compare, textsize=12, show=True)
-    print(model_compare)
-
-    return traces_dict, model_compare
+    return model_compare
