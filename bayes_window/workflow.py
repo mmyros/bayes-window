@@ -5,13 +5,14 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 le = LabelEncoder()
@@ -331,48 +332,45 @@ class BayesWindow:
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
-            compare_models(df=self.data,
-                           models={'no_neuron': self.model,
-                                   'no-treatment': self.model,
-                                   'full_normal': self.model,
-                                   'full_student': self.model,
-                                   'full_lognogmal': self.model,
-                                   },
-                           extra_model_args=[
-                               {'treatment': self.treatment, 'condition': None},
-                               {'treatment': None, 'condition': None},
-                               {'treatment': None, 'condition': 'neuron'},
-                               {'treatment': self.treatment, 'condition': 'neuron'},
-                               {'treatment': self.treatment, 'condition': 'neuron', 'dist_y': 'student'},
-                               {'treatment': self.treatment, 'condition': 'neuron', 'dist_y': 'lognormal'},
-                           ],
-                           y='isi',
-                           group='mouse',
-                           parallel=True
-                           )
+            return compare_models(df=self.data,
+                                  models={
+                                      'no_condition': self.model,
+                                      'full_normal': self.model,
+                                      'full_student': self.model,
+                                      'full_lognogmal': self.model,
+                                  },
+                                  extra_model_args=[
+                                      {'condition': None},
+                                      {'condition': self.condition},
+                                      {'condition': self.condition},
+                                      {'condition': self.condition},
+                                  ],
+                                  y=self.y,
+                                  parallel=True
+                                  )
 
         elif self.b_name == 'b_stim_per_condition':
-            compare_models(df=self.data,
-                           models={
-                               'full_normal': self.model,
-                               'no_condition': self.model,
-                               'no_condition_or_treatment': self.model,
-                               'no-treatment': self.model,
-                               'no_group': self.model,
-                               'full_student': self.model,
-                               'full_lognogmal': self.model,
-                           },
-                           extra_model_args=[
-                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
-                               {'treatment': self.treatment, 'condition': None},
-                               {'treatment': None, 'condition': None},
-                               {'treatment': None, 'condition': self.condition},
-                               {'treatment': self.treatment, 'condition': self.condition, 'group': None},
-                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                                'dist_y': 'student', },
-                               {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                                'dist_y': 'lognormal'},
-                           ],
-                           y=self.y,
-                           parallel=parallel
-                           )
+            return compare_models(df=self.data,
+                                  models={
+                                      'full_normal': self.model,
+                                      'no_condition': self.model,
+                                      'no_condition_or_treatment': self.model,
+                                      'no-treatment': self.model,
+                                      'no_group': self.model,
+                                      'full_student': self.model,
+                                      'full_lognogmal': self.model,
+                                  },
+                                  extra_model_args=[
+                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
+                                      {'treatment': self.treatment, 'condition': None},
+                                      {'treatment': None, 'condition': None},
+                                      {'treatment': None, 'condition': self.condition},
+                                      {'treatment': self.treatment, 'condition': self.condition, 'group': None},
+                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                       'dist_y': 'student', },
+                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                       'dist_y': 'lognormal'},
+                                  ],
+                                  y=self.y,
+                                  parallel=parallel
+                                  )
