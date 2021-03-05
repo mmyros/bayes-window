@@ -37,9 +37,9 @@ def parse_levels(treatment, condition, group):
 def add_data_to_posterior(df_data,
                           posterior,
                           y=None,  # Only for fold change
-                          index_cols=None,
+                          fold_change_index_cols=None,
                           treatment_name='Event',
-                          conditions=None,  # eg ('stim_on', 'stim_stop')
+                          treatments=None,  # eg ('stim_on', 'stim_stop')
                           b_name='b_stim_per_condition',  # for posterior
                           posterior_index_name='',  # for posterior
                           do_make_change='subtract',
@@ -47,25 +47,26 @@ def add_data_to_posterior(df_data,
                           add_data=False
                           ):
     # group_name should be conditions
-    if type(index_cols) == str:
-        index_cols = [index_cols]
-    index_cols = list(index_cols)
-    conditions = conditions or df_data[treatment_name].drop_duplicates().sort_values().values
-    assert len(conditions) == 2, f'{treatment_name}={conditions}. Should be only two instead!'
+    if type(fold_change_index_cols) == str:
+        fold_change_index_cols = [fold_change_index_cols]
+    fold_change_index_cols = list(fold_change_index_cols)
+    treatments = treatments or df_data[treatment_name].drop_duplicates().sort_values().values
+
+    assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
     assert do_make_change in [False, 'subtract', 'divide']
-    if not (treatment_name in index_cols):
-        index_cols.append(treatment_name)
+    if not (treatment_name in fold_change_index_cols):
+        fold_change_index_cols.append(treatment_name)
     # if not (group_name in index_cols):
     #     index_cols.append(group_name)
     if do_mean_over_trials:
-        df_data = df_data.groupby(index_cols).mean().reset_index()
+        df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
     if do_make_change:
         # Make (fold) change
         df_data, _ = make_fold_change(df_data,
                                       y=y,
-                                      index_cols=index_cols,
+                                      index_cols=fold_change_index_cols,
                                       treatment_name=treatment_name,
-                                      treatments=conditions,
+                                      treatments=treatments,
                                       fold_change_method=do_make_change,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:

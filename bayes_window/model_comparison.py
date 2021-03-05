@@ -328,7 +328,7 @@ def compare_models(df, models: dict,
             pass
 
     model_compare = az.compare(traces_dict)  # , var_name='y')
-    az.plot_compare(model_compare, textsize=12)
+    az.plot_compare(model_compare, textsize=12, show=True)
     print(model_compare)
 
     return traces_dict, model_compare

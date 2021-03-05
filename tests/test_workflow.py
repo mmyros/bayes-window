@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
@@ -15,7 +17,7 @@ def test_slopes_dont_make_change():
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     try:
         bw.fit_slopes(add_data=False, model=models.model_hierarchical, do_make_change=False,
-                      plot_index_cols=('stim', 'mouse', 'neuron'))
+                      fold_change_index_cols=('stim', 'mouse', 'neuron'))
     except ValueError:
         pass
 
@@ -115,7 +117,8 @@ def test_estimate_posteriors_slope_strengths():
                                     dur=2, )
     if 1:  # TODO this will be hairy
         bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
-        bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, plot_index_cols=None, add_data=False)
+        bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
+                      add_data=False)
 
         chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
         chart.display()
@@ -303,3 +306,30 @@ def test_explore_models():
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
     bw.explore_models(parallel=False)
+    bw.explore_models(parallel=True)
+
+
+def test_chirp_data():
+    df = pd.read_csv(Path('test_data') / 'chirp_power.csv')
+    window = BayesWindow(df, y='Log power',
+                         treatment='stim_on',
+                         condition='Condition code',
+                         group='Subject')
+    window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
+                      fold_change_index_cols=['Condition code',
+                                              'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
+    window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+
+
+def test_chirp_data1():
+    df = pd.read_csv(Path('test_data') / 'chirp_power.csv')
+    window = BayesWindow(df, y='Log power',
+                         treatment='stim_on',
+                         condition='Condition code',
+                         group='Subject')
+    window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
+                      fold_change_index_cols=[  # 'Condition code',
+                          'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
+    window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+
+

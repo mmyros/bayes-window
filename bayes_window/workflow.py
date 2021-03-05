@@ -154,7 +154,7 @@ class BayesWindow:
             self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data,
                                                                               posterior=self.trace,
                                                                               y=self.y,
-                                                                              index_cols=self.levels[:3],
+                                                                              fold_change_index_cols=self.levels[:3],
                                                                               treatment_name=self.levels[0],
                                                                               b_name=self.b_name,
                                                                               posterior_index_name='combined_condition',
@@ -163,7 +163,7 @@ class BayesWindow:
                                                                               )
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract',
-                   plot_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):
+                   fold_change_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):
         # TODO case with no group_name
         if do_make_change not in ['subtract', 'divide']:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
@@ -173,14 +173,16 @@ class BayesWindow:
         self.add_data = add_data  # We'll use this in plotting
         self.model = model
         # TODO handle no-group case
-        if plot_index_cols is None:
+        if fold_change_index_cols is None:
             # TODO case with no plot_index_cols should include any multiindex?
-            plot_index_cols = self.levels  # [-1]
+            fold_change_index_cols = self.levels  # [-1]
         if not self.condition[0]:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
             self.condition[0] = 'dummy_condition'
             self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
-            plot_index_cols.append('dummy_condition')
+            fold_change_index_cols.append('dummy_condition')
+        if not self.condition[0] in fold_change_index_cols:
+            fold_change_index_cols.extend(self.condition)
         try:
             self.trace = fit_numpyro(y=self.data[self.y].values,
                                      treatment=self.data[self.treatment].values,
@@ -199,7 +201,7 @@ class BayesWindow:
             df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
                                                                           posterior=self.trace.posterior,
                                                                           y=self.y,
-                                                                          index_cols=plot_index_cols,
+                                                                          fold_change_index_cols=fold_change_index_cols,
                                                                           treatment_name=self.treatment,
                                                                           b_name=self.b_name,
                                                                           posterior_index_name=self.condition[0],

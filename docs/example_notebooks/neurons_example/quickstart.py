@@ -49,7 +49,7 @@ reload(visualization)
 
 bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              plot_index_cols=('stim', 'mouse', 'neuron'))
+              fold_change_index_cols=('stim', 'mouse', 'neuron'))
 # -
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)

@@ -44,9 +44,9 @@ def test_plot_data_and_posterior():
         df_both, trace.posterior = add_data_to_posterior(df,
                                                          posterior=trace.posterior,
                                                          y=y,
-                                                         index_cols=['neuron', 'stim', 'mouse', ],
+                                                         fold_change_index_cols=['neuron', 'stim', 'mouse', ],
                                                          treatment_name='stim',
-                                                         conditions=(0, 1),
+                                                         treatments=(0, 1),
                                                          b_name='b_stim_per_condition',  # for posterior
                                                          posterior_index_name='neuron'  # for posterior
                                                          )

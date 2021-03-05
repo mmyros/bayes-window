@@ -36,7 +36,8 @@ def test_compare_models(parallel):
                                      {'treatment': 'stim', 'condition': 'neuron', 'dist_y': 'lognormal'}, ],
                    y='isi',
                    group='mouse',
-                   parallel=parallel
+                   parallel=parallel,
+                   plotose=True
                    )
 
 
