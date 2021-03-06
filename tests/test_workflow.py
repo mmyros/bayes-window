@@ -310,7 +310,7 @@ def test_explore_models():
 
 
 def test_chirp_data():
-    df = pd.read_csv(Path('test_data') / 'chirp_power.csv')
+    df = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesWindow(df, y='Log power',
                          treatment='stim_on',
                          condition='Condition code',
@@ -322,7 +322,7 @@ def test_chirp_data():
 
 
 def test_chirp_data1():
-    df = pd.read_csv(Path('test_data') / 'chirp_power.csv')
+    df = pd.read_csv(Path('tests') /('test_data') / 'chirp_power.csv')
     window = BayesWindow(df, y='Log power',
                          treatment='stim_on',
                          condition='Condition code',

@@ -26,8 +26,8 @@ reload(model_comparison)
 
 # + slideshow={"slide_type": "skip"}
 res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(10), np.tile(np.linspace(.2, 20, 10), 10)]),
-                                      n_trials=range(10, 90, 70),
-                                      trial_baseline_randomness=(.2, 1, 4, 5, 7, 10.8),
+                                      n_trials=np.linspace(10, 70, 5).astype(int),
+                                      trial_baseline_randomness=np.linspace(.2, 11, 15),
                                       parallel=True)
 
 # + [markdown] slideshow={"slide_type": "slide"}
