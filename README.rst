@@ -31,9 +31,7 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- Model comparison
-   - compare to no-treatment
-   - summary or plot
+- Less haphasard testing
 - delete facet attribute of chart if independent_axes=True
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?

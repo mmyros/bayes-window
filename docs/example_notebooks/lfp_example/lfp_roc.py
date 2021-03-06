@@ -38,6 +38,8 @@ reload(model_comparison)
 df = model_comparison.make_roc_auc(
     res, binary=True, groups=('method', 'y', 'randomness', 'n_trials'))
 
+# TODO AUC is funky for anova
+
 bars, roc = model_comparison.plot_roc(df)
 bars.facet(column='n_trials', row='y').properties().display()
 roc.facet(column='n_trials', row='y').properties()

@@ -74,14 +74,16 @@ class BayesWindow:
         from statsmodels.stats.anova import anova_lm
         if self.group:
             # Average over group:
-            data = self.data.groupby('mouse').mean().reset_index()
+            data = self.data.groupby([self.group, self.treatment]).mean().reset_index()
         else:
             data = self.data
         # dehumanize all columns and variable names for statsmodels:
         [data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in data.columns]
         self.y = self.y.replace(" ", "_")
-        lm = sm.ols(f'{self.y}~{self.treatment}', data=data).fit()
-        return anova_lm(lm, typ=2)['PR(>F)']['stim'] < 0.05
+        formula=f'{self.y}~{self.treatment}'
+        lm = sm.ols(formula, data=data).fit()
+        print(f'{formula}\n {anova_lm(lm, typ=2)}')
+        return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
     def fit_lme(self, add_data=False, do_make_change='divide'):
         # model = MixedLM(endog=self.data[self.y],
@@ -95,16 +97,20 @@ class BayesWindow:
         self.group = self.group.replace(" ", "_")
         self.treatment = self.treatment.replace(" ", "_")
         self.do_make_change = do_make_change
+        include_condition=False
         if self.condition[0]:
-            if len(self.condition) > 0:
-                raise NotImplementedError
+            if len(self.data[self.condition[0]].unique())>1:
+                include_condition=True
+        if include_condition:
+            if len(self.condition) > 1:
+                raise NotImplementedError(f'conditions {self.condition}')
             self.condition[0] = self.condition[0].replace(" ", "_")
-            formula = f"{self.y} ~ {self.condition[0]} + {self.treatment}"
+            formula = f"{self.y} ~ 1+ {self.condition[0]} | {self.treatment}"
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
         if self.group:
-            formula += f' + {self.group}'
-        # print(f'Using formula {formula}')
+            formula += f' + (1 | {self.group})'
+        print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
