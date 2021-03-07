@@ -332,4 +332,15 @@ def test_chirp_data1():
                           'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
+def test_conditions2():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=7,
+                                                                    mouse_response_slope=16)
+    df.neuron = df.neuron.astype(int)
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 
+    window.fit_conditions(model=models.model_single, )
+    assert window.y in window.data_and_posterior
+    window.plot_posteriors_no_slope(x='stim:O', independent_axes=False, add_data=True);

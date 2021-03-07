@@ -35,15 +35,13 @@ res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(10), np.ti
 # -
 
 reload(model_comparison)
-df = model_comparison.make_roc_auc(
-    res, binary=True, groups=('method', 'y', 'randomness', 'n_trials'))
-
-# TODO AUC is funky for anova
+df = model_comparison.make_roc_auc(res, binary=True, groups=('method', 'y', 'n_trials'))
 
 bars, roc = model_comparison.plot_roc(df)
 bars.facet(column='n_trials', row='y').properties().display()
 roc.facet(column='n_trials', row='y').properties()
 
+df = model_comparison.make_roc_auc(res, binary=True, groups=('method', 'y'))
 bars, roc = model_comparison.plot_roc(df)
 bars.facet(column='y').properties().display()
 roc.facet(column='y').properties()

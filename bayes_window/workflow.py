@@ -80,7 +80,7 @@ class BayesWindow:
         # dehumanize all columns and variable names for statsmodels:
         [data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in data.columns]
         self.y = self.y.replace(" ", "_")
-        formula=f'{self.y}~{self.treatment}'
+        formula = f'{self.y}~{self.treatment}'
         lm = sm.ols(formula, data=data).fit()
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
@@ -97,10 +97,10 @@ class BayesWindow:
         self.group = self.group.replace(" ", "_")
         self.treatment = self.treatment.replace(" ", "_")
         self.do_make_change = do_make_change
-        include_condition=False
+        include_condition = False
         if self.condition[0]:
-            if len(self.data[self.condition[0]].unique())>1:
-                include_condition=True
+            if len(self.data[self.condition[0]].unique()) > 1:
+                include_condition = True
         if include_condition:
             if len(self.condition) > 1:
                 raise NotImplementedError(f'conditions {self.condition}')
@@ -166,8 +166,10 @@ class BayesWindow:
                                                                               b_name=self.b_name,
                                                                               posterior_index_name='combined_condition',
                                                                               do_mean_over_trials=False,
-                                                                              do_make_change=False
+                                                                              do_make_change=False,
+                                                                              add_data=add_data
                                                                               )
+        return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract',
                    fold_change_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):

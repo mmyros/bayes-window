@@ -32,6 +32,10 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 TODO
 ----
 - Less haphasard testing
+- Shrinkage layer: Should be as easy as alt.layer with unpooled model
+   - Make sure + works well with facet
+- how is holoviz with coposite overlays? Maybe the facet method is not necessary then
+   - related to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
 - delete facet attribute of chart if independent_axes=True
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?
