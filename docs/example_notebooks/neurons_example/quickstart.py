@@ -57,9 +57,12 @@ bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
 bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
 
+
 bw.plot_posteriors_slopes(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
 
+
 bw.plot_posteriors_slopes(independent_axes=False, x='neuron:O', color='mouse')
+
 
 # +
 chart = bw.plot_posteriors_slopes(add_box=True, independent_axes=True, x='neuron:O', color='mouse')

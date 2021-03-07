@@ -21,9 +21,11 @@
 from bayes_window import models
 from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_spikes
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
+
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Make some data
@@ -35,12 +37,9 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                 n_mice=4,
                                                                 dur=7, )
 
-# + hideCode=false hidePrompt=false
-import numpy as np
 
 df['log_isi'] = np.log10(df['isi'])
 
-# + hideCode=false hidePrompt=false
 from bayes_window import visualization, utils
 from importlib import reload
 
@@ -79,8 +78,9 @@ df_both, trace = utils.add_data_to_posterior(df,
                                              y=y,
                                              fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
                                              treatment_name='stim',
-                                             b_name='b_stim_per_condition',  # for posterior
-                                             posterior_index_name='neuron'  # for posterior
+                                             b_name='b_stim_per_condition', 
+                                             posterior_index_name='neuron',
+                                             add_data=True
                                              )
 
 # + [markdown] hideCode=false hidePrompt=false

@@ -3,6 +3,7 @@ import warnings
 import arviz as az
 import numpy as np
 import pandas as pd
+import scipy
 import xarray as xr
 from sklearn.preprocessing import LabelEncoder
 
@@ -79,7 +80,7 @@ def fill_row(condition_val, rows, df_bayes, condition_name):
     this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
     assert this_hdi.shape[0] > 0, \
         f'No such value {condition_val} in {condition_name}: it"s {df_bayes[condition_name].unique()}'
-    for col in ['lower interval', 'higher interval', 'mean interval']:
+    for col in ['lower interval', 'higher interval', 'center interval']:
         rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
     return rows
 
@@ -95,9 +96,34 @@ def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
 
 def hdi2df_one_condition(df_bayes, group_name, df_data):
     df_bayes[group_name] = df_data[group_name].iloc[0]
-    for col in ['lower interval', 'higher interval', 'mean interval']:
+    for col in ['lower interval', 'higher interval', 'center interval']:
         df_data.insert(df_data.shape[1], col, df_bayes[col].values.squeeze())
     return df_data
+
+
+def _mode(*args, **kwargs):
+    vals = scipy.stats.mode(*args, **kwargs)
+    # only return the mode (discard the count)
+    return vals[0].squeeze()
+
+
+def xar_mode(obj, dims_to_reduce: list = None, dim=None):
+    # xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw']) # OR:
+    # xar_mode(trace[b_name], dim='neuron')
+
+    # note: apply always moves core dimensions to the end
+    # usually axis is simply -1 but scipy's mode function doesn't seem to like that
+    # this means that this version will only work for DataArrays (not Datasets)
+    assert isinstance(obj, xr.DataArray)
+    assert (dims_to_reduce is not None) or (dim is not None)
+    axis = obj.ndim - 1
+    if dims_to_reduce is None:
+        dims_to_reduce = list(set(obj.dims) - {dim})
+    return xr.apply_ufunc(_mode, obj,
+                          input_core_dims=[dims_to_reduce],
+                          # exclude_dims=set(['chain','draw']),
+                          kwargs={'axis': axis}
+                          )
 
 
 def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False):
@@ -116,10 +142,13 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
     hdi = az.hdi(trace)[b_name]
-    if hdi.ndim == 1:
 
-        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
-                            coords={'hdi': ["mean"], },
+    # from scipy.stats import mode
+    max_a_p = xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw'])
+    # Or mean trace[b_name].mean(['chain', 'draw']).values,
+    if hdi.ndim == 1:
+        mean = xr.DataArray([max_a_p],
+                            coords={'hdi': ["center"], },
                             dims='hdi')
         df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
         df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
@@ -130,11 +159,11 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
             return df_bayes, trace
         return hdi2df_one_condition(df_bayes, posterior_index_name, df_data), trace
     else:
-        mean = xr.DataArray([trace[b_name].mean(['chain', 'draw']).values],
-                            coords={'hdi': ["mean"], posterior_index_name: hdi[posterior_index_name]},
-                            dims=['hdi', posterior_index_name])
+        est = xr.DataArray([max_a_p],
+                           coords={'hdi': ["center"], posterior_index_name: hdi[posterior_index_name]},
+                           dims=['hdi', posterior_index_name])
 
-        df_bayes = xr.concat([hdi, mean], 'hdi').rename('interval').to_dataframe()
+        df_bayes = xr.concat([hdi, est], 'hdi').rename('interval').to_dataframe()
         df_bayes = df_bayes.pivot_table(index=posterior_index_name, columns=['hdi', ]).reset_index()
         # Reset 2-level column from pivot_table:
         df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]

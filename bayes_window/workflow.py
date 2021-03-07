@@ -104,6 +104,8 @@ class BayesWindow:
         if include_condition:
             if len(self.condition) > 1:
                 raise NotImplementedError(f'conditions {self.condition}')
+                # This would need a combined condition dummy variable and an index of condition in patsy:
+                # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
             self.condition[0] = self.condition[0].replace(" ", "_")
             formula = f"{self.y} ~ 1+ {self.condition[0]} | {self.treatment}"
         else:
@@ -123,26 +125,26 @@ class BayesWindow:
                           f' {e} \n=>\n {res}')
             res.replace({'': np.nan}).astype(float)
         res = res.rename({'P>|z|': 'p',
-                          'Coef.': 'mean interval',
+                          'Coef.': 'center interval',
                           '[0.025': 'higher interval',
                           '0.975]': 'lower interval'}, axis=1)
         self.posterior = res
-        if add_data:
-            if self.condition[0]:
+        if add_data and self.condition[0]:
                 raise NotImplementedError("I don't understand if there is a way to get separate estimates "
                                           "of slope per condition in LME, or do you just get an effect size estimate??")
                 # like in hdi2df:
+                from utils import fill_row
                 rows = [fill_row(group_val, rows, res, group_name=self.condition[0])
                         for group_val, rows in self.data.groupby([self.condition[0]])
                         ]
                 self.data_and_posterior = pd.concat(rows)
-            else:
-                # like in hdi2df_one_condition():
-                self.data_and_posterior = self.data.copy()
-                for col in ['lower interval', 'higher interval', 'mean interval']:
-                    self.data_and_posterior.insert(self.data.shape[1],
-                                                   col,
-                                                   res.loc[self.treatment, col])
+        elif add_data:
+            # like in hdi2df_one_condition():
+            self.data_and_posterior = self.data.copy()
+            for col in ['lower interval', 'higher interval', 'center interval']:
+                self.data_and_posterior.insert(self.data.shape[1],
+                                               col,
+                                               res.loc[self.treatment, col])
 
         return self
 

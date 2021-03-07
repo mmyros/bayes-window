@@ -12,8 +12,8 @@ Bayes Window
 .. image:: https://img.shields.io/pypi/v/bayes_window.svg
         :target: https://pypi.python.org/pypi/bayes_window
 
-.. image:: https://travis-ci.com/mmyros/bayes-window.svg?branch=master
-        :target: https://travis-ci.com/mmyros/bayes-window.svg?branch=master
+.. image:: https://github.com/mmyros/bayes-window/actions/workflows/pytest.yaml/badge.svg
+        :target: https://github.com/mmyros/bayes-window/actions/workflows/pytest.yaml/badge.svg
 
 .. image:: https://readthedocs.org/projects/bayes-window/badge/?version=latest
         :target: https://bayes-window.readthedocs.io/en/latest/?badge=latest

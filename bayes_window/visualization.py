@@ -103,12 +103,12 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         x = f'{x}:O'  # Ordinal
     assert 'higher interval' in data.columns
     assert 'lower interval' in data.columns
-    assert 'mean interval' in data.columns
+    assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
 
     # line
     chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
-        y=alt.Y('mean interval:Q', impute=alt.ImputeParams(value='value')),
+        y=alt.Y('center interval:Q', impute=alt.ImputeParams(value='value')),
         x=x,
     )
     do_make_change = do_make_change is not False
