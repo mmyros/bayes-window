@@ -199,7 +199,6 @@ class BayesWindow:
                                      treatment=self.data[self.treatment].values,
                                      condition=self.data[self.condition[0]].values,
                                      group=self.data[self.group].values,
-                                     progress_bar=False,
                                      model=model,
                                      n_draws=1000, num_chains=1,
                                      **kwargs)

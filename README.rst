@@ -31,7 +31,7 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- Less haphasard testing
+- Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
 - how is holoviz with coposite overlays? Maybe the facet method is not necessary then
@@ -40,6 +40,7 @@ TODO
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?
    - see lfp notebook
+- Recode multiple conditions for LME
 - Decide on Vega theme
 
 

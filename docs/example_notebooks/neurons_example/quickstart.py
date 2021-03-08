@@ -16,7 +16,7 @@
 # # Neurons example: high-level interface
 # ## Generate some data
 
-from bayes_window import models, fake_spikes_explore
+from bayes_window import models, fake_spikes_explore, BayesWindow
 from bayes_window.generative_models import generate_fake_spikes
 
 # +
@@ -39,18 +39,9 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # ## Estimate with mouse>neuron
 
-# +
-from bayes_window import workflow
-from bayes_window import visualization
-from importlib import reload
-
-reload(workflow)
-reload(visualization)
-
-bw = workflow.BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
               fold_change_index_cols=('stim', 'mouse', 'neuron'))
-# -
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
@@ -75,7 +66,7 @@ chart.resolve_scale(y='independent')
 bw.facet(column='neuron')
 
 # +
-window = workflow.BayesWindow(df, y='isi',
+window = BayesWindow(df, y='isi',
                               treatment='stim',
                               condition='neuron',
                               group='mouse')
@@ -89,3 +80,10 @@ window.facet(column='neuron', row='mouse')
 # -
 
 window.plot_model_quality()
+
+# Monster level
+bw = BayesWindow(df_monster, y='isi', treatment='stim', condition='neuron', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron'),progress_bar=True)
+
+bw.plot(x='neuron', color='mouse', independent_axes=False, finalize=True)

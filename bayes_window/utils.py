@@ -144,8 +144,10 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     hdi = az.hdi(trace)[b_name]
 
     # from scipy.stats import mode
-    max_a_p = xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw'])
-    # Or mean trace[b_name].mean(['chain', 'draw']).values,
+    # summary = az.summary(trace, var_names=[b_name], stat_funcs={'map': _mode})
+    # max_a_p = summary.loc[b_name, 'map']
+    # max_a_p = xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw'])
+    max_a_p = trace[b_name].mean(['chain', 'draw']).values
     if hdi.ndim == 1:
         mean = xr.DataArray([max_a_p],
                             coords={'hdi': ["center"], },
