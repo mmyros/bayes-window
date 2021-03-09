@@ -31,6 +31,7 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
+- if len(conditions)>1: condition = 'combined condition'. Then, lme should work
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
