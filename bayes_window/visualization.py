@@ -61,7 +61,7 @@ def facet(base_chart,
     return chart
 
 
-def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, **kwargs):
+def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, detail=':O', **kwargs):
     color = color or ':O'
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
@@ -74,9 +74,10 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     axis = alt.Axis()
 
     if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
-        charts.append(base.mark_line(clip=True, fill=None, opacity=.5, size=2.5).encode(
+        charts.append(base.mark_line(clip=True, fill=None, opacity=.3, size=1.5).encode(
             x=x,
             color=f'{color}',
+            detail=detail,
             y=alt.Y(f'mean({y})',
                     scale=alt.Scale(zero=False,
                                     domain=list(np.quantile(base.data[y], [.05, .95])))),
@@ -85,7 +86,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
         # df['x_box'] = df[x[:-2]] + .01
-        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=12, color='black').encode(
+        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black').encode(
             x=x,
             y=alt.Y(f'{y}:Q',
                     scale=alt.Scale(zero=False,

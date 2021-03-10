@@ -130,14 +130,14 @@ class BayesWindow:
                           '0.975]': 'lower interval'}, axis=1)
         self.posterior = res
         if add_data and self.condition[0]:
-                raise NotImplementedError("I don't understand if there is a way to get separate estimates "
-                                          "of slope per condition in LME, or do you just get an effect size estimate??")
-                # like in hdi2df:
-                from utils import fill_row
-                rows = [fill_row(group_val, rows, res, group_name=self.condition[0])
-                        for group_val, rows in self.data.groupby([self.condition[0]])
-                        ]
-                self.data_and_posterior = pd.concat(rows)
+            raise NotImplementedError("I don't understand if there is a way to get separate estimates "
+                                      "of slope per condition in LME, or do you just get an effect size estimate??")
+            # like in hdi2df:
+            from utils import fill_row
+            rows = [fill_row(group_val, rows, res, group_name=self.condition[0])
+                    for group_val, rows in self.data.groupby([self.condition[0]])
+                    ]
+            self.data_and_posterior = pd.concat(rows)
         elif add_data:
             # like in hdi2df_one_condition():
             self.data_and_posterior = self.data.copy()
@@ -230,9 +230,10 @@ class BayesWindow:
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
          if (not col == self.treatment) and (col in df_result)]
         self.data_and_posterior = df_result
+        self.fold_change_index_cols = fold_change_index_cols
         return self
 
-    def plot_posteriors_slopes(self, x=':O', color=':O', add_box=True, independent_axes=False, **kwargs):
+    def plot_posteriors_slopes(self, x=':O', color=':O', detail=':O', add_box=True, independent_axes=False, **kwargs):
         # Set some options
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
@@ -254,7 +255,12 @@ class BayesWindow:
 
         if add_data:
             assert self.data_and_posterior is not None
+            if detail != ':O':
+                assert detail in self.data
+                assert detail in self.fold_change_index_cols
+
             chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
+                                              detail=detail,
                                               base_chart=base_chart)
             self.chart = chart_d + chart_p
         else:

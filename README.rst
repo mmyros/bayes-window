@@ -34,6 +34,10 @@ TODO
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
+- bambi+patsy
+- Look for inspiration in R's bayesplot
+- Prior predictive and posterior predictive plots
+- Figure out MAP: Look for how summary is calculated in arviz and add mode
 - how is holoviz with coposite overlays? Maybe the facet method is not necessary then
    - related to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
 - delete facet attribute of chart if independent_axes=True
