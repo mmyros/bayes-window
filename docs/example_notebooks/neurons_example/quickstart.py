@@ -39,12 +39,15 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # ## Estimate with mouse>neuron
 
+# +
 bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
               fold_change_index_cols=('stim', 'mouse', 'neuron'))
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+# -
 
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True,add_box=False)
 
 bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
 
@@ -81,9 +84,10 @@ window.facet(column='neuron', row='mouse')
 
 window.plot_model_quality()
 
-# Monster level
-bw = BayesWindow(df_monster, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              fold_change_index_cols=('stim', 'mouse', 'neuron'),progress_bar=True)
+if False:
+    # Monster level
+    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition='neuron', group='mouse')
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+                  fold_change_index_cols=('stim', 'mouse', 'neuron'),progress_bar=True)
 
-bw.plot(x='neuron', color='mouse', independent_axes=False, finalize=True)
+    bw.plot(x='neuron', color='mouse', independent_axes=False, finalize=True)

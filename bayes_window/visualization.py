@@ -61,27 +61,66 @@ def facet(base_chart,
     return chart
 
 
-def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, detail=':O', **kwargs):
+def line_with_highlight(base, x, y, color, detail, highlight=True):
+    if highlight:
+        highlight = alt.selection(type='single', on='mouseover',
+                                  fields=[color], nearest=True)
+        size = alt.condition(~highlight, alt.value(1), alt.value(3))
+    else:
+        size = alt.value(1.)
+
+    lines = base.mark_line(clip=True, fill=None, opacity=.6, ).encode(
+        size=size,
+        x=x,
+        color=f'{color}',
+        y=alt.Y(f'mean({y})',
+                axis=alt.Axis(orient='right'),
+                scale=alt.Scale(zero=False,
+                                domain=list(np.quantile(base.data[y], [.05, .95])))),
+        detail=detail
+    )
+    points = base.mark_circle(clip=True, opacity=0).encode(
+
+        x=x,
+        color=f'{color}',
+        y=alt.Y(f'mean({y})',
+                axis=alt.Axis(labels=False, tickCount=0, title=''),
+                scale=alt.Scale(zero=False,
+                                domain=list(np.quantile(base.data[y], [.05, .95])))),
+        detail=detail
+    )
+    if highlight:
+        points.add_selection(
+            highlight
+        )
+    return lines, points
+
+
+def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
+              **kwargs):
     color = color or ':O'
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
-    # Plot data:
-    base = base_chart or alt.Chart(df)
     if color[-2] != ':':
         color = f'{color}:N'
     charts = []
     axis = alt.Axis()
 
+    # Plot data:
+    base = base_chart or alt.Chart(df)
+
     if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
-        charts.append(base.mark_line(clip=True, fill=None, opacity=.3, size=1.5).encode(
-            x=x,
-            color=f'{color}',
-            detail=detail,
-            y=alt.Y(f'mean({y})',
-                    scale=alt.Scale(zero=False,
-                                    domain=list(np.quantile(base.data[y], [.05, .95])))),
-        ))
+        charts.extend(line_with_highlight(base, x, y, color, detail, highlight=highlight))
+        # charts.append(base.mark_line(clip=True, fill=None, opacity=.6, size=.5).encode(
+        #     x=x,
+        #     color=f'{color}',
+        #     detail=detail,
+        #     y=alt.Y(f'mean({y})',
+        #             scale=alt.Scale(zero=False,
+        #                             domain=list(np.quantile(base.data[y], [.05, .95])))),
+        #     tooltip=color,
+        # ).interactive())
         axis = alt.Axis(labels=False, tickCount=0, title='')
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
@@ -109,7 +148,10 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
 
     # line
     chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
-        y=alt.Y('center interval:Q', impute=alt.ImputeParams(value='value')),
+        y=alt.Y('center interval:Q',
+                impute=alt.ImputeParams(value='value'),
+                axis=alt.Axis(orient='left'),
+                ),
         x=x,
     )
     do_make_change = do_make_change is not False
@@ -130,7 +172,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     chart += base_chart.mark_rule().encode(
         x=x,
         y=alt.Y('lower interval:Q',
-                title=title, scale=scale),
+                title=title,
+                scale=scale,
+                axis=alt.Axis(orient='left')),
         y2='higher interval:Q',
     )
 
