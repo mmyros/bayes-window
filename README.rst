@@ -31,12 +31,11 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
-- if len(conditions)>1: condition = 'combined condition'. Then, lme should work
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
 - bambi+patsy
-- Look for inspiration in R's bayesplot
+- histogram shading patches for posterior in addition to 95% HDI
 - Prior predictive and posterior predictive plots
 - Figure out MAP: Look for how summary is calculated in arviz and add mode
 - how is holoviz with coposite overlays? Maybe the facet method is not necessary then
@@ -47,6 +46,7 @@ TODO
    - see lfp notebook
 - Recode multiple conditions for LME
 - Decide on Vega theme
+- Test notebooks in a separate jobs on GHA
 
 
 Features

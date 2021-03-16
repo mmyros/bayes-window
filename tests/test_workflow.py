@@ -322,7 +322,7 @@ def test_chirp_data():
 
 
 def test_chirp_data1():
-    df = pd.read_csv(Path('tests') /('test_data') / 'chirp_power.csv')
+    df = pd.read_csv(Path('tests') / ('test_data') / 'chirp_power.csv')
     window = BayesWindow(df, y='Log power',
                          treatment='stim_on',
                          condition='Condition code',
@@ -331,6 +331,7 @@ def test_chirp_data1():
                       fold_change_index_cols=[  # 'Condition code',
                           'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+
 
 def test_conditions2():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
@@ -344,3 +345,40 @@ def test_conditions2():
     window.fit_conditions(model=models.model_single, )
     assert window.y in window.data_and_posterior
     window.plot_posteriors_no_slope(x='stim:O', independent_axes=False, add_data=True);
+
+
+def random_tests():
+    # TODO make a notebook for this
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=2, )
+    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=False)
+
+    bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
+
+    bw.plot_posteriors_slopes(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
+
+    bw.plot_posteriors_slopes(independent_axes=False, x='neuron:O', color='mouse')
+
+    chart = bw.plot_posteriors_slopes(add_box=True, independent_axes=True, x='neuron:O', color='mouse')
+
+    chart
+
+    chart.resolve_scale(y='independent')
+
+    bw.facet(column='neuron')
+
+    window = BayesWindow(df, y='isi',
+                         treatment='stim',
+                         condition='neuron',
+                         group='mouse')
+    window.fit_slopes(model=models.model_hierarchical,
+                      # plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
+                      )
+    c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
+
+    window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
+    window.facet(column='neuron', row='mouse')
