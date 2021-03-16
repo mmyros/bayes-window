@@ -25,7 +25,7 @@ def sample_y(dist_y, theta, sigma_obs, y):
     elif dist_y == 'lognormal':
         numpyro.sample('y', dist.LogNormal(theta, sigma_obs), obs=y)
     else:
-        raise ValueError
+        raise NotImplementedError
 
 
 def model_single(y, condition, dist_y='normal'):
@@ -53,10 +53,12 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         b = numpyro.sample('b', dist.Normal(0, 1))
     sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
     b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.Normal(jnp.tile(0, n_conditions), .5))
+
     if group is not None:
         theta = a + a_subject[group] * sigma_a_subject
     else:
         theta = a
+
     if condition is not None:
         slope = (  # b + b_subject[subject] * sigma_b_subject
             + b_stim_per_condition[condition] * sigma_b_condition
@@ -66,6 +68,7 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
     if treatment is not None:
         slope = slope * treatment
     theta += slope
+
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
     sample_y(dist_y=dist_y, theta=theta, sigma_obs=sigma_obs, y=y)
 

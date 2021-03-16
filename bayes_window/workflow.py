@@ -85,7 +85,7 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, add_data=False, do_make_change='divide'):
+    def fit_lme(self, add_data=False, do_make_change='divide', add_interaction=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
@@ -107,7 +107,10 @@ class BayesWindow:
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
             self.condition[0] = self.condition[0].replace(" ", "_")
-            formula = f"{self.y} ~ 1+ {self.condition[0]} | {self.treatment}"
+            formula = f"{self.y} ~ 0 + {self.condition[0]} | {self.treatment}"
+            if add_interaction:
+                formula += f"+ {self.condition[0]} * {self.treatment}"
+                
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
         if self.group:

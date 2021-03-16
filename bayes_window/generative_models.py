@@ -31,11 +31,15 @@ def generate_fake_lfp(n_trials=10,
 
     df = df[df.mouse_code == 1]
     df = df[df.neuron.astype(int) < n_mice - 2]
-    df = df.drop('mouse', axis=1)
-    # df_monster = df_monster.drop('mouse', axis=1)
-    df = df.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
-    # df_monster = df_monster.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
-    return df, None, index_cols, None
+    df = df.drop(['mouse_code', 'mouse', 'neuron_code'], axis=1)
+    df_monster = df_monster[df_monster.mouse_code == 1]
+    df_monster = df_monster[df_monster.neuron.astype(int) < n_mice - 2]
+    df_monster = df_monster.drop(['mouse_code', 'mouse', 'neuron_code'], axis=1)
+    df = df.rename({
+        'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    df_monster = df_monster.rename({
+        'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    return df, df_monster, index_cols, None
 
 
 def generate_spikes_stim_types(mouse_response_slope=3, **kwargs):
