@@ -9,6 +9,21 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
+def test_fit_numpyro_gamma():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=2, )
+
+    trace = fit_numpyro(y=df['isi'].values,
+                        treatment=trans(df['stim']),
+                        condition=trans(df['neuron']),
+                        group=trans(df['mouse']),
+                        progress_bar=True,
+                        model=models.model_hierarchical_gamma,
+                        n_draws=100, num_chains=1, )
+
+
 def test_fit_numpyro_serial():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,

@@ -41,36 +41,54 @@ def model_single(y, condition, dist_y='normal'):
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal'):
     n_conditions = np.unique(condition).shape[0]
-    n_subjects = np.unique(group).shape[0]
-    a = numpyro.sample('a', dist.Normal(0, 1))
 
-    # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
-    # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
-
-    a_subject = numpyro.sample('a_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
+    # sigmas
     sigma_a_subject = numpyro.sample('sigma_a_subject', dist.HalfNormal(1))
-    if condition is None:
-        b = numpyro.sample('b', dist.Normal(0, 1))
     sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
+
+    # b
     b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.Normal(jnp.tile(0, n_conditions), .5))
+    intercept = numpyro.sample('a', dist.Normal(0, 1))
 
     if group is not None:
-        theta = a + a_subject[group] * sigma_a_subject
-    else:
-        theta = a
+        n_subjects = np.unique(group).shape[0]
+        a_subject = numpyro.sample('a_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
+        intercept += a_subject[group] * sigma_a_subject
 
-    if condition is not None:
-        slope = (  # b + b_subject[subject] * sigma_b_subject
-            + b_stim_per_condition[condition] * sigma_b_condition
-        )
+    if condition is None:
+        slope = numpyro.sample('b', dist.Normal(0, 1))
     else:
-        slope = b
+        slope = b_stim_per_condition[condition] * sigma_b_condition
     if treatment is not None:
-        slope = slope * treatment
-    theta += slope
-
+        slope *= treatment
     sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
-    sample_y(dist_y=dist_y, theta=theta, sigma_obs=sigma_obs, y=y)
+    sample_y(dist_y=dist_y, theta=intercept+slope, sigma_obs=sigma_obs, y=y)
+
+
+def model_hierarchical_gamma(y, condition=None, group=None, treatment=None, dist_y='normal'):
+    n_conditions = np.unique(condition).shape[0]
+
+    # sigmas
+    sigma_a_subject = numpyro.sample('sigma_a_subject', dist.Gamma(4, 1))
+    sigma_b_condition = numpyro.sample('sigma_b_condition', dist.Gamma(4, 1))
+
+    # b
+    b_stim_per_condition = numpyro.sample('b_stim_per_condition', dist.Gamma(jnp.tile(4, n_conditions), 1))
+    intercept = numpyro.sample('a', dist.Gamma(4, 1))
+
+    if group is not None:
+        n_subjects = np.unique(group).shape[0]
+        a_subject = numpyro.sample('a_subject', dist.Gamma(jnp.tile(4, n_subjects), 1))
+        intercept += a_subject[group] * sigma_a_subject
+
+    if condition is None:
+        slope = numpyro.sample('b', dist.Gamma(4, 1))
+    else:
+        slope = b_stim_per_condition[condition] * sigma_b_condition
+    if treatment is not None:
+        slope *= treatment
+    sigma_obs = numpyro.sample('sigma_obs', dist.Gamma(1, .5))
+    numpyro.sample('y', dist.Gamma(intercept+slope, sigma_obs), obs=y)
 
 
 def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal', **kwargs):

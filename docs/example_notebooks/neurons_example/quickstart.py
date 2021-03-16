@@ -40,6 +40,19 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Estimate with neuron as condition
+# -
+
+# ### ISI
+
+# +
+bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hierarchical_gamma, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron'))
+
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+# -
+
+# ### Firing rate
 
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
 bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron', group='mouse')
