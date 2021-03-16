@@ -169,7 +169,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         title = f'Δ {title}'
 
     # error_bars
-    chart += base_chart.mark_rule().encode(
+    chart += base_chart.mark_rule(size=2).encode(
         x=x,
         y=alt.Y('lower interval:Q',
                 title=title,
