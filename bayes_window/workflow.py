@@ -1,3 +1,4 @@
+import arviz as az
 import warnings
 from importlib import reload
 
@@ -5,14 +6,13 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
-from sklearn.preprocessing import LabelEncoder
-
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
+from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 le = LabelEncoder()
@@ -110,7 +110,7 @@ class BayesWindow:
             formula = f"{self.y} ~ 0 + {self.condition[0]} | {self.treatment}"
             if add_interaction:
                 formula += f"+ {self.condition[0]} * {self.treatment}"
-                
+
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
         if self.group:
@@ -172,7 +172,8 @@ class BayesWindow:
                                                                               posterior_index_name='combined_condition',
                                                                               do_mean_over_trials=False,
                                                                               do_make_change=False,
-                                                                              add_data=add_data
+                                                                              add_data=add_data,
+                                                                              group_name=self.group,
                                                                               )
         return self
 
@@ -190,6 +191,7 @@ class BayesWindow:
         if fold_change_index_cols is None:
             # TODO case with no plot_index_cols should include any multiindex?
             fold_change_index_cols = self.levels  # [-1]
+        fold_change_index_cols = list(fold_change_index_cols)
         if not self.condition[0]:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
             self.condition[0] = 'dummy_condition'
@@ -220,14 +222,17 @@ class BayesWindow:
                                                                           posterior_index_name=self.condition[0],
                                                                           do_make_change=do_make_change,
                                                                           do_mean_over_trials=do_mean_over_trials,
-                                                                          add_data=self.add_data
+                                                                          add_data=self.add_data,
+                                                                          group_name=self.group,
                                                                           )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
             # TODO we add data regardless. Is there a way to not use self.data?
             df_result, self.trace.posterior = trace2df(self.trace.posterior,
                                                        self.data, b_name=self.b_name,
-                                                       posterior_index_name=self.condition[0])
+                                                       posterior_index_name=self.condition[0],
+                                                       group_name=self.group,
+                                                       )
 
         # Back to human-readable labels
         [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
@@ -342,7 +347,6 @@ class BayesWindow:
         return self.facetchart
 
     def plot_model_quality(self, var_names=None):
-        import arviz as az
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
         az.plot_trace(self.trace, var_names=var_names, show=True)
 
@@ -355,7 +359,7 @@ class BayesWindow:
                                       'no_condition': self.model,
                                       'full_normal': self.model,
                                       'full_student': self.model,
-                                      'full_lognogmal': self.model,
+                                      'full_lognormal': self.model,
                                   },
                                   extra_model_args=[
                                       {'condition': None},
@@ -368,27 +372,35 @@ class BayesWindow:
                                   )
 
         elif self.b_name == 'b_stim_per_condition':
-            return compare_models(df=self.data,
-                                  models={
-                                      'full_normal': self.model,
-                                      'no_condition': self.model,
-                                      'no_condition_or_treatment': self.model,
-                                      'no-treatment': self.model,
-                                      'no_group': self.model,
-                                      'full_student': self.model,
-                                      'full_lognogmal': self.model,
-                                  },
-                                  extra_model_args=[
-                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
-                                      {'treatment': self.treatment, 'condition': None},
-                                      {'treatment': None, 'condition': None},
-                                      {'treatment': None, 'condition': self.condition},
-                                      {'treatment': self.treatment, 'condition': self.condition, 'group': None},
-                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                                       'dist_y': 'student', },
-                                      {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                                       'dist_y': 'lognormal'},
-                                  ],
-                                  y=self.y,
-                                  parallel=parallel
-                                  )
+            return compare_models(
+                df=self.data,
+                models={
+                    'full_normal': self.model,
+                    'no_group_slope': self.model,
+                    'no_condition': self.model,
+                    'no_condition_or_treatment': self.model,
+                    'no-treatment': self.model,
+                    'no_group': self.model,
+                    'full_student': self.model,
+                    'full_lognormal': self.model,
+                    'full_gamma': self.model,
+                    'full_exponential': self.model,
+                },
+                extra_model_args=[
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                     'add_group_slope': False},
+                    {'treatment': self.treatment, 'condition': None},
+                    {'treatment': None, 'condition': None},
+                    {'treatment': None, 'condition': self.condition},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': None},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                     'dist_y': 'student'},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                     'dist_y': 'lognormal'},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'gamma'},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'exponential'},
+                ],
+                y=self.y,
+                parallel=parallel
+            )

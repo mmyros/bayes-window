@@ -23,11 +23,12 @@ from bayes_window.generative_models import generate_fake_spikes
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
-df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=10,
+df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                 n_neurons=7,
                                                                 n_mice=6,
                                                                 dur=7,
-                                                               mouse_response_slope=7)
+                                                               mouse_response_slope=12,
+                                                               overall_stim_response_strength=45)
 
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Exploratory plot without any fitting
@@ -44,13 +45,103 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # ### ISI
 
-# +
-bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical_gamma, do_make_change='subtract',
-              fold_change_index_cols=('stim', 'mouse', 'neuron'))
+from importlib import reload
+import numpy as np
+reload(models)
+df['1/isi'] = 1/df['isi']
+df['log_isi'] = np.log10(df['isi'])
+for y in ['isi','log_isi', '1/isi', 'firing_rate']:
+    if y in ['isi', 'firing_rate']:
+        dist_y='lognormal'
+    else:
+        dist_y='normal'
+    print(y,dist_y)
+    bw = BayesWindow(df, y=y, treatment='stim', condition='neuron_x_mouse', group='mouse')
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+                  progress_bar=False,
+                  dist_y=dist_y,
+                  add_group_slope=True, add_group_intercept=False,
+                  fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+    bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+    bw.facet(column='mouse',width=200,height=200).display()
+
+    bw.explore_models()
+
+# +
+reload(models)
+bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+              progress_bar=False,
+              dist_y='exponential',
+              add_group_slope=True, add_group_intercept=False,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot(x='neuron', color='mouse', independent_axes=True)
+bw.facet(column='mouse',width=200,height=200).display()
+
 # -
+
+reload(models)
+bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
+bw.fit_anova()
+
+bw.fit_lme().posterior
+
+# +
+reload(models)
+bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+              progress_bar=True,
+              dist_y='gamma',
+              add_group_slope=True, add_group_intercept=False,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot(x='neuron', color='mouse', independent_axes=True)
+bw.facet(column='mouse',width=200,height=200).display()
+
+
+# + hidePrompt=true
+import altair as alt 
+slopes=bw.trace.posterior['b_stim_per_subject'].mean(['chain','draw']).to_dataframe().reset_index()
+chart_slopes=alt.Chart(slopes).mark_bar().encode(
+    x=alt.X('mouse:O',title='Mouse'),
+    y=alt.Y('b_stim_per_subject', title='Slope')
+)
+chart_slopes
+
+# + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
+
+df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                n_neurons=7,
+                                                                n_mice=6,
+                                                                dur=7,
+                                                               mouse_response_slope=12,
+                                                               overall_stim_response_strength=45)
+# -
+
+from importlib import reload
+import numpy as np
+reload(models)
+df['1/isi'] = 1/df['isi']
+df['log_isi'] = np.log10(df['isi'])
+for y in ['isi','log_isi', 'firing_rate']:
+    if y in ['isi', 'firing_rate']:
+        dist_y='exponential'
+    elif y=='log_isi':
+        dist_y='gamma'
+    print(y,dist_y)
+    bw = BayesWindow(df_monster, y=y, treatment='stim', condition='neuron_x_mouse', group='mouse')
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+                  progress_bar=True,
+                  dist_y=dist_y,
+                  add_group_slope=True, add_group_intercept=False,
+                  fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+    bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+    bw.facet(column='mouse',width=200,height=200).display()
+
+    bw.explore_models()
 
 # ### Firing rate
 
@@ -61,26 +152,15 @@ bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='su
              dist_y='lognormal')
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+# -
 
-# + [markdown] slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
-# So firing rate is estimated as expected. Neurons 6 has a higher stim effect than neuron 0 in all mice. However, if we misspecify the prior, it won't work:
+# This is not true: neuron 6 should have no effect and neuron 0 the most effect
 
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
 bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron', group='mouse')
 bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
               fold_change_index_cols=('stim', 'mouse', 'neuron'),
              dist_y='normal')
-
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
-
-# + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
-# ISI gives a strange result. ISI needs to be gamma or exponential
-
-# + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
-bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              fold_change_index_cols=('stim', 'mouse', 'neuron'),
-              dist_y='lognormal')
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
@@ -101,7 +181,11 @@ bw.fit_anova()
 bw.fit_lme().posterior
 
 # + slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
-window.plot_model_quality()
+bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron', group='mouse')
+bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron'),
+             dist_y='lognormal')
+bw.plot_model_quality()
 
 # + hideCode=false hidePrompt=false slideshow={"slide_type": "skip"}
 # Monster level with firing rate
@@ -117,8 +201,7 @@ bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 # Monster level ISI
 # NBVAL_SKIP
 bw = BayesWindow(df_monster, y='isi', treatment='stim', condition='neuron', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              dist_y='lognormal',
+bw.fit_slopes(add_data=True, model=models.model_hierarchical_gamma, do_make_change='subtract',
               fold_change_index_cols=('stim', 'mouse', 'neuron'),progress_bar=True)
 
 bw.plot(x='neuron', color='mouse', independent_axes=False, finalize=True)

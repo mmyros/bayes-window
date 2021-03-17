@@ -45,7 +45,8 @@ def add_data_to_posterior(df_data,
                           posterior_index_name='',  # for posterior
                           do_make_change='subtract',
                           do_mean_over_trials=True,
-                          add_data=False
+                          add_data=False,
+                          group_name='subject',
                           ):
     # group_name should be conditions
     if type(fold_change_index_cols) == str:
@@ -72,7 +73,7 @@ def add_data_to_posterior(df_data,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:
     df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, posterior_index_name=posterior_index_name,
-                                   add_data=add_data)
+                                   add_data=add_data, group_name=group_name)
     return df_bayes, posterior
 
 
@@ -126,7 +127,8 @@ def xar_mode(obj, dims_to_reduce: list = None, dim=None):
                           )
 
 
-def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False):
+def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False,
+             group_name='subject'):
     """
     # Convert to dataframe and fill in original conditions
     group name is whatever was used to index posterior
@@ -135,7 +137,9 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'a_subject_dim_0' in trace:
-        trace = trace.rename({f'a_subject_dim_0': 'subject'})
+        trace = trace.rename({f'a_subject_dim_0': group_name})
+    if f'b_stim_per_subject_dim_0' in trace:
+        trace = trace.rename({f'b_stim_per_subject_dim_0': group_name})
     if add_data and (df_data[posterior_index_name].dtype != 'int'):
         warnings.warn(
             f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that...")
