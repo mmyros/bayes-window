@@ -303,9 +303,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
                     alt.Chart(data=data_fold_change).mark_errorbar().encode(y=alt.Y(y, aggregate='stderr'))).encode(
         x=alt.X('neuron:N', ),
         y=alt.Y(y),
-    ).properties(width=width, height=240)  # .facet(
-    # row='Inversion:N',
-    # column=alt.Column('mouse'))#.resolve_scale(y='independent')
+    ).properties(width=width, height=240)
 
     # Monster-level ISI
     df_raster = df_monster[

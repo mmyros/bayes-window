@@ -31,16 +31,20 @@ def test_fit_lme():
 
 
 def test_fit_lme_w_condition():
+    from numpy.linalg import LinAlgError
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                     n_neurons=7,
                                                                     n_mice=6,
                                                                     dur=7,
                                                                     mouse_response_slope=12,
                                                                     overall_stim_response_strength=45)
-    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
-    assert bw.fit_lme().posterior is not None
-    bw.plot_posteriors_slopes()
-    bw.facet(column='neuron_x_mouse', width=300)
+    try:
+        bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
+        assert bw.fit_lme().posterior is not None
+        bw.plot_posteriors_slopes()
+        bw.facet(column='neuron_x_mouse', width=300)
+    except LinAlgError as e:
+        print(e)
 
 
 def test_fit_lme_w_data():
@@ -58,7 +62,9 @@ def test_fit_lme_w_data_condition():
     bw = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
 
     bw.fit_lme(add_data=True, do_make_change='divide')
+    bw.plot_posteriors_slopes()
     bw.facet(column='neuron_x_mouse', width=300)
+
 
 def test_estimate_posteriors():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
@@ -84,6 +90,24 @@ def test_estimate_posteriors_data_overlay():
     chart = bw.plot(x='stim:O', independent_axes=False,
                     column='neuron_code', row='mouse_code')
     chart.display()
+
+
+# def test_estimate_posteriors_data_overlay_sa():
+#     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+#                                                                     n_neurons=3,
+#                                                                     n_mice=4,
+#                                                                     dur=2, )
+#     from numpyro.infer import HMC, SA, BarkerMH, NUTS
+#     bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse')
+#     bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+#                   progress_bar=False,
+#                   dist_y='exponential',
+#                   sampler=SA,
+#                   add_group_slope=True, add_group_intercept=False,
+#                   fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+#
+#     bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+#     bw.facet(column='mouse',width=200,height=200).display()
 
 
 def test_estimate_posteriors_data_overlay_indep_axes():
@@ -117,6 +141,20 @@ def test_estimate_posteriors_slope():
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
     bw.fit_slopes(models.model_hierarchical, add_data=False)
+
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart.display()
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart.display()
+
+
+def test_estimate_posteriors_slope_groupslope():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=2, )
+    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
+    bw.fit_slopes(models.model_hierarchical, add_data=False, add_group_slope=True, add_group_intercept=True, )
 
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
     chart.display()

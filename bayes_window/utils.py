@@ -79,8 +79,9 @@ def add_data_to_posterior(df_data,
 
 def fill_row(condition_val, rows, df_bayes, condition_name):
     this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
-    assert this_hdi.shape[0] > 0, \
-        f'No such value {condition_val} in {condition_name}: it"s {df_bayes[condition_name].unique()}'
+    if this_hdi.shape[0] == 0:
+        raise ValueError(
+            f"No such value {condition_val} in estimate's {condition_name}: it's {df_bayes[condition_name].unique()}")
     for col in ['lower interval', 'higher interval', 'center interval']:
         rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
     return rows
@@ -139,7 +140,7 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     if f'a_subject_dim_0' in trace:
         trace = trace.rename({f'a_subject_dim_0': group_name})
     if f'b_stim_per_subject_dim_0' in trace:
-        trace = trace.rename({f'b_stim_per_subject_dim_0': group_name})
+        trace = trace.rename({f'b_stim_per_subject_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
     if add_data and (df_data[posterior_index_name].dtype != 'int'):
         warnings.warn(
             f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that...")

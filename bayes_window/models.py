@@ -3,6 +3,13 @@ import numpy as np
 import numpyro
 import numpyro.distributions as dist
 
+from numpyro.handlers import reparam
+from numpyro.infer.reparam import LocScaleReparam
+
+
+def reparam_model(model):
+    return reparam(model, config={'x': LocScaleReparam(0)})
+
 
 def model_single_normal_stim(y, treatment, condition):
     n_conditions = np.unique(condition).shape[0]

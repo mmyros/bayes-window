@@ -114,48 +114,54 @@ class BayesWindow:
                                    pd.get_dummies(self.data[condition],
                                                   prefix=condition,
                                                   prefix_sep='__',
-                                                  drop_first=True)), axis=1)
+                                                  drop_first=False)), axis=1)
             dummy_conditions = [cond for cond in self.data.columns if cond[:len(condition) + 2] == f'{condition}__']
-            formula = f"{self.y} ~ 0 "
-            for dummy_condition in dummy_conditions:
-                formula += f" + ({dummy_condition} | {self.treatment})"
-            if add_interaction:
-                formula += f"+ {condition} * {self.treatment}"
+            formula = f"{self.y} ~ (1 | {self.group}) + ({dummy_conditions[0]}|{self.group})"
+            for dummy_condition in dummy_conditions[1:]:
+                formula += f" + ({dummy_condition}|{self.group}) "
+                # formula += f"  {dummy_condition}+ (0 + {dummy_condition} | {self.group})"
+            # if add_interaction:
+            #     formula += f"+ {condition} * {self.treatment}"
 
+        elif self.group:
+            # Random intercepts and slopes (and their correlation): (Variable | Group)
+            formula = f'{self.y} ~ (1 | {self.group}) + ({self.treatment} | {self.group})'
+            # Random intercepts and slopes (without their correlation): (1 | Group) + (0 + Variable | Group)
+            # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
-        if self.group:
-            formula += f' + (1 | {self.group})'
         print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
         res = result.summary().tables[1]
-        res = res.iloc[:-2]
-        # TODO use pivot to un-dummyfy
-
-        res[condition] = [int(index[16:18]) for index in res.index]
-        res.reset_index(inplace=True, drop=True)
-        # res[['Coef.', condition]].pivot_table(values=condition,columns='Coef.')#(values='Coef.', index=condition)
+        print(res)
+        if include_condition:
+            # Only take relevant estimates
+            res = res.loc[[index for index in res.index if (index[:len(condition)] == condition) and '|' not in index]]
+            # Restore condition names
+            res[condition] = [self.data[condition].unique()[i] for i, index in enumerate(res.index)]
+            res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
+        else:
+            # Only take relevant estimates
+            res = res.loc[[index for index in res.index if (res.loc[index, 'z'] != '')&(self.treatment in index)]]
         try:
             res = res.astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
         except Exception as e:
             warnings.warn(f'somehow LME failed to estimate CIs for one or more variables. Replacing with nan:'
                           f' {e} \n=>\n {res}')
             res.replace({'': np.nan}).astype(float)
+        res = res.reset_index()
         res = res.rename({'P>|z|': 'p',
                           'Coef.': 'center interval',
                           '[0.025': 'higher interval',
                           '0.975]': 'lower interval'}, axis=1)
         self.posterior = res
-        if add_data and self.condition[0]:
-            raise NotImplementedError("I don't understand if there is a way to get separate estimates "
-                                      "of slope per condition in LME, or do you just get an effect size estimate??")
+        if add_data and include_condition:
             # like in hdi2df:
-            from utils import fill_row
-            rows = [fill_row(group_val, rows, res, group_name=condition)
-                    for group_val, rows in self.data.groupby([condition])
-                    ]
+            from .utils import fill_row
+            rows = [fill_row(group_val, rows, res, condition_name=condition)
+                    for group_val, rows in self.data.groupby([condition])]
             self.data_and_posterior = pd.concat(rows)
         elif add_data:
             # like in hdi2df_one_condition():
@@ -164,6 +170,14 @@ class BayesWindow:
                 self.data_and_posterior.insert(self.data.shape[1],
                                                col,
                                                res.loc[self.treatment, col])
+        if add_data and do_make_change:
+            # Make (fold) change
+            self.data_and_posterior, _ = utils.make_fold_change(self.data_and_posterior,
+                                                                y=self.y,
+                                                                index_cols=self.levels,
+                                                                treatment_name=self.treatment,
+                                                                fold_change_method=do_make_change,
+                                                                do_take_mean=False)
 
         return self
 
@@ -221,7 +235,7 @@ class BayesWindow:
                                      condition=self.data[self.condition[0]].values,
                                      group=self.data[self.group].values,
                                      model=model,
-                                     n_draws=1000, num_chains=1,
+                                     # n_draws=1000, num_chains=1,
                                      **kwargs)
         except TypeError as e:
             # assert that model() has kwarg stim, because this is slopes
@@ -267,7 +281,10 @@ class BayesWindow:
 
         # Plot posterior
         if (self.data_and_posterior is not None) or (self.posterior is not None):
-            posterior = self.data_and_posterior or self.posterior
+            if self.data_and_posterior is None:
+                posterior = self.posterior
+            else:
+                posterior = self.data_and_posterior
             add_data = self.add_data
             base_chart = alt.Chart(posterior)
             chart_p = plot_posterior(title=f'{self.y}',
@@ -280,6 +297,7 @@ class BayesWindow:
 
         if add_data:
             assert self.data_and_posterior is not None
+            assert f'{self.y} diff' in self.data_and_posterior, 'change in data was not added, but add_data requested'
             if detail != ':O':
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
