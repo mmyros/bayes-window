@@ -1,18 +1,19 @@
-import arviz as az
 import warnings
 from importlib import reload
 
 import altair as alt
+import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 le = LabelEncoder()
@@ -91,6 +92,7 @@ class BayesWindow:
         #                 groups=self.data[self.group],
         #                 # exog_re=exog.iloc[:, 0]
         #                 )
+        self.add_data = add_data
         # dehumanize all columns and variable names for statsmodels:
         [self.data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in self.data.columns]
         self.y = self.y.replace(" ", "_")
@@ -103,13 +105,22 @@ class BayesWindow:
                 include_condition = True
         if include_condition:
             if len(self.condition) > 1:
-                raise NotImplementedError(f'conditions {self.condition}')
+                raise NotImplementedError(f'conditions {self.condition}. Use combined_condition')
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
-            self.condition[0] = self.condition[0].replace(" ", "_")
-            formula = f"{self.y} ~ 0 + {self.condition[0]} | {self.treatment}"
+            condition = self.condition[0].replace(" ", "_")
+            # Make dummy variables for each level in condition:
+            self.data = pd.concat((self.data,
+                                   pd.get_dummies(self.data[condition],
+                                                  prefix=condition,
+                                                  prefix_sep='__',
+                                                  drop_first=True)), axis=1)
+            dummy_conditions = [cond for cond in self.data.columns if cond[:len(condition) + 2] == f'{condition}__']
+            formula = f"{self.y} ~ 0 "
+            for dummy_condition in dummy_conditions:
+                formula += f" + ({dummy_condition} | {self.treatment})"
             if add_interaction:
-                formula += f"+ {self.condition[0]} * {self.treatment}"
+                formula += f"+ {condition} * {self.treatment}"
 
         else:
             formula = f"{self.y} ~ 1 + {self.treatment}"
@@ -120,7 +131,12 @@ class BayesWindow:
                             self.data,
                             groups=self.data[self.group]).fit()
         res = result.summary().tables[1]
-        res = res.iloc[:-1]
+        res = res.iloc[:-2]
+        # TODO use pivot to un-dummyfy
+
+        res[condition] = [int(index[16:18]) for index in res.index]
+        res.reset_index(inplace=True, drop=True)
+        # res[['Coef.', condition]].pivot_table(values=condition,columns='Coef.')#(values='Coef.', index=condition)
         try:
             res = res.astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
         except Exception as e:
@@ -137,8 +153,8 @@ class BayesWindow:
                                       "of slope per condition in LME, or do you just get an effect size estimate??")
             # like in hdi2df:
             from utils import fill_row
-            rows = [fill_row(group_val, rows, res, group_name=self.condition[0])
-                    for group_val, rows in self.data.groupby([self.condition[0]])
+            rows = [fill_row(group_val, rows, res, group_name=condition)
+                    for group_val, rows in self.data.groupby([condition])
                     ]
             self.data_and_posterior = pd.concat(rows)
         elif add_data:
@@ -250,9 +266,10 @@ class BayesWindow:
         color = color or self.levels[0]
 
         # Plot posterior
-        if self.data_and_posterior is not None:
+        if (self.data_and_posterior is not None) or (self.posterior is not None):
+            posterior = self.data_and_posterior or self.posterior
             add_data = self.add_data
-            base_chart = alt.Chart(self.data_and_posterior)
+            base_chart = alt.Chart(posterior)
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,
                                      base_chart=base_chart,
@@ -399,7 +416,8 @@ class BayesWindow:
                     {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
                      'dist_y': 'lognormal'},
                     {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'gamma'},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'exponential'},
+                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                     'dist_y': 'exponential'},
                 ],
                 y=self.y,
                 parallel=parallel

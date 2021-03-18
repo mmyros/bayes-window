@@ -135,7 +135,6 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     return alt.layer(*charts)
 
 
-# from altair.vegalite.v4.api import Undefined
 def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df

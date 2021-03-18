@@ -26,24 +26,39 @@ def test_fit_lme():
     df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_lme(add_data=False, )
+    bw.plot_posteriors_slopes()
+    bw.facet(row='mouse')
+
+
+def test_fit_lme_w_condition():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
+                                                                    n_neurons=7,
+                                                                    n_mice=6,
+                                                                    dur=7,
+                                                                    mouse_response_slope=12,
+                                                                    overall_stim_response_strength=45)
+    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
+    assert bw.fit_lme().posterior is not None
+    bw.plot_posteriors_slopes()
+    bw.facet(column='neuron_x_mouse', width=300)
 
 
 def test_fit_lme_w_data():
     df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
 
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_lme(add_data=True, do_make_change='divide')
+    bw.fit_lme(add_data=False, do_make_change='divide')
+    assert bw.posterior is not None
+    bw.plot_posteriors_slopes()
 
 
 def test_fit_lme_w_data_condition():
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
 
     bw = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
-    try:
-        bw.fit_lme(add_data=True, do_make_change='divide')
-    except NotImplementedError:
-        pass
 
+    bw.fit_lme(add_data=True, do_make_change='divide')
+    bw.facet(column='neuron_x_mouse', width=300)
 
 def test_estimate_posteriors():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
