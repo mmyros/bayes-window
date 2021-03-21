@@ -62,6 +62,7 @@ def facet(base_chart,
 
 
 def line_with_highlight(base, x, y, color, detail, highlight=True):
+    # Highlight doesnt work with overlays, but at least we get visible dots in legend
     if highlight:
         highlight = alt.selection(type='single', on='mouseover',
                                   fields=[color], nearest=True)
@@ -69,7 +70,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
     else:
         size = alt.value(1.)
 
-    lines = base.mark_line(clip=True, fill=None, opacity=.6, ).encode(
+    lines = base.mark_line(clip=True, fill=None, opacity=.6).encode(
         size=size,
         x=x,
         color=f'{color}',
@@ -105,7 +106,6 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     if color[-2] != ':':
         color = f'{color}:N'
     charts = []
-    axis = alt.Axis()
 
     # Plot data:
     base = base_chart or alt.Chart(df)
@@ -121,10 +121,23 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         #                             domain=list(np.quantile(base.data[y], [.05, .95])))),
         #     tooltip=color,
         # ).interactive())
-        axis = alt.Axis(labels=False, tickCount=0, title='')
+    else:  # Stripplot
+        charts.append(base.mark_tick(clip=True, opacity=.4, size=12).encode(
+            x=x,
+            color=f'{color}',
+            detail=detail,
+            y=alt.Y(f'mean({y})',
+                    axis=alt.Axis(orient='right'),
+                    scale=alt.Scale(zero=False,
+                                    domain=list(np.quantile(base.data[y], [.05, .95])))),
+            tooltip=color,  # Tooltip breaks it in some instances?
+        ))
+    axis = alt.Axis(labels=False, tickCount=0, title='')
+
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
-        # df['x_box'] = df[x[:-2]] + .01
+        # if len(base[x[:-2]].unique()) == 1:
+        #     df['x_box'] = df[x[:-2]] + .01
         charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black').encode(
             x=x,
             y=alt.Y(f'{y}:Q',

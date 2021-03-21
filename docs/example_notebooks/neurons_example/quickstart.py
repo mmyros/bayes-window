@@ -24,9 +24,9 @@ import numpy as np
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
-df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=50,
-                                                                n_neurons=2,
-                                                                n_mice=5,
+df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
+                                                                n_neurons=6,
+                                                                n_mice=3,
                                                                 dur=5,
                                                                mouse_response_slope=40,
                                                                overall_stim_response_strength=45)
@@ -124,8 +124,3 @@ for y in ['isi', 'firing_rate']:
     bw.facet(column='mouse',width=200,height=200).display()
 
     bw.explore_models()
-# -
-
-# This takes a while, so let's try a two-stage model
-
-

@@ -82,7 +82,7 @@ def test_estimate_posteriors():
 
 def test_estimate_posteriors_data_overlay():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
+                                                                    n_neuron=3,
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')

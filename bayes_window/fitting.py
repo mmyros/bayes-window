@@ -4,11 +4,12 @@ from jax import random
 from numpyro.infer import MCMC, NUTS
 from numpyro.infer import HMC, SA, BarkerMH
 from . import models
-
+from pdb import set_trace
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
                 n_draws=1000, num_chains=1, convert_to_arviz=True, sampler=NUTS,
                 **kwargs):
+
     model = model or models.model_hierarchical
     numpyro.set_host_device_count(4)
     mcmc = MCMC(sampler(model=model,

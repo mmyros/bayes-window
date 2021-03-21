@@ -225,7 +225,7 @@ class BayesWindow:
         if not self.condition[0]:
             warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
             self.condition[0] = 'dummy_condition'
-            self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.ones(self.data.shape[0]))
+            self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.zeros(self.data.shape[0]).astype(int))
             fold_change_index_cols.append('dummy_condition')
         if not self.condition[0] in fold_change_index_cols:
             fold_change_index_cols.extend(self.condition)
@@ -381,9 +381,18 @@ class BayesWindow:
             self.facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
         return self.facetchart
 
-    def plot_model_quality(self, var_names=None):
+    def plot_model_quality(self, var_names=None, **kwargs):
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
-        az.plot_trace(self.trace, var_names=var_names, show=True)
+        az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
+        az.plot_pair(
+            self.trace,
+            var_names=var_names,
+            kind="hexbin",
+            # coords=coords,
+            colorbar=False,
+            divergences=True,
+            # backend="bokeh",
+        )
 
     def explore_models(self, parallel=True):
         if self.b_name is None:
