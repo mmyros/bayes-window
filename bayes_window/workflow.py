@@ -116,7 +116,8 @@ class BayesWindow:
                                                   prefix_sep='__',
                                                   drop_first=False)), axis=1)
             dummy_conditions = [cond for cond in self.data.columns if cond[:len(condition) + 2] == f'{condition}__']
-            formula = f"{self.y} ~ (1 | {self.group}) + ({dummy_conditions[0]}|{self.group})"
+            # formula = f"{self.y} ~ (1 | {self.group}) + ({dummy_conditions[0]}|{self.group})"
+            formula = f"{self.y} ~ 1+ ({dummy_conditions[0]}|{self.group})"
             for dummy_condition in dummy_conditions[1:]:
                 formula += f" + ({dummy_condition}|{self.group}) "
                 # formula += f"  {dummy_condition}+ (0 + {dummy_condition} | {self.group})"
@@ -144,7 +145,7 @@ class BayesWindow:
             res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
         else:
             # Only take relevant estimates
-            res = res.loc[[index for index in res.index if (res.loc[index, 'z'] != '')&(self.treatment in index)]]
+            res = res.loc[[index for index in res.index if (res.loc[index, 'z'] != '') & (self.treatment in index)]]
         try:
             res = res.astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
         except Exception as e:
@@ -271,7 +272,9 @@ class BayesWindow:
         self.fold_change_index_cols = fold_change_index_cols
         return self
 
-    def plot_posteriors_slopes(self, x=':O', color=':O', detail=':O', add_box=True, independent_axes=False, **kwargs):
+    def plot_posteriors_slopes(self, x=':O', color=':O', detail=':O', add_box=True, independent_axes=False,
+                               add_posterior_density=True,
+                               **kwargs):
         # Set some options
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
@@ -297,17 +300,46 @@ class BayesWindow:
 
         if add_data:
             assert self.data_and_posterior is not None
-            assert f'{self.y} diff' in self.data_and_posterior, 'change in data was not added, but add_data requested'
+            y = f'{self.y} diff'
+            assert y in self.data_and_posterior, 'change in data was not added, but add_data requested'
             if detail != ':O':
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
 
-            chart_d = visualization.plot_data(x=x, y=f'{self.y} diff', color=color, add_box=add_box,
+            chart_d = visualization.plot_data(x=x, y=y, color=color, add_box=add_box,
                                               detail=detail,
                                               base_chart=base_chart)
             self.chart = chart_d + chart_p
         else:
             self.chart = chart_p
+        if (x != ':O') & (self.b_name is not None):
+            if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
+                add_posterior_density = False
+
+        if add_posterior_density:
+            alt.data_transformers.disable_max_rows()
+
+            # from pdb import set_trace;set_trace()
+            # Same y domain as in plot_data and plot_posterior:
+            y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
+
+            # dataframe with posterior:
+            df = self.trace.posterior.mean('chain').to_dataframe().reset_index()
+
+            # KDE chart:
+            chart_kde = alt.Chart(df).transform_density(
+                self.b_name,
+                as_=[self.b_name, 'density'],
+            ).mark_line(orient='horizontal', fill=None, size=1).encode(
+                y=alt.Y(self.b_name, scale=alt.Scale(domain=y_domain), title=''),
+                x=alt.X('density:Q', title='', axis=alt.Axis(labels=False, tickCount=0, title='')),
+            ).properties(width=30)
+
+            # Add kde to charts
+            if not add_box:
+                self.chart += chart_kde
+            else:
+                self.chart |= chart_kde
         if independent_axes:
             self.chart = self.chart.resolve_scale(y='independent')
         return self.chart

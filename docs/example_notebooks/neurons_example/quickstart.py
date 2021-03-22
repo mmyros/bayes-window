@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.8.2
+#       jupytext_version: 1.6.0
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -17,10 +17,11 @@
 # # Neurons example: high-level interface
 # ## Generate some data
 
+import numpy as np
+
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 from bayes_window import models, fake_spikes_explore, BayesWindow
 from bayes_window.generative_models import generate_fake_spikes
-import numpy as np
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
@@ -66,7 +67,7 @@ bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 bw.facet(column='mouse',width=200,height=200).display()
 
 # + hidePrompt=true
-import altair as alt 
+import altair as alt
 slopes=bw.trace.posterior['b_stim_per_subject'].mean(['chain','draw']).to_dataframe().reset_index()
 chart_slopes=alt.Chart(slopes).mark_bar().encode(
     x=alt.X('mouse:O',title='Mouse'),

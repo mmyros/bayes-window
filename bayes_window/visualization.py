@@ -109,7 +109,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
 
     # Plot data:
     base = base_chart or alt.Chart(df)
-
+    y_domain = list(np.quantile(base.data[y], [.05, .95]))
     if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
         charts.extend(line_with_highlight(base, x, y, color, detail, highlight=highlight))
         # charts.append(base.mark_line(clip=True, fill=None, opacity=.6, size=.5).encode(
@@ -128,8 +128,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
             detail=detail,
             y=alt.Y(f'mean({y})',
                     axis=alt.Axis(orient='right'),
-                    scale=alt.Scale(zero=False,
-                                    domain=list(np.quantile(base.data[y], [.05, .95])))),
+                    scale=alt.Scale(zero=False, domain=y_domain)),
             tooltip=color,  # Tooltip breaks it in some instances?
         ))
     axis = alt.Axis(labels=False, tickCount=0, title='')
@@ -141,8 +140,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black').encode(
             x=x,
             y=alt.Y(f'{y}:Q',
-                    scale=alt.Scale(zero=False,
-                                    domain=list(np.quantile(base.data[y], [.05, .95]))),
+                    scale=alt.Scale(zero=False, domain=y_domain),
                     axis=axis)
         ))
     return alt.layer(*charts)
