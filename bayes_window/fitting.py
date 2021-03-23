@@ -6,17 +6,22 @@ from numpyro.infer import HMC, SA, BarkerMH
 from . import models
 from pdb import set_trace
 
-def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
-                n_draws=1000, num_chains=1, convert_to_arviz=True, sampler=NUTS,
-                **kwargs):
 
+def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
+                n_draws=1000, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
+                **kwargs):
+    if use_gpu:
+        numpyro.set_platform('gpu')
+    else:
+        numpyro.set_platform('cpu')
+    numpyro.set_host_device_count(5)
     model = model or models.model_hierarchical
-    numpyro.set_host_device_count(4)
     mcmc = MCMC(sampler(model=model,
                         find_heuristic_step_size=True),
-                num_warmup=num_warmup, num_samples=n_draws, num_chains=num_chains, progress_bar=progress_bar)
+                num_warmup=num_warmup, num_samples=n_draws, num_chains=num_chains, progress_bar=progress_bar,
+                chain_method='parallel'
+                )
     mcmc.run(random.PRNGKey(16), **kwargs)
-
     # arviz convert
     trace = az.from_numpyro(mcmc)
     # Print diagnostics
@@ -26,3 +31,4 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
         return trace
     else:
         return mcmc
+

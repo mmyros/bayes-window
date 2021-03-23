@@ -143,7 +143,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
                     scale=alt.Scale(zero=False, domain=y_domain),
                     axis=axis)
         ))
-    return alt.layer(*charts)
+    return alt.layer(*charts), y_domain
 
 
 def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, **kwargs):

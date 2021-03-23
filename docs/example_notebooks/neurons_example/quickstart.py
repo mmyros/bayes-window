@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.6.0
+#       jupytext_version: 1.8.2
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -16,12 +16,13 @@
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # # Neurons example: high-level interface
 # ## Generate some data
-
-import numpy as np
+#
+#
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 from bayes_window import models, fake_spikes_explore, BayesWindow
 from bayes_window.generative_models import generate_fake_spikes
+import numpy as np
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
@@ -31,6 +32,25 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                 dur=5,
                                                                mouse_response_slope=40,
                                                                overall_stim_response_strength=45)
+# -
+
+# With GPU:
+for y in ['isi', 'firing_rate']:
+    print(y)
+    bw = BayesWindow(df_monster, y=y, treatment='stim', condition='neuron_x_mouse', group='mouse')
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
+                  progress_bar=True,
+                  dist_y='student',
+                  use_gpu=True,
+                  num_chains=2,
+                  num_warmup=500,
+                  add_group_slope=True, add_group_intercept=False,
+                  fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+    bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+    bw.facet(column='mouse',width=200,height=200).display()
+
+    bw.explore_models()
 
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Exploratory plot without any fitting
@@ -93,7 +113,10 @@ bw.facet(column='mouse',width=200,height=200).display()
 # ANOVA may not be appropriate here: It considers every neuron. If we look hard enough, surely we'll find a responsive neuron or two out of hundreds?
 
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
+bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse')
+
 bw.fit_anova()
+
 # -
 
 bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
@@ -118,6 +141,7 @@ for y in ['isi', 'firing_rate']:
     bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
                   progress_bar=True,
                   dist_y='student',
+                  use_gpu=False,
                   add_group_slope=True, add_group_intercept=False,
                   fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 

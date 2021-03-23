@@ -53,7 +53,7 @@ ddf, dy = utils.make_fold_change(df,
                                  treatment_name='stim',
                                  do_take_mean=True)
 
-visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=ddf)
+visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=ddf)[0]
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Estimate model
@@ -91,7 +91,7 @@ df_both, trace = utils.add_data_to_posterior(df,
 # BayesWindow.plot_posteriors_slopes(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
 reload(visualization)
 
-chart_d = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code',add_box=True, highlight=False)
+chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code',add_box=True, highlight=False)
 chart_d
 
 # + hideCode=false hidePrompt=false

@@ -82,7 +82,7 @@ def test_estimate_posteriors():
 
 def test_estimate_posteriors_data_overlay():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neuron=3,
+                                                                    n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
@@ -186,7 +186,7 @@ def test_estimate_posteriors_data_overlay_slope():
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
     bw.fit_slopes(model=models.model_hierarchical, add_data=False)
-    chart = bw.plot_posteriors_slopes(independent_axes=False)
+    chart = bw.plot_posteriors_slopes(independent_axes=False, add_posterior_density=False)
     chart.display()
     bw.facet(column='neuron_code', row='mouse_code')
     chart.display()
@@ -305,8 +305,8 @@ def test_facet():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
-    bw.plot().facet('neuron', width=40)
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical)
+    bw.plot(add_posterior_density=False).facet('neuron', width=40)
 
     # conditions:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,

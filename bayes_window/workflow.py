@@ -6,14 +6,13 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
-from sklearn.preprocessing import LabelEncoder
-
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
+from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 le = LabelEncoder()
@@ -160,7 +159,8 @@ class BayesWindow:
         self.posterior = res
         if add_data and include_condition:
             # like in hdi2df:
-            from .utils import fill_row
+            # Still does not work: neuron__Xwill not be found
+            raise NotImplementedError
             rows = [fill_row(group_val, rows, res, condition_name=condition)
                     for group_val, rows in self.data.groupby([condition])]
             self.data_and_posterior = pd.concat(rows)
@@ -230,17 +230,13 @@ class BayesWindow:
             fold_change_index_cols.append('dummy_condition')
         if not self.condition[0] in fold_change_index_cols:
             fold_change_index_cols.extend(self.condition)
-        try:
-            self.trace = fit_numpyro(y=self.data[self.y].values,
-                                     treatment=self.data[self.treatment].values,
-                                     condition=self.data[self.condition[0]].values,
-                                     group=self.data[self.group].values,
-                                     model=model,
-                                     # n_draws=1000, num_chains=1,
-                                     **kwargs)
-        except TypeError as e:
-            # assert that model() has kwarg stim, because this is slopes
-            raise KeyError(f'Does your model {model} have "stim" argument? You asked for slopes!{e}')
+        self.trace = fit_numpyro(y=self.data[self.y].values,
+                                 treatment=self.data[self.treatment].values,
+                                 condition=self.data[self.condition[0]].values,
+                                 group=self.data[self.group].values,
+                                 model=model,
+                                 # n_draws=1000, num_chains=1,
+                                 **kwargs)
         if add_data:
             # Add data back
             # TODO posterior_index_name=self.condition[0] will not work if need combined_condition
@@ -288,7 +284,7 @@ class BayesWindow:
                 posterior = self.posterior
             else:
                 posterior = self.data_and_posterior
-            add_data = self.add_data
+            add_data = self.add_data and add_box
             base_chart = alt.Chart(posterior)
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,
@@ -306,32 +302,37 @@ class BayesWindow:
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
 
-            chart_d = visualization.plot_data(x=x, y=y, color=color, add_box=add_box,
-                                              detail=detail,
-                                              base_chart=base_chart)
+            chart_d, y_scale = visualization.plot_data(x=x, y=y, color=color, add_box=add_box,
+                                                       detail=detail,
+                                                       base_chart=base_chart)
             self.chart = chart_d + chart_p
         else:
+            y=self.y
+            y_scale = None
             self.chart = chart_p
-        if (x != ':O') & (self.b_name is not None):
+        if x != ':O':
             if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
-
+        if self.b_name is None:
+            add_posterior_density = False
         if add_posterior_density:
             alt.data_transformers.disable_max_rows()
 
-            # from pdb import set_trace;set_trace()
             # Same y domain as in plot_data and plot_posterior:
-            y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
+            if y in base_chart.data.columns:  # eg if we had add_data=True
+                scale = alt.Scale(domain=y_scale)
+            else:
+                scale = alt.Scale()
 
-            # dataframe with posterior:
-            df = self.trace.posterior.mean('chain').to_dataframe().reset_index()
+            # dataframe with posterior (combine chains):
+            df = self.trace.posterior.stack(draws=("chain", "draw")).reset_index(["draws"]).to_dataframe().reset_index()
 
             # KDE chart:
             chart_kde = alt.Chart(df).transform_density(
                 self.b_name,
                 as_=[self.b_name, 'density'],
             ).mark_line(orient='horizontal', fill=None, size=1).encode(
-                y=alt.Y(self.b_name, scale=alt.Scale(domain=y_domain), title=''),
+                y=alt.Y(self.b_name, scale=scale, title=''),
                 x=alt.X('density:Q', title='', axis=alt.Axis(labels=False, tickCount=0, title='')),
             ).properties(width=30)
 
@@ -363,7 +364,7 @@ class BayesWindow:
             chart_p = visualization.plot_posterior(x=x,
                                                    do_make_change=False,
                                                    add_data=add_data,
-                                                   # title=f'{self.y} estimate', #TODO uncomment
+                                                   title=f'{self.y} estimate', #TODO uncomment
                                                    base_chart=base_chart,
                                                    **kwargs
                                                    )
@@ -395,7 +396,7 @@ class BayesWindow:
                           'or .plot_posteriors_no_slope to be explicit ')
             return visualization.plot_data(self.data, x=self.levels[0], y=self.y,
                                            color=self.levels[1] if len(self.levels) > 1 else None,
-                                           **kwargs)
+                                           **kwargs)[0]
 
         if self.b_name == 'b_stim_per_condition':
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
