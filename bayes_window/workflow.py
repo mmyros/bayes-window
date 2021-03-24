@@ -6,13 +6,14 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 le = LabelEncoder()
@@ -138,7 +139,12 @@ class BayesWindow:
         print(res)
         if include_condition:
             # Only take relevant estimates
-            res = res.loc[[index for index in res.index if (index[:len(condition)] == condition) and '|' not in index]]
+            res = res.loc[[index for index in res.index
+                           if (index[:len(condition)] == condition)]]
+            if res.shape[0] > len(self.data[condition].unique()):
+                # If  conditionals are included, remove non-conditionals
+                res = res.loc[[index for index in res.index
+                               if (index[:len(condition)] == condition) and ('|' in index)]]
             # Restore condition names
             res[condition] = [self.data[condition].unique()[i] for i, index in enumerate(res.index)]
             res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
@@ -151,17 +157,30 @@ class BayesWindow:
             warnings.warn(f'somehow LME failed to estimate CIs for one or more variables. Replacing with nan:'
                           f' {e} \n=>\n {res}')
             res.replace({'': np.nan}).astype(float)
+        assert res.shape[0] > 0, 'There is no result'
         res = res.reset_index()
         res = res.rename({'P>|z|': 'p',
                           'Coef.': 'center interval',
                           '[0.025': 'higher interval',
                           '0.975]': 'lower interval'}, axis=1)
         self.posterior = res
-        if add_data and include_condition:
+
+        if add_data and do_make_change and include_condition:
+            # Make (fold) change
+            change_data, _ = utils.make_fold_change(self.data,
+                                                    y=self.y,
+                                                    index_cols=self.levels,
+                                                    treatment_name=self.treatment,
+                                                    fold_change_method=do_make_change,
+                                                    do_take_mean=False)
+
             # like in hdi2df:
-            # Still does not work: neuron__Xwill not be found
-            raise NotImplementedError
-            rows = [fill_row(group_val, rows, res, condition_name=condition)
+            rows = [utils.fill_row(group_val, rows, res, condition_name=condition)
+                    for group_val, rows in change_data.groupby([condition])]
+            self.data_and_posterior = pd.concat(rows)
+        elif add_data and include_condition:
+            # like in hdi2df:
+            rows = [utils.fill_row(group_val, rows, res, condition_name=condition)
                     for group_val, rows in self.data.groupby([condition])]
             self.data_and_posterior = pd.concat(rows)
         elif add_data:
@@ -171,14 +190,6 @@ class BayesWindow:
                 self.data_and_posterior.insert(self.data.shape[1],
                                                col,
                                                res.loc[self.treatment, col])
-        if add_data and do_make_change:
-            # Make (fold) change
-            self.data_and_posterior, _ = utils.make_fold_change(self.data_and_posterior,
-                                                                y=self.y,
-                                                                index_cols=self.levels,
-                                                                treatment_name=self.treatment,
-                                                                fold_change_method=do_make_change,
-                                                                do_take_mean=False)
 
         return self
 
@@ -307,7 +318,7 @@ class BayesWindow:
                                                        base_chart=base_chart)
             self.chart = chart_d + chart_p
         else:
-            y=self.y
+            y = self.y
             y_scale = None
             self.chart = chart_p
         if x != ':O':
@@ -331,7 +342,7 @@ class BayesWindow:
             chart_kde = alt.Chart(df).transform_density(
                 self.b_name,
                 as_=[self.b_name, 'density'],
-            ).mark_line(orient='horizontal', fill=None, size=1).encode(
+            ).mark_line(orient='horizontal', fill=None, size=1, clip=True).encode(
                 y=alt.Y(self.b_name, scale=scale, title=''),
                 x=alt.X('density:Q', title='', axis=alt.Axis(labels=False, tickCount=0, title='')),
             ).properties(width=30)
@@ -364,7 +375,7 @@ class BayesWindow:
             chart_p = visualization.plot_posterior(x=x,
                                                    do_make_change=False,
                                                    add_data=add_data,
-                                                   title=f'{self.y} estimate', #TODO uncomment
+                                                   title=f'{self.y} estimate',  # TODO uncomment
                                                    base_chart=base_chart,
                                                    **kwargs
                                                    )
