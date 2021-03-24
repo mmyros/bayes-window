@@ -34,17 +34,13 @@ TODO
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
-- bambi+patsy
-- histogram shading patches for posterior in addition to 95% HDI
 - Prior predictive and posterior predictive plots
 - Figure out MAP: Look for how summary is calculated in arviz and add mode
-- how is holoviz with coposite overlays? Maybe the facet method is not necessary then
-   - related to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
-- delete facet attribute of chart if independent_axes=True
+- wait for resolution to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
+- delete facet attribute of chart if independent_axes=True - how? Ask in altair github
 - Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?
    - see lfp notebook
-- Recode multiple conditions for LME
 - Decide on Vega theme
 - Test notebooks in a separate jobs on GHA
 
