@@ -10,7 +10,7 @@ def test_run_methods(parallel):
         true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
         n_trials=[9],
         parallel=parallel,
-        ys=('Log power','Power')  # LME fails with 'Power'
+        ys=('Log power', 'Power')
     )
 
     plot_roc(res)[0].display()
@@ -25,7 +25,7 @@ def test_compare_models(parallel):
                                                                     dur=2, )
     compare_models(df=df,
                    models={'no_neuron': models.model_hierarchical,
-                           'no_neuron_or_teratment': models.model_hierarchical,
+                           'no_neuron_or_treatment': models.model_hierarchical,
                            'no-treatment': models.model_hierarchical,
                            'treatment': models.model_hierarchical,
                            'student': models.model_hierarchical,
@@ -54,7 +54,7 @@ def test_compare_models2(parallel):
                                                       n_trials=40)
     compare_models(df=df,
                    models={
-                       'no_teratment': models.model_hierarchical,
+                       'no_treatment': models.model_hierarchical,
                        'no_group': models.model_hierarchical,
                        'full_normal': models.model_hierarchical,
                        'full_student': models.model_hierarchical,
