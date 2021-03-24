@@ -33,22 +33,8 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                mouse_response_slope=40,
                                                                overall_stim_response_strength=45)
 
-# +
-bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=True,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
-
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
-bw.facet(column='mouse',width=200,height=200).display()
-
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Exploratory plot without any fitting
-# -
-
-all sds=10
 
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
 
