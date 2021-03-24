@@ -2,9 +2,8 @@ import arviz as az
 import numpyro
 from jax import random
 from numpyro.infer import MCMC, NUTS
-from numpyro.infer import HMC, SA, BarkerMH
+
 from . import models
-from pdb import set_trace
 
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
@@ -14,7 +13,7 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
         numpyro.set_platform('gpu')
     else:
         numpyro.set_platform('cpu')
-    numpyro.set_host_device_count(5)
+    numpyro.set_host_device_count(num_chains)
     model = model or models.model_hierarchical
     mcmc = MCMC(sampler(model=model,
                         find_heuristic_step_size=True),
