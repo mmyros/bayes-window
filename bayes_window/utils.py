@@ -1,3 +1,4 @@
+from arviz.plots.plot_utils import calculate_point_estimate
 from sklearn.preprocessing import LabelEncoder
 
 le = LabelEncoder()
@@ -151,11 +152,10 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
 
     hdi = az.hdi(trace)[b_name]
 
-    # from scipy.stats import mode
-    # summary = az.summary(trace, var_names=[b_name], stat_funcs={'map': _mode})
-    # max_a_p = summary.loc[b_name, 'map']
-    # max_a_p = xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw'])
-    max_a_p = trace[b_name].mean(['chain', 'draw']).values
+    # max_a_p = trace[b_name].mean(['chain', 'draw']).values
+    b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws').T
+    assert b_all_draws.shape[0] == trace['chain'].size * trace['draw'].size
+    max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default", circular=False)
     if hdi.ndim == 1:
         mean = xr.DataArray([max_a_p],
                             coords={'hdi': ["center"], },
@@ -311,6 +311,7 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
                                       res.loc[res['index'].str.contains(treatment), col])
 
     return data_and_posterior
+
 
 def combined_condition(df, levels):
     # String-valued combined condition
