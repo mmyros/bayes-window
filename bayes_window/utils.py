@@ -251,8 +251,10 @@ def scrub_lme_result(result, include_condition, condition, data, treatment):
                       f' {e} \n=>\n {res}')
         res.replace({'': np.nan}).astype(float)
     if res.shape[0] == 0:
-        import pdb
-        pdb.set_trace()
+        print(result.summary().tables[1])
+        print(res)
+        # import pdb;pdb.set_trace()
+
     assert res.shape[0] > 0, 'There is no result'
     res = res.reset_index()
     res = res.rename({'P>|z|': 'p',
