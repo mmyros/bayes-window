@@ -1,14 +1,18 @@
-from bayes_window.generative_models import generate_fake_spikes
-from bayes_window.model_comparison import *
 from pytest import mark
 
+from bayes_window.generative_models import generate_fake_spikes
+from bayes_window.model_comparison import *
 
-def test_run_methods():
+
+@mark.parametrize('parallel', [True, False])
+def test_run_methods(parallel):
     res = run_conditions(
         true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
-        n_trials=[7],
-        parallel=True
+        n_trials=[9],
+        parallel=parallel,
+        ys=('Log power','Power')  # LME fails with 'Power'
     )
+
     plot_roc(res)[0].display()
     plot_roc(res)[1].display()
 
@@ -33,11 +37,14 @@ def test_compare_models(parallel):
                                      {'treatment': None, 'condition': 'neuron'},
                                      {'treatment': 'stim', 'condition': 'neuron'},
                                      {'treatment': 'stim', 'condition': 'neuron', 'dist_y': 'student'},
-                                     {'treatment': 'stim', 'condition': 'neuron', 'dist_y': 'lognormal'}, ],
+                                     {'treatment': 'stim', 'condition': 'neuron', 'dist_y': 'lognormal'}],
                    y='isi',
                    group='mouse',
                    parallel=parallel,
-                   plotose=True
+                   plotose=True,
+                   # num_chains=1,
+                   # num_warmup=100,
+                   # n_draws=100,
                    )
 
 

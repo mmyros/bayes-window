@@ -1,13 +1,23 @@
 import bulwark.checks as ck
 from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
-from bayes_window import models, fake_spikes_explore
-from bayes_window.fitting import fit_numpyro
-from bayes_window.generative_models import generate_fake_spikes
-from bayes_window.utils import add_data_to_posterior
-from bayes_window.visualization import plot_data_slope_trials
 from sklearn.preprocessing import LabelEncoder
 
+from bayes_window import BayesWindow
+from bayes_window import models, fake_spikes_explore
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
+from bayes_window.utils import add_data_to_posterior
+from bayes_window.visualization import plot_data_slope_trials
+
 trans = LabelEncoder().fit_transform
+
+
+def test_lme_with_data():
+    df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=8,
+                                                      n_trials=40)
+    bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    bw.fit_lme(add_data=True, do_make_change='subtract')
+    bw.plot()
 
 
 def test_fake_spikes_explore():

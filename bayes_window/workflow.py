@@ -6,7 +6,6 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
-from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import models
 from bayes_window import utils
@@ -16,26 +15,6 @@ from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
 
 reload(visualization)
-le = LabelEncoder()
-
-
-def combined_condition(df, levels):
-    # String-valued combined condition
-    # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
-    df['combined_condition'] = df[levels[0]].astype('str')
-    for level in levels[1:]:
-        df['combined_condition'] += df[level].astype('str')
-    data = df.copy()
-    # Transform conditions to integers as required by numpyro:
-    data['combined_condition'] = le.fit_transform(df['combined_condition'])
-    # Transform conditions to integers as required by numpyro:
-    key = dict()
-    for level in levels:
-        data[level] = le.fit_transform(data[level])
-        # Keep key for later use
-        # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
-        key[level] = dict(zip(range(len(le.classes_)), le.classes_))
-    return data, key
 
 
 class BayesWindow:
@@ -57,7 +36,7 @@ class BayesWindow:
         if self.condition[0]:
             assert self.condition[0] in df.columns
         self.levels = utils.parse_levels(self.treatment, self.condition, self.group)
-        self.data, self._key = combined_condition(df, self.levels)
+        self.data, self._key = utils.combined_condition(df, self.levels)
         self.detail = detail
         self.y = y
 
@@ -92,6 +71,7 @@ class BayesWindow:
         #                 groups=self.data[self.group],
         #                 # exog_re=exog.iloc[:, 0]
         #                 )
+        self.b_name = 'lme'
         self.add_data = add_data
         # dehumanize all columns and variable names for statsmodels:
         [self.data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in self.data.columns]
@@ -99,10 +79,12 @@ class BayesWindow:
         self.group = self.group.replace(" ", "_")
         self.treatment = self.treatment.replace(" ", "_")
         self.do_make_change = do_make_change
-        include_condition = False
+        include_condition = False  # in all but the following cases:
         if self.condition[0]:
             if len(self.data[self.condition[0]].unique()) > 1:
                 include_condition = True
+
+        # Make formula
         if include_condition:
             if len(self.condition) > 1:
                 raise NotImplementedError(f'conditions {self.condition}. Use combined_condition')
@@ -125,71 +107,23 @@ class BayesWindow:
             #     formula += f"+ {condition} * {self.treatment}"
 
         elif self.group:
+            condition = None
             # Random intercepts and slopes (and their correlation): (Variable | Group)
-            formula = f'{self.y} ~ (1 | {self.group}) + ({self.treatment} | {self.group})'
+            formula = f'{self.y} ~  (0+ {self.treatment} | {self.group})'  # (1 | {self.group}) +
             # Random intercepts and slopes (without their correlation): (1 | Group) + (0 + Variable | Group)
             # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         else:
+            condition = None
             formula = f"{self.y} ~ 1 + {self.treatment}"
         print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
-        res = result.summary().tables[1]
-        print(res)
-        if include_condition:
-            # Only take relevant estimates
-            res = res.loc[[index for index in res.index
-                           if (index[:len(condition)] == condition)]]
-            if res.shape[0] > len(self.data[condition].unique()):
-                # If  conditionals are included, remove non-conditionals
-                res = res.loc[[index for index in res.index
-                               if (index[:len(condition)] == condition) and ('|' in index)]]
-            # Restore condition names
-            res[condition] = [self.data[condition].unique()[i] for i, index in enumerate(res.index)]
-            res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
-        else:
-            # Only take relevant estimates
-            res = res.loc[[index for index in res.index if (res.loc[index, 'z'] != '') & (self.treatment in index)]]
-        try:
-            res = res.astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
-        except Exception as e:
-            warnings.warn(f'somehow LME failed to estimate CIs for one or more variables. Replacing with nan:'
-                          f' {e} \n=>\n {res}')
-            res.replace({'': np.nan}).astype(float)
-        assert res.shape[0] > 0, 'There is no result'
-        res = res.reset_index()
-        res = res.rename({'P>|z|': 'p',
-                          'Coef.': 'center interval',
-                          '[0.025': 'higher interval',
-                          '0.975]': 'lower interval'}, axis=1)
-        self.posterior = res
-
-        if add_data and do_make_change and include_condition:
-            # Make (fold) change
-            change_data, _ = utils.make_fold_change(self.data,
-                                                    y=self.y,
-                                                    index_cols=self.levels,
-                                                    treatment_name=self.treatment,
-                                                    fold_change_method=do_make_change,
-                                                    do_take_mean=False)
-
-            # like in hdi2df:
-            rows = [utils.fill_row(group_val, rows, res, condition_name=condition)
-                    for group_val, rows in change_data.groupby([condition])]
-            self.data_and_posterior = pd.concat(rows)
-        elif add_data and include_condition:
-            # like in hdi2df:
-            rows = [utils.fill_row(group_val, rows, res, condition_name=condition)
-                    for group_val, rows in self.data.groupby([condition])]
-            self.data_and_posterior = pd.concat(rows)
-        elif add_data:
-            # like in hdi2df_one_condition():
-            self.data_and_posterior = self.data.copy()
-            for col in ['lower interval', 'higher interval', 'center interval']:
-                self.data_and_posterior.insert(self.data.shape[1],
-                                               col,
-                                               res.loc[self.treatment, col])
+        print(result.summary().tables[1])
+        self.posterior = utils.scrub_lme_result(result, include_condition, condition, self.data, self.treatment)
+        if add_data:
+            self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
+                                                            condition, self.data, self.y, self.levels, self.treatment)
 
         return self
 
@@ -308,7 +242,9 @@ class BayesWindow:
         if add_data:
             assert self.data_and_posterior is not None
             y = f'{self.y} diff'
-            assert y in self.data_and_posterior, 'change in data was not added, but add_data requested'
+            if y not in self.data_and_posterior:
+                raise KeyError(f'change in data was not added, but add_data requested:'
+                               f'{self.y} is not in {self.data_and_posterior.keys}')
             if detail != ':O':
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
@@ -324,7 +260,7 @@ class BayesWindow:
         if x != ':O':
             if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
-        if self.b_name is None:
+        if self.b_name == 'lme':
             add_posterior_density = False
         if add_posterior_density:
             alt.data_transformers.disable_max_rows()
@@ -409,7 +345,9 @@ class BayesWindow:
                                            color=self.levels[1] if len(self.levels) > 1 else None,
                                            **kwargs)[0]
 
-        if self.b_name == 'b_stim_per_condition':
+        elif self.b_name == 'lme':
+            return BayesWindow.plot_posteriors_slopes(self, **kwargs)
+        elif self.b_name == 'b_stim_per_condition':
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
@@ -438,7 +376,7 @@ class BayesWindow:
             # backend="bokeh",
         )
 
-    def explore_models(self, parallel=True):
+    def explore_models(self, parallel=True, **kwargs):
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
@@ -456,7 +394,8 @@ class BayesWindow:
                                       {'condition': self.condition},
                                   ],
                                   y=self.y,
-                                  parallel=True
+                                  parallel=True,
+                                  **kwargs
                                   )
 
         elif self.b_name == 'b_stim_per_condition':
@@ -491,5 +430,6 @@ class BayesWindow:
                      'dist_y': 'exponential'},
                 ],
                 y=self.y,
-                parallel=parallel
+                parallel=parallel,
+                **kwargs
             )

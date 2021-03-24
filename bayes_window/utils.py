@@ -1,3 +1,6 @@
+from sklearn.preprocessing import LabelEncoder
+
+le = LabelEncoder()
 import warnings
 
 import arviz as az
@@ -223,3 +226,104 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
                          f'shadow it!')
 
     return data, y1
+
+
+def scrub_lme_result(result, include_condition, condition, data, treatment):
+    res = result.summary().tables[1]
+    if include_condition:
+        # Only take relevant estimates
+        res = res.loc[[index for index in res.index
+                       if (index[:len(condition)] == condition)]]
+        if res.shape[0] > len(data[condition].unique()):
+            # If  conditionals are included, remove non-conditionals
+            res = res.loc[[index for index in res.index
+                           if (index[:len(condition)] == condition) and ('|' in index)]]
+        # Restore condition names
+        res[condition] = [data[condition].unique()[i] for i, index in enumerate(res.index)]
+        res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
+    else:
+        # Only take relevant estimates
+        res = res.loc[[index for index in res.index if (res.loc[index, 'z'] != '') & (treatment in index)]]
+    try:
+        res = res.astype(float)  # [['P>|z|', 'Coef.', '[0.025', '0.975]']]
+    except Exception as e:
+        warnings.warn(f'somehow LME failed to estimate CIs for one or more variables. Replacing with nan:'
+                      f' {e} \n=>\n {res}')
+        res.replace({'': np.nan}).astype(float)
+    if res.shape[0] == 0:
+        import pdb
+        pdb.set_trace()
+    assert res.shape[0] > 0, 'There is no result'
+    res = res.reset_index()
+    res = res.rename({'P>|z|': 'p',
+                      'Coef.': 'center interval',
+                      '[0.025': 'higher interval',
+                      '0.975]': 'lower interval'}, axis=1)
+    return res
+
+
+def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, levels, treatment):
+    # Sanity check:
+    if not include_condition:
+        if not res['index'].str.contains(treatment).any():
+            raise KeyError(f'No {treatment}-containing row in :\n{res}')
+    if do_make_change and include_condition:
+        # Make (fold) change
+        change_data, _ = make_fold_change(data,
+                                          y=y,
+                                          index_cols=levels,
+                                          treatment_name=treatment,
+                                          fold_change_method=do_make_change,
+                                          do_take_mean=False)
+
+        # like in hdi2df:
+        rows = [fill_row(group_val, rows, res, condition_name=condition)
+                for group_val, rows in change_data.groupby([condition])]
+        data_and_posterior = pd.concat(rows)
+    elif include_condition:
+        # like in hdi2df:
+        rows = [fill_row(group_val, rows, res, condition_name=condition)
+                for group_val, rows in data.groupby([condition])]
+        data_and_posterior = pd.concat(rows)
+    elif do_make_change:
+        # Make (fold) change
+        change_data, _ = make_fold_change(data,
+                                          y=y,
+                                          index_cols=levels,
+                                          treatment_name=treatment,
+                                          fold_change_method=do_make_change,
+                                          do_take_mean=False)
+        # like in hdi2df_one_condition():
+        data_and_posterior = change_data.copy()
+        for col in ['lower interval', 'higher interval', 'center interval']:
+            data_and_posterior.insert(data_and_posterior.shape[1],
+                                      col,
+                                      res.loc[res['index'].str.contains(treatment), col]
+                                      )
+    else:
+        # like in hdi2df_one_condition():
+        data_and_posterior = data.copy()
+        for col in ['lower interval', 'higher interval', 'center interval']:
+            data_and_posterior.insert(data.shape[1],
+                                      col,
+                                      res.loc[res['index'].str.contains(treatment), col])
+
+    return data_and_posterior
+
+def combined_condition(df, levels):
+    # String-valued combined condition
+    # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
+    df['combined_condition'] = df[levels[0]].astype('str')
+    for level in levels[1:]:
+        df['combined_condition'] += df[level].astype('str')
+    data = df.copy()
+    # Transform conditions to integers as required by numpyro:
+    data['combined_condition'] = le.fit_transform(df['combined_condition'])
+    # Transform conditions to integers as required by numpyro:
+    key = dict()
+    for level in levels:
+        data[level] = le.fit_transform(data[level])
+        # Keep key for later use
+        # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
+        key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+    return data, key

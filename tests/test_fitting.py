@@ -9,37 +9,37 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
-def test_fit_numpyro_2step():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=7, )
-
-    trace = fit_numpyro(y=df_monster['isi'].values,
-                        treatment=trans(df_monster['stim']),
-                        condition=trans(df_monster['neuron_x_mouse']),
-                        group=trans(df_monster['mouse']),
-                        progress_bar=True,
-                        model=models.twostep,
-                        add_group_slope=True,
-                        dist_y='gamma',
-                        n_draws=100, num_chains=1, )
-
-def test_fit_numpyro_2levelslope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
-
-    trace = fit_numpyro(y=df['isi'].values,
-                        treatment=trans(df['stim']),
-                        condition=trans(df['neuron_x_mouse']),
-                        group=trans(df['mouse']),
-                        progress_bar=True,
-                        model=models.model_hierarchical,
-                        add_group_slope=True,
-                        dist_y='gamma',
-                        n_draws=100, num_chains=1, )
+# def test_fit_numpyro_2step():
+#     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
+#                                                                     n_neurons=3,
+#                                                                     n_mice=4,
+#                                                                     dur=7, )
+#
+#     trace = fit_numpyro(y=df_monster['isi'].values,
+#                         treatment=trans(df_monster['stim']),
+#                         condition=trans(df_monster['neuron_x_mouse']),
+#                         group=trans(df_monster['mouse']),
+#                         progress_bar=True,
+#                         model=models.twostep,
+#                         add_group_slope=True,
+#                         dist_y='gamma',
+#                         n_draws=100, num_chains=1, )
+#
+# def test_fit_numpyro_2levelslope():
+#     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+#                                                                     n_neurons=3,
+#                                                                     n_mice=4,
+#                                                                     dur=2, )
+#
+#     trace = fit_numpyro(y=df['isi'].values,
+#                         treatment=trans(df['stim']),
+#                         condition=trans(df['neuron_x_mouse']),
+#                         group=trans(df['mouse']),
+#                         progress_bar=True,
+#                         model=models.model_hierarchical,
+#                         add_group_slope=True,
+#                         dist_y='gamma',
+#                         n_draws=100, num_chains=1, )
 
 
 def test_fit_numpyro_gamma():

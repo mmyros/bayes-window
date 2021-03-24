@@ -5,6 +5,9 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from bayes_window import workflow, models
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
 from numpyro.infer import Predictive
@@ -13,10 +16,6 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
-
-from bayes_window import workflow, models
-from bayes_window.fitting import fit_numpyro
-from bayes_window.generative_models import generate_fake_lfp
 
 trans = LabelEncoder().fit_transform
 
@@ -159,6 +158,7 @@ def run_method(df, method='bw_student', y='Log power'):
     if method[:2] == 'bw':
         bw.fit_slopes(model=models.model_hier_stim_one_codition,
                       dist_y=method[3:],
+                      num_chains=1,
                       add_data=False)
         return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
@@ -193,8 +193,8 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    n_trials=range(8, 30, 7),
                    trial_baseline_randomness=(.2, .4, 1.8),
                    parallel=False,
-                   methods=('bw_lognormal', 'bw_normal', 'mlm', 'anova',),  # 'bw_student'
-                   ys=('Log power', 'Power',)):
+                   methods=('anova', 'mlm', 'bw_lognormal', 'bw_normal',),  # 'bw_student'
+                   ys=('Log power', )):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
         res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
@@ -267,6 +267,7 @@ def compare_models(df, models: dict,
                    extra_model_args: list = None,
                    parallel=False, plotose=False, **kwargs):
     """
+    kwargs are forwarded to split_train_predict->fit_numpyro
     compare_models(models={'Hier':bayes.Numpyro.model_hier,
                            'Hier+covariance':bayes.Numpyro.model_hier_covar,
                            'Twostep Exponential':bayes.TwoStep.model_twostep,
@@ -280,7 +281,7 @@ def compare_models(df, models: dict,
     extra_model_args = extra_model_args or np.tile({}, len(models))
     if parallel:
         traces = Parallel(n_jobs=len(models))(delayed(split_train_predict)
-                                              (df, model, **kwargs, **extra_model_arg)
+                                              (df, model, num_chains=1, **kwargs, **extra_model_arg)
                                               for model, extra_model_arg in
                                               zip(models.values(), extra_model_args))
     else:

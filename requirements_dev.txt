@@ -25,5 +25,6 @@ sklearn
 inflection
 ipython # for chart.display()
 nbval
+pytest-xdist
 nbsphinx
 statsmodels

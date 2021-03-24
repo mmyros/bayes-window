@@ -31,6 +31,8 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
+- Fit checks for LME under plot_diagnostics()
+- Refactor workflow.py
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
@@ -48,4 +50,4 @@ TODO
 Features
 --------
 
-* TODO
+See extensive examples https://bayes-window.readthedocs.io/en/latest/index.html
