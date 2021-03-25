@@ -362,17 +362,22 @@ def test_single_condition_nodata_dists():
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
 
-@mark.parametrize('condition', [None, 'neuron'])
-def test_explore_models(condition):
+# @mark.parametrize('condition', [None, 'neuron'])
+@mark.parametrize('parallel', [False, True])
+@mark.parametrize('add_group_slope', [False, True])
+def test_explore_models(parallel, add_group_slope):
     # Slopes:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    bw = BayesWindow(df, y='isi', treatment='stim', condition=condition, group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
-    bw.explore_models(parallel=False)
-    bw.explore_models(parallel=True)
+    conditions_to_test = [None]
+    if add_group_slope:
+        conditions_to_test.append('neuron')
+    for condition in conditions_to_test:
+        bw = BayesWindow(df, y='isi', treatment='stim', condition=condition, group='mouse')
+        bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+        bw.explore_models(parallel=parallel,add_group_slope=add_group_slope)
 
 
 def test_chirp_data():

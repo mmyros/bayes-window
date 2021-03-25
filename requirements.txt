@@ -26,3 +26,4 @@ inflection
 nbval
 nbsphinx
 statsmodels
+bokeh

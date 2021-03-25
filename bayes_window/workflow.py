@@ -237,6 +237,7 @@ class BayesWindow:
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
+            chart_p = None
 
         if add_data:
             assert self.data_and_posterior is not None
@@ -256,6 +257,7 @@ class BayesWindow:
             y = self.y
             y_scale = None
             self.chart = chart_p
+
         if x != ':O':
             if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
@@ -273,7 +275,6 @@ class BayesWindow:
             self.chart = self.chart.resolve_scale(y='independent')
         return self.chart
 
-    # TODO plot_posteriors_slopes and plot_posteriors_no_slope can be one
     def plot_posteriors_no_slope(self,
                                  x=None,
                                  add_data=False,
@@ -357,7 +358,7 @@ class BayesWindow:
             # backend="bokeh",
         )
 
-    def explore_models(self, parallel=True, **kwargs):
+    def explore_models(self, parallel=True, add_group_slope=False, **kwargs):
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
@@ -378,38 +379,41 @@ class BayesWindow:
                                   parallel=True,
                                   **kwargs
                                   )
-
         elif 'b_stim' in self.b_name:
+            models = {
+                'full_normal': self.model,
+                'no_condition': self.model,
+                'no_condition_or_treatment': self.model,
+                'no-treatment': self.model,
+                'no_group': self.model,
+                'full_student': self.model,
+                'full_lognormal': self.model,
+                'full_gamma': self.model,
+                'full_exponential': self.model,
+            }
+            extra_model_args = [
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
+                {'treatment': self.treatment, 'condition': None},
+                {'treatment': None, 'condition': None},
+                {'treatment': None, 'condition': self.condition},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': None},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'student'},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'lognormal'},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'gamma'},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                 'dist_y': 'exponential'},
+            ]
+            if add_group_slope:
+                if self.group is None:
+                    raise KeyError('You asked to include group slope. Initalize BayesWindow object with group input')
+                models['no_group_slope'] = self.model
+                # add_group_slope is False by default in model_hierarchical
+                extra_model_args.extend([{'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                          'add_group_slope': True}])
             return compare_models(
                 df=self.data,
-                models={
-                    'full_normal': self.model,
-                    'no_group_slope': self.model,
-                    'no_condition': self.model,
-                    'no_condition_or_treatment': self.model,
-                    'no-treatment': self.model,
-                    'no_group': self.model,
-                    'full_student': self.model,
-                    'full_lognormal': self.model,
-                    'full_gamma': self.model,
-                    'full_exponential': self.model,
-                },
-                extra_model_args=[
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                     'add_group_slope': False},
-                    {'treatment': self.treatment, 'condition': None},
-                    {'treatment': None, 'condition': None},
-                    {'treatment': None, 'condition': self.condition},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': None},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                     'dist_y': 'student'},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                     'dist_y': 'lognormal'},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group, 'dist_y': 'gamma'},
-                    {'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                     'dist_y': 'exponential'},
-                ],
+                models=models,
+                extra_model_args=extra_model_args,
                 y=self.y,
                 parallel=parallel,
                 **kwargs

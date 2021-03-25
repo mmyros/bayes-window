@@ -159,7 +159,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
 
     # line
     if x == ':O':
-        chart = base_chart.mark_bar(color='black', filled=True, fillOpacity=.2, size=20).encode(
+        chart = base_chart.mark_bar(color='black', filled=True, opacity=.2, size=20).encode(
             y=alt.Y('center interval:Q',
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
