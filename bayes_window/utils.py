@@ -153,10 +153,11 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     hdi = az.hdi(trace)[b_name]
 
     # max_a_p = trace[b_name].mean(['chain', 'draw']).values
-    b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws').T
-    assert b_all_draws.shape[0] == trace['chain'].size * trace['draw'].size
-    max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default", circular=False)
+    b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
+
     if hdi.ndim == 1:
+        max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")#, circular=False)
+
         mean = xr.DataArray([max_a_p],
                             coords={'hdi': ["center"], },
                             dims='hdi')
@@ -169,6 +170,9 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
             return df_bayes, trace
         return hdi2df_one_condition(df_bayes, posterior_index_name, df_data), trace
     else:
+        assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size
+        max_a_p = [calculate_point_estimate('mode', b, bw="default", circular=False) for b in b_all_draws]
+
         est = xr.DataArray([max_a_p],
                            coords={'hdi': ["center"], posterior_index_name: hdi[posterior_index_name]},
                            dims=['hdi', posterior_index_name])
