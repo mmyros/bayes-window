@@ -26,6 +26,7 @@ class BayesWindow:
                  group: str = None,
                  detail=':O'
                  ):
+        az.plots.backends.output_notebook(hide_banner=True)
         assert y in df.columns
         assert treatment in df.columns
         if group:
@@ -159,7 +160,6 @@ class BayesWindow:
         if do_make_change not in ['subtract', 'divide']:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
-        self.b_name = 'b_stim_per_condition'
         self.do_make_change = do_make_change
         self.add_data = add_data  # We'll use this in plotting
         self.model = model
@@ -168,19 +168,21 @@ class BayesWindow:
             # TODO case with no plot_index_cols should include any multiindex?
             fold_change_index_cols = self.levels  # [-1]
         fold_change_index_cols = list(fold_change_index_cols)
-        if not self.condition[0]:
-            warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
-            self.condition[0] = 'dummy_condition'
-            self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.zeros(self.data.shape[0]).astype(int))
-            fold_change_index_cols.append('dummy_condition')
-        if not self.condition[0] in fold_change_index_cols:
+        # if not self.condition[0]:
+        #     np.unique(condition).size == 1
+        # warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
+        # self.condition[0] = 'dummy_condition'
+        # self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.zeros(self.data.shape[0]).astype(int))
+        # fold_change_index_cols.append('dummy_condition')
+        include_condition = self.condition[0] and np.unique(self.data[self.condition[0]]).size > 1
+        self.b_name = 'b_stim_per_condition' if include_condition else 'b_stim'
+        if include_condition and (not self.condition[0] in fold_change_index_cols):
             fold_change_index_cols.extend(self.condition)
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  treatment=self.data[self.treatment].values,
-                                 condition=self.data[self.condition[0]].values,
+                                 condition=self.data[self.condition[0]].values if self.condition[0] else None,
                                  group=self.data[self.group].values,
                                  model=model,
-                                 # n_draws=1000, num_chains=1,
                                  **kwargs)
         if add_data:
             # Add data back
@@ -222,13 +224,10 @@ class BayesWindow:
         if x[-2] != ':':
             x += ':O'
         color = color or self.levels[0]
+        posterior = self.posterior if self.data_and_posterior is None else self.data_and_posterior
 
         # Plot posterior
-        if (self.data_and_posterior is not None) or (self.posterior is not None):
-            if self.data_and_posterior is None:
-                posterior = self.posterior
-            else:
-                posterior = self.data_and_posterior
+        if posterior is not None:
             add_data = self.add_data and add_box
             base_chart = alt.Chart(posterior)
             chart_p = plot_posterior(title=f'{self.y}',
@@ -260,34 +259,16 @@ class BayesWindow:
         if x != ':O':
             if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
-        if self.b_name == 'lme':
-            add_posterior_density = False
-        if add_posterior_density:
-            alt.data_transformers.disable_max_rows()
 
-            # Same y domain as in plot_data and plot_posterior:
-            if y in base_chart.data.columns:  # eg if we had add_data=True
-                scale = alt.Scale(domain=y_scale)
-            else:
-                scale = alt.Scale()
+        if posterior is not None and add_posterior_density and (self.b_name != 'lme'):
+            chart_kde = visualization.plot_posterior_density(base_chart, y, y_scale, self.trace, posterior, self.b_name)
 
-            # dataframe with posterior (combine chains):
-            df = self.trace.posterior.stack(draws=("chain", "draw")).reset_index(["draws"]).to_dataframe().reset_index()
-
-            # KDE chart:
-            chart_kde = alt.Chart(df).transform_density(
-                self.b_name,
-                as_=[self.b_name, 'density'],
-            ).mark_line(orient='horizontal', fill=None, size=1, clip=True).encode(
-                y=alt.Y(self.b_name, scale=scale, title=''),
-                x=alt.X('density:Q', title='', axis=alt.Axis(labels=False, tickCount=0, title='')),
-            ).properties(width=30)
-
-            # Add kde to charts
-            if not add_box:
-                self.chart += chart_kde
-            else:
+            # Add kde to charts:
+            if add_box and add_data:
                 self.chart |= chart_kde
+            else:
+                self.chart += chart_kde
+                independent_axes = False
         if independent_axes:
             self.chart = self.chart.resolve_scale(y='independent')
         return self.chart
@@ -347,7 +328,7 @@ class BayesWindow:
 
         elif self.b_name == 'lme':
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
-        elif self.b_name == 'b_stim_per_condition':
+        elif 'b_stim' in self.b_name:
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
@@ -398,7 +379,7 @@ class BayesWindow:
                                   **kwargs
                                   )
 
-        elif self.b_name == 'b_stim_per_condition':
+        elif 'b_stim' in self.b_name:
             return compare_models(
                 df=self.data,
                 models={

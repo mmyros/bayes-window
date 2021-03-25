@@ -64,15 +64,15 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         a_subject = numpyro.sample('a_subject', dist.HalfNormal(jnp.tile(1, n_subjects)))
         intercept += a_subject[group] * sigma_a_subject
 
-    if condition is None:
-        slope = numpyro.sample('b', dist.Normal(0, 1))
+    if (condition is None) or np.unique(condition).size < 2:
+        slope = numpyro.sample('b_stim', dist.Normal(0, 10))
     else:
         n_conditions = np.unique(condition).shape[0]
         # b_stim_per_condition = numpyro.sample('b_stim_per_condition',
-        #                                       dist.Normal(jnp.tile(0, n_conditions), 1))
+        #                                       dist.Normal(jnp.tile(0, n_conditions), 10))
         # Robust slopes:
         b_stim_per_condition = numpyro.sample('b_stim_per_condition',
-                                              dist.StudentT(1, jnp.tile(4, n_conditions), 2))
+                                              dist.StudentT(1, jnp.tile(0, n_conditions), 10))
 
         sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
         slope = b_stim_per_condition[condition] * sigma_b_condition
@@ -98,7 +98,7 @@ def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal',
     a_subject = numpyro.sample('a_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
     sigma_a_subject = numpyro.sample('sigma_a_subject', dist.HalfNormal(1))
 
-    b = numpyro.sample('b_stim_per_condition', dist.Normal(0, 1))
+    b = numpyro.sample('b_stim', dist.Normal(0, 1))
 
     theta = a + a_subject[group] * sigma_a_subject
     slope = b

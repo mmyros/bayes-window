@@ -146,7 +146,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, **kwargs):
+def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, add_zero_line=True, **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
     if x[-2] != ':':
@@ -155,16 +155,25 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     assert 'lower interval' in data.columns
     assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
+    do_make_change = do_make_change is not False
 
     # line
-    chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
-        y=alt.Y('center interval:Q',
-                impute=alt.ImputeParams(value='value'),
-                axis=alt.Axis(orient='left'),
-                ),
-        x=x,
-    )
-    do_make_change = do_make_change is not False
+    if x == ':O':
+        chart = base_chart.mark_bar(color='black', filled=True, fillOpacity=.2, size=20).encode(
+            y=alt.Y('center interval:Q',
+                    # impute=alt.ImputeParams(value='value'),
+                    axis=alt.Axis(orient='left'),
+                    ),
+            x=x,
+        )
+    else:
+        chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
+            y=alt.Y('center interval:Q',
+                    impute=alt.ImputeParams(value='value'),
+                    axis=alt.Axis(orient='left'),
+                    ),
+            x=x,
+        )
 
     # Axis limits
     minmax = [float(data['lower interval'].min()), 0,
@@ -173,9 +182,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                       domain=[min(minmax), max(minmax)])
 
     # Make the zero line
-    if do_make_change:
+    if add_zero_line:
         base_chart.data['zero'] = 0
-        chart += base_chart.mark_rule(color='black', size=.1, opacity=.6).encode(y='zero')
+        chart += base_chart.mark_rule(color='black', size=.5, opacity=1).encode(y='zero')
         title = f'Δ {title}'
 
     # error_bars
@@ -218,3 +227,30 @@ def plot_data_slope_trials(x,
         # **kwargs
     )
     return fig_trials
+
+
+def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name):
+    alt.data_transformers.disable_max_rows()
+
+    # Same y domain as in plot_data and plot_posterior:
+    if y in base_chart.data.columns:  # eg if we had add_data=True
+        scale = alt.Scale(domain=y_scale)
+    else:
+        scale = alt.Scale()
+
+    # dataframe with posterior (combine chains):
+    df = trace.posterior.stack(draws=("chain", "draw")).reset_index(["draws"]).to_dataframe().reset_index()
+
+    n_draws = float(trace.posterior['chain'].max() * trace.posterior['draw'].max())
+    # KDE chart:
+    return alt.Chart(df).transform_density(
+        b_name,
+        as_=[b_name, 'density'],
+        extent=[posterior['lower interval'].min(), posterior['higher interval'].max()],
+        counts=True,
+    ).mark_area(orient='horizontal', clip=False, fillOpacity=.2, color='black').encode(
+        y=alt.Y(b_name, scale=scale, title=''),
+        x=alt.X('density:Q', stack='center', title='', #scale=alt.Scale(domain=[-n_draws, n_draws]),
+                axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
+                ),
+    ).properties(width=30)

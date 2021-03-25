@@ -100,8 +100,8 @@ def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     return pd.concat(rows)
 
 
-def hdi2df_one_condition(df_bayes, group_name, df_data):
-    df_bayes[group_name] = df_data[group_name].iloc[0]
+def hdi2df_one_condition(df_bayes, df_data):
+    # df_bayes[group_name] = df_data[group_name].iloc[0]
     for col in ['lower interval', 'higher interval', 'center interval']:
         df_data.insert(df_data.shape[1], col, df_bayes[col].values.squeeze())
     return df_data
@@ -145,7 +145,7 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
         trace = trace.rename({f'a_subject_dim_0': group_name})
     if f'b_stim_per_subject_dim_0' in trace:
         trace = trace.rename({f'b_stim_per_subject_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
-    if add_data and (df_data[posterior_index_name].dtype != 'int'):
+    if add_data and posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
         warnings.warn(
             f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that...")
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
@@ -168,7 +168,7 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
             df_bayes.columns += ' interval'
         if not add_data:  # Done
             return df_bayes, trace
-        return hdi2df_one_condition(df_bayes, posterior_index_name, df_data), trace
+        return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size
         max_a_p = [calculate_point_estimate('mode', b, bw="default", circular=False) for b in b_all_draws]

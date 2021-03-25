@@ -5,9 +5,6 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bayes_window import workflow, models
-from bayes_window.fitting import fit_numpyro
-from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
 from numpyro.infer import Predictive
@@ -17,6 +14,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 
+from bayes_window import workflow, models
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_lfp
+
+from bayes_window import utils
 trans = LabelEncoder().fit_transform
 
 
@@ -194,7 +196,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    trial_baseline_randomness=(.2, .4, 1.8),
                    parallel=False,
                    methods=('anova', 'mlm', 'bw_lognormal', 'bw_normal',),  # 'bw_student'
-                   ys=('Log power', )):
+                   ys=('Log power',)):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
         res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
@@ -215,16 +217,13 @@ def split_train_predict(df, model, y, **kwargs):
         group=trans(df['subject'].values),
     :return:
     """
-    # condition = condition if type(condition) == list else [condition]
-    # if condition[0]:
-    #     assert condition[0] in df.columns
+
     level_names = ['treatment', 'condition', 'group']
+    # Drop levels that were not requested
     level_names = [level_name for level_name in level_names if (level_name in kwargs.keys())]
-    level_names = [level_name for level_name in level_names if kwargs[level_name] is not None]
-    for level_name in level_names:
-        print(level_name)
+    # Drop levels not present in data
+    level_names = [level_name for level_name in level_names if kwargs[level_name] not in [None, [None]]]
     # Corresponding df labels:
-    from bayes_window import utils
     # df_cols = utils.parse_levels(*level_names)
 
     df_cols = [utils.level_to_data_column(level_name, kwargs) for level_name in level_names]
@@ -237,7 +236,7 @@ def split_train_predict(df, model, y, **kwargs):
     model_args = {'y': df_test[y].values}
     model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
-    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False)
+    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1)
     ppc = Predictive(model, parallel=False, num_samples=1000)
     ppc = ppc(random.PRNGKey(17), **model_args)
 

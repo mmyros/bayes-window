@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from pytest import mark
+
 from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
@@ -360,13 +362,14 @@ def test_single_condition_nodata_dists():
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
 
-def test_explore_models():
+@mark.parametrize('condition', [None, 'neuron'])
+def test_explore_models(condition):
     # Slopes:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    bw = BayesWindow(df, y='isi', treatment='stim', condition=condition, group='mouse')
     bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
     bw.explore_models(parallel=False)
     bw.explore_models(parallel=True)
