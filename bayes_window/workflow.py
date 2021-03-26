@@ -128,14 +128,16 @@ class BayesWindow:
 
         return self
 
-    def fit_conditions(self, model=models.model_single, add_data=True):
+    def fit_conditions(self, model=models.model_single, add_data=True, **kwargs):
 
         self.model = model
         self.b_name = 'mu_per_condition'
         # Estimate model
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  condition=self.data['combined_condition'].values,
+                                 # treatment=self.data[self.treatment].values,
                                  model=model,
+                                 **kwargs
                                  ).posterior
 
         # Add data back
