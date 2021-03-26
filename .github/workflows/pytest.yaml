@@ -37,6 +37,11 @@ jobs:
     - name: Run Tox
       # Run tox using the version of Python in `PATH`
       run: pytest  --cov bayes_window --cov-report xml
+    - name: Run coverage
+      run: |
+        coverage report --fail-under=100
+        coverage xml
+    - uses: codecov/codecov-action@v1.0.6
 
   nbval:
     runs-on: ubuntu-latest
@@ -72,8 +77,3 @@ jobs:
     - name: Run Tox
       # Run tox using the version of Python in `PATH`
       run: tox -e py
-    - name: Run coverage
-      run: |
-        coverage report --fail-under=100
-        coverage xml
-    - uses: codecov/codecov-action@v1.0.6
