@@ -388,19 +388,21 @@ def test_chirp_data():
                          group='Subject')
     window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
                       fold_change_index_cols=['Condition code',
-                                              'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
+                                              'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
+                      num_chains=1,)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
 
 def test_chirp_data1():
-    df = pd.read_csv(Path('tests') / ('test_data') / 'chirp_power.csv')
+    df = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesWindow(df, y='Log power',
                          treatment='stim_on',
                          condition='Condition code',
                          group='Subject')
     window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
                       fold_change_index_cols=[  # 'Condition code',
-                          'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], )
+                          'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
+                      num_chains=1, )
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
 
