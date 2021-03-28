@@ -43,7 +43,6 @@ TODO
 - Random-effect plots (eg intercepts): bw.plot_extras?
    - see lfp notebook
 - Decide on Vega theme
-- Test notebooks in a separate jobs on GHA
 
 
 Features

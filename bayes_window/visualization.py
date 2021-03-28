@@ -37,8 +37,7 @@ def facet(base_chart,
                 alt.datum[groupby_name] == group_val
             ).resolve_scale(
                 y='independent'
-            ).properties(
-                width=width, height=height))
+            ).properties(width=width, height=height))
         if how == 'hconcat':
             return alt.hconcat(*charts)
         else:
@@ -64,8 +63,7 @@ def facet(base_chart,
 def line_with_highlight(base, x, y, color, detail, highlight=True):
     # Highlight doesnt work with overlays, but at least we get visible dots in legend
     if highlight:
-        highlight = alt.selection(type='single', on='mouseover',
-                                  fields=[color], nearest=True)
+        highlight = alt.selection(type='single', on='mouseover', fields=[color], nearest=True)
         size = alt.condition(~highlight, alt.value(1), alt.value(3))
     else:
         size = alt.value(1.)
@@ -99,12 +97,13 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
 
 def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
               **kwargs):
-    color = color or ':O'
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
+    if color is None:
+        color = ':N'
     if color[-2] != ':':
-        color = f'{color}:N'
+        color = f'{color}:O'
     charts = []
 
     # Plot data:
@@ -122,7 +121,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         #     tooltip=color,
         # ).interactive())
     else:  # Stripplot
-        charts.append(base.mark_tick(clip=True, opacity=.4, size=12).encode(
+        charts.append(base.mark_tick(clip=True, opacity=1, size=12).encode(
             x=x,
             color=f'{color}',
             detail=detail,
@@ -155,11 +154,11 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     assert 'lower interval' in data.columns
     assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
-    do_make_change = do_make_change is not False
+    do_make_change = do_make_change is not False  # Boolean instead of False or "subtract" etc
 
     # line
     if x == ':O':
-        chart = base_chart.mark_bar(color='black', filled=True, opacity=.2, size=20).encode(
+        chart = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),

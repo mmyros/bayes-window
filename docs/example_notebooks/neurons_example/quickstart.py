@@ -114,6 +114,12 @@ bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='su
               add_group_slope=True, add_group_intercept=False,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
-# + slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
+# ## Model quality
 
+# + slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 bw.plot_model_quality()
+# -
+
+# Or alternative backend:
+
+bw.plot_model_quality(backend='bokeh')

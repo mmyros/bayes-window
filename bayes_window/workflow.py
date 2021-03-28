@@ -26,7 +26,11 @@ class BayesWindow:
                  group: str = None,
                  detail=':O'
                  ):
-        az.plots.backends.output_notebook(hide_banner=True)
+        try:
+            az.plots.backends.output_notebook(hide_banner=True)
+        except Exception as e:
+            print("Bokeh not found, it's no big deal")
+            print(e)
         assert y in df.columns
         assert treatment in df.columns
         if group:

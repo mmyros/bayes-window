@@ -54,6 +54,9 @@ ddf, dy = utils.make_fold_change(df,
                                  do_take_mean=True)
 
 visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=ddf)[0]
+# -
+
+# TODO leave axis labels here somehow
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Estimate model
@@ -103,6 +106,9 @@ chart_p
 
 # + hideCode=false hidePrompt=false
 (chart_d + chart_p).facet(column='neuron')
+# -
+
+# ## Appendix: Elements of interactivity (WIP)
 
 # +
 import altair as alt
@@ -183,5 +189,3 @@ points = base.mark_circle().encode(
 alt.layer(
     lines, selectors, points, text
 )
-
-
