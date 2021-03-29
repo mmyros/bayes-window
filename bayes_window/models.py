@@ -11,18 +11,6 @@ def reparam_model(model):
     return reparam(model, config={'x': LocScaleReparam(0)})
 
 
-def model_single_normal_stim(y, treatment, condition):
-    n_conditions = np.unique(condition).shape[0]
-    a = numpyro.sample('a', dist.Normal(0, 1))
-    b = numpyro.sample('b', dist.Normal(0, 1))
-    sigma_b = numpyro.sample('sigma_b', dist.HalfNormal(1))
-    b_stim_per_condition = numpyro.sample('b_stim', dist.Normal(jnp.tile(b, n_conditions), sigma_b))
-    theta = a + b_stim_per_condition[condition] * treatment
-
-    sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
-    numpyro.sample('y', dist.Normal(theta, sigma_obs), obs=y)
-
-
 def sample_y(dist_y, theta, y):
     if dist_y == 'gamma':
         sigma_obs = numpyro.sample('sigma_obs', dist.Exponential(1))

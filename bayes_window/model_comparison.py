@@ -112,32 +112,6 @@ def make_roc_auc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trial
     return pd.concat(df)
 
 
-def make_roc_auc_old(res, binary=True, groups=('method', 'y', 'randomness', 'n_trials')):
-    # Make ROC and AUC
-    df = []
-    for _, this_res in res.groupby(list(groups)):
-        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
-        this_res['true_slope'] = this_res['true_slope'] > 0
-        if binary:
-            this_res['score'] = this_res['score'] > 0
-        else:
-            this_res = this_res.dropna(subset=['score'])  # drop nans to prevent errors
-        fpr, tpr, _ = roc_curve(this_res['true_slope'], this_res['score'])
-
-        # Remove raw scores to reduce confusion
-        this_res = this_res.drop(['true_slope', 'score'], axis=1)
-
-        # Only keep the number of rows that will be useful for keeping ROC
-        this_res = this_res.reset_index(drop=True).iloc[:len(fpr)]
-
-        this_res['False positive rate'] = fpr
-        this_res['True positive rate'] = tpr
-        this_res['AUC'] = round(auc(fpr, tpr), 5)
-
-        df.append(this_res)
-    return pd.concat(df)
-
-
 def plot_roc(df):
     roc = (alt.Chart(df).mark_line(size=2.6, opacity=.7).encode(
         x='False positive rate',
