@@ -221,7 +221,7 @@ class BayesWindow:
         self.fold_change_index_cols = fold_change_index_cols
         return self
 
-    def plot_posteriors_slopes(self, x=':O', color=':O', detail=':O', add_box=True, independent_axes=False,
+    def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, independent_axes=False,
                                add_posterior_density=True,
                                **kwargs):
         # Set some options
@@ -251,7 +251,7 @@ class BayesWindow:
             if y not in self.data_and_posterior:
                 raise KeyError(f'change in data was not added, but add_data requested:'
                                f'{self.y} is not in {self.data_and_posterior.keys}')
-            if detail != ':O':
+            if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
 
