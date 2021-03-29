@@ -56,7 +56,7 @@ bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='su
               add_group_slope=True, add_group_intercept=False,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
 bw.facet(column='mouse',width=200,height=200).display()
 
 # + hidePrompt=true

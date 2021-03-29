@@ -67,12 +67,13 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
         size = alt.condition(~highlight, alt.value(1), alt.value(3))
     else:
         size = alt.value(1.)
-
+  
     lines = base.mark_line(clip=True, fill=None, opacity=.6).encode(
         size=size,
         x=x,
         color=f'{color}',
         y=alt.Y(f'mean({y})',
+                title=y,
                 axis=alt.Axis(orient='right'),
                 scale=alt.Scale(zero=False,
                                 domain=list(np.quantile(base.data[y], [.05, .95])))),
@@ -169,12 +170,12 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                 scale=scale,
                 # axis=alt.Axis(labels=False, tickCount=1, title='')
                 axis=alt.Axis(orient='left', title='')
-                ),
+        ),
         y2='higher interval:Q',
     )
 
     # Make the zero line
-    add_zero_line=False
+    add_zero_line=True
     if add_zero_line:
         title = f'Δ {title}'
         base_chart.data['zero'] = 0
@@ -187,7 +188,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         )
 
     # line or bar for center interval (left axis)
-    if x == ':O':
+    if (x == ':O') or (x == ':N'):
         chart += base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
                     title=title,
