@@ -1,3 +1,4 @@
+import os
 from itertools import product
 
 import altair as alt
@@ -14,11 +15,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 
+from bayes_window import utils
 from bayes_window import workflow, models
 from bayes_window.fitting import fit_numpyro
 from bayes_window.generative_models import generate_fake_lfp
 
-from bayes_window import utils
 trans = LabelEncoder().fit_transform
 
 
@@ -279,10 +280,10 @@ def compare_models(df, models: dict,
     # numpyro.set_host_device_count(10)
     extra_model_args = extra_model_args or np.tile({}, len(models))
     if parallel:
-        traces = Parallel(n_jobs=len(models))(delayed(split_train_predict)
-                                              (df, model, num_chains=1, **kwargs, **extra_model_arg)
-                                              for model, extra_model_arg in
-                                              zip(models.values(), extra_model_args))
+        traces = Parallel(n_jobs=min(os.cpu_count(),
+                                     len(models)))(delayed(split_train_predict)
+                                                   (df, model, num_chains=1, **kwargs, **extra_model_arg)
+                                                   for model, extra_model_arg in zip(models.values(), extra_model_args))
     else:
         traces = [split_train_predict(df, model, **kwargs, **extra_model_arg)
                   for model, extra_model_arg in zip(models.values(), extra_model_args)]

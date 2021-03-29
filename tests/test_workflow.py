@@ -365,7 +365,8 @@ def test_single_condition_nodata_dists():
 # @mark.parametrize('condition', [None, 'neuron'])
 # @mark.parametrize('parallel', [False, True])
 @mark.parametrize('add_group_slope', [False, True])
-def test_explore_models(parallel, add_group_slope):
+def test_explore_models(add_group_slope):
+    parallel=False
     # Slopes:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
@@ -415,9 +416,9 @@ def test_conditions2():
     df.neuron = df.neuron.astype(int)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 
-    window.fit_conditions(model=models.model_single, )
+    window.fit_conditions(model=models.model_single, num_chains=1)
     assert window.y in window.data_and_posterior
-    window.plot_posteriors_no_slope(x='stim:O', independent_axes=False, add_data=True);
+    window.plot_posteriors_no_slope(x='stim:O', independent_axes=False, add_data=True)
 
 
 def random_tests():
@@ -427,7 +428,7 @@ def random_tests():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(add_data=True, model=models.model_hierarchical, num_chains=1)
     bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=False)
 
     bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
@@ -449,6 +450,7 @@ def random_tests():
                          condition='neuron',
                          group='mouse')
     window.fit_slopes(model=models.model_hierarchical,
+                      num_chains=1,
                       # plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
                       )
     c = window.plot_posteriors_slopes(x='neuron', color='i_trial')

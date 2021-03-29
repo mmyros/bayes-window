@@ -128,7 +128,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
             y=alt.Y(f'mean({y})',
                     axis=alt.Axis(orient='right'),
                     scale=alt.Scale(zero=False, domain=y_domain)),
-            tooltip=color,  # Tooltip breaks it in some instances?
+            tooltip=color
         ))
     axis = alt.Axis(labels=False, tickCount=0, title='')
 
@@ -154,47 +154,57 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     assert 'lower interval' in data.columns
     assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
-    do_make_change = do_make_change is not False  # Boolean instead of False or "subtract" etc
 
-    # line
+    # Axis limits
+    minmax = [float(data['lower interval'].min()), 0,
+              float(data['higher interval'].max())]
+    scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
+                      domain=[min(minmax), max(minmax)])
+
+    # error_bars
+    chart = base_chart.mark_rule(size=2).encode(
+        x=x,
+        y=alt.Y('lower interval:Q',
+                scale=scale,
+                # axis=alt.Axis(labels=False, tickCount=1, title='')
+                axis=alt.Axis(orient='left', title='')
+                ),
+        y2='higher interval:Q',
+    )
+
+    # Make the zero line
+    if add_zero_line:
+        title = f'Δ {title}'
+        base_chart.data['zero'] = 0
+        chart += base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+            y=alt.Y(
+                'zero',
+                scale=scale,
+                axis=alt.Axis(title='', orient='left')
+            )
+        )
+
+    # line or bar for center interval (left axis)
     if x == ':O':
-        chart = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
+        chart += base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
+                    title=title,
+                    scale=scale,
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
                     ),
             x=x,
         )
     else:
-        chart = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
+        chart += base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
             y=alt.Y('center interval:Q',
-                    impute=alt.ImputeParams(value='value'),
+                    title=title,
+                    scale=scale,
+                    # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
                     ),
             x=x,
         )
-
-    # Axis limits
-    minmax = [float(data['lower interval'].min()), 0,
-              float(data['higher interval'].max())]
-    scale = alt.Scale(zero=do_make_change,  # Any string or True
-                      domain=[min(minmax), max(minmax)])
-
-    # Make the zero line
-    if add_zero_line:
-        base_chart.data['zero'] = 0
-        chart += base_chart.mark_rule(color='black', size=.5, opacity=1).encode(y='zero')
-        title = f'Δ {title}'
-
-    # error_bars
-    chart += base_chart.mark_rule(size=2).encode(
-        x=x,
-        y=alt.Y('lower interval:Q',
-                title=title,
-                scale=scale,
-                axis=alt.Axis(orient='left')),
-        y2='higher interval:Q',
-    )
 
     return chart
 
@@ -240,7 +250,7 @@ def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name):
     # dataframe with posterior (combine chains):
     df = trace.posterior.stack(draws=("chain", "draw")).reset_index(["draws"]).to_dataframe().reset_index()
 
-    n_draws = float(trace.posterior['chain'].max() * trace.posterior['draw'].max())
+    # n_draws = float(trace.posterior['chain'].max() * trace.posterior['draw'].max())
     # KDE chart:
     return alt.Chart(df).transform_density(
         b_name,
@@ -249,7 +259,7 @@ def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name):
         counts=True,
     ).mark_area(orient='horizontal', clip=False, fillOpacity=.2, color='black').encode(
         y=alt.Y(b_name, scale=scale, title=''),
-        x=alt.X('density:Q', stack='center', title='', #scale=alt.Scale(domain=[-n_draws, n_draws]),
+        x=alt.X('density:Q', stack='center', title='',  # scale=alt.Scale(domain=[-n_draws, n_draws]),
                 axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
                 ),
     ).properties(width=30)
