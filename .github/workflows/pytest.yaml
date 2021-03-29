@@ -23,7 +23,7 @@ jobs:
         pip install coverage==5.1
         pip install pytest-cov
         pip install coveralls
-        pip install codecov
+        pip install codecov>2.1.6
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
@@ -60,10 +60,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
 
-        pip install coverage==5.1
-        pip install pytest-cov
-        pip install coveralls
-        pip install codecov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
