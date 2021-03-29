@@ -376,8 +376,8 @@ def test_explore_models(parallel, add_group_slope):
         conditions_to_test.append('neuron')
     for condition in conditions_to_test:
         bw = BayesWindow(df, y='isi', treatment='stim', condition=condition, group='mouse')
-        bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
-        bw.explore_models(parallel=parallel,add_group_slope=add_group_slope)
+        bw.fit_slopes(add_data=True, model=models.model_hierarchical, num_chains=1)
+        bw.explore_models(parallel=parallel, add_group_slope=add_group_slope)
 
 
 def test_chirp_data():
@@ -389,7 +389,7 @@ def test_chirp_data():
     window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
                       fold_change_index_cols=['Condition code',
                                               'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
-                      num_chains=1,)
+                      num_chains=1, )
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
 
