@@ -101,9 +101,9 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
     if color is None:
-        color = ':O'
+        color = ':N'
     if color[-2] != ':':
-        color = f'{color}:O'
+        color = f'{color}:N'
     charts = []
 
     # Plot data:

@@ -221,7 +221,7 @@ class BayesWindow:
         self.fold_change_index_cols = fold_change_index_cols
         return self
 
-    def plot_posteriors_slopes(self, x=':O', color=':O', detail=':O', add_box=True, independent_axes=False,
+    def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, independent_axes=False,
                                add_posterior_density=True,
                                **kwargs):
         # Set some options
