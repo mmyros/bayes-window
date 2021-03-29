@@ -265,7 +265,7 @@ class BayesWindow:
             self.chart = chart_p
 
         if x != ':O':
-            if len(self.data[x[:-2]].unique()) > 3:  # That would be too dense. Override add_posterior_density
+            if len(self.data[x[:-2]].unique()) > 1:  # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
 
         if posterior is not None and add_posterior_density and (self.b_name != 'lme'):

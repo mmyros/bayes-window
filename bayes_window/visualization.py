@@ -174,6 +174,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Make the zero line
+    add_zero_line=False
     if add_zero_line:
         title = f'Δ {title}'
         base_chart.data['zero'] = 0
