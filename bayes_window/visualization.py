@@ -78,12 +78,12 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
                                 domain=list(np.quantile(base.data[y], [.05, .95])))),
         detail=detail
     )
-    points = base.mark_circle(clip=True, opacity=0).encode(
+    points = base.mark_circle(clip=True, opacity=0, filled=True).encode(
 
         x=x,
         color=f'{color}',
         y=alt.Y(f'mean({y})',
-                axis=alt.Axis(labels=False, tickCount=0, title=''),
+                axis=alt.Axis(title='', orient='right'),
                 scale=alt.Scale(zero=False,
                                 domain=list(np.quantile(base.data[y], [.05, .95])))),
         detail=detail
@@ -101,7 +101,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
     if color is None:
-        color = ':N'
+        color = ':O'
     if color[-2] != ':':
         color = f'{color}:O'
     charts = []
@@ -130,7 +130,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
                     scale=alt.Scale(zero=False, domain=y_domain)),
             tooltip=color
         ))
-    axis = alt.Axis(labels=False, tickCount=0, title='')
+    # axis = alt.Axis(title='') # labels=False, tickCount=0,
 
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
@@ -139,8 +139,9 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black').encode(
             x=x,
             y=alt.Y(f'{y}:Q',
-                    scale=alt.Scale(zero=False, domain=y_domain),
-                    axis=axis)
+                    axis=alt.Axis(orient='right', title=''),
+                    scale=alt.Scale(zero=False, domain=y_domain)
+                    )
         ))
     return alt.layer(*charts), y_domain
 
