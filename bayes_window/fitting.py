@@ -1,3 +1,5 @@
+import os
+
 import arviz as az
 import numpyro
 from jax import random
@@ -11,9 +13,10 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
                 **kwargs):
     if use_gpu:
         numpyro.set_platform('gpu')
+        numpyro.set_host_device_count(1)
     else:
         numpyro.set_platform('cpu')
-    numpyro.set_host_device_count(num_chains)
+        numpyro.set_host_device_count(min((num_chains, os.cpu_count())))
     model = model or models.model_hierarchical
     mcmc = MCMC(sampler(model=model,
                         find_heuristic_step_size=True),

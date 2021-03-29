@@ -363,7 +363,7 @@ def test_single_condition_nodata_dists():
 
 
 # @mark.parametrize('condition', [None, 'neuron'])
-@mark.parametrize('parallel', [False, True])
+# @mark.parametrize('parallel', [False, True])
 @mark.parametrize('add_group_slope', [False, True])
 def test_explore_models(parallel, add_group_slope):
     # Slopes:
