@@ -251,7 +251,7 @@ class BayesWindow:
             if y not in self.data_and_posterior:
                 raise KeyError(f'change in data was not added, but add_data requested:'
                                f'{self.y} is not in {self.data_and_posterior.keys}')
-            if detail != ':O':
+            if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
 

@@ -125,7 +125,7 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
             x=x,
             color=f'{color}',
             detail=detail,
-            y=alt.Y(f'mean({y})',
+            y=alt.Y(f'{y}',
                     axis=alt.Axis(orient='right'),
                     scale=alt.Scale(zero=False, domain=y_domain)),
             tooltip=color
