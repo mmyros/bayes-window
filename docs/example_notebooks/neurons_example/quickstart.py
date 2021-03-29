@@ -118,8 +118,3 @@ bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='su
 
 # + slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 bw.plot_model_quality()
-# -
-
-# Or alternative backend:
-
-bw.plot_model_quality(backend='bokeh')
