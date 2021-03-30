@@ -1,11 +1,10 @@
 from pathlib import Path
 
-from pytest import mark
-
 from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
+from pytest import mark
 
 trans = LabelEncoder().fit_transform
 
@@ -364,9 +363,9 @@ def test_single_condition_nodata_dists():
 
 # @mark.parametrize('condition', [None, 'neuron'])
 # @mark.parametrize('parallel', [False, True])
-@mark.parametrize('add_group_slope', [False, ]) #True doesnt work in GHA
+@mark.parametrize('add_group_slope', [False, ])  # True doesnt work in GHA
 def test_explore_models(add_group_slope):
-    parallel=False
+    parallel = False
     # Slopes:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,

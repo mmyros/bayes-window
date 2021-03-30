@@ -12,8 +12,12 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
                 n_draws=1000, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
                 **kwargs):
     if use_gpu:
-        numpyro.set_platform('gpu')
-        numpyro.set_host_device_count(1)
+        try:
+            numpyro.set_platform('gpu')
+            numpyro.set_host_device_count(1)
+        except RuntimeError as e:
+            warnings.warn(f'No GPU found: {e}')
+            numpyro.set_platform('cpu')
     else:
         numpyro.set_platform('cpu')
         numpyro.set_host_device_count(min((num_chains, os.cpu_count())))

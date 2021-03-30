@@ -57,16 +57,16 @@ def plot_confusion(df):
     ).properties(width=180, height=180)
     # Configure text
     # Doesnt work without mean; mean is meaningless without groupby
-    text = base.mark_text(baseline='middle').encode(
-        text=alt.Text('mean(Occurences)', format=",.1f", ),
-        x="predicted",
-        y="actual",
-        # color=alt.condition(
-        #    alt.datum.Occurences > df['Occurences'].mean(),
-        #    alt.value('black'),
-        #    alt.value('white')
-        # )
-    )
+    # text = base.mark_text(baseline='middle').encode(
+    #     text=alt.Text('mean(Occurences)', format=",.1f", ),
+    #     x="predicted",
+    #     y="actual",
+    #     # color=alt.condition(
+    #     #    alt.datum.Occurences > df['Occurences'].mean(),
+    #     #    alt.value('black'),
+    #     #    alt.value('white')
+    #     # )
+    # )
     return heat
 
 

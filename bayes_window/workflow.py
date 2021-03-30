@@ -172,14 +172,8 @@ class BayesWindow:
         # TODO handle no-group case
         if fold_change_index_cols is None:
             # TODO case with no plot_index_cols should include any multiindex?
-            fold_change_index_cols = self.levels  # [-1]
+            fold_change_index_cols = self.levels
         fold_change_index_cols = list(fold_change_index_cols)
-        # if not self.condition[0]:
-        #     np.unique(condition).size == 1
-        # warnings.warn('Condition was not provided. Assuming there is no additional condition, just treatment')
-        # self.condition[0] = 'dummy_condition'
-        # self.data.insert(self.data.shape[-1] - 1, 'dummy_condition', np.zeros(self.data.shape[0]).astype(int))
-        # fold_change_index_cols.append('dummy_condition')
         include_condition = self.condition[0] and np.unique(self.data[self.condition[0]]).size > 1
         self.b_name = 'b_stim_per_condition' if include_condition else 'b_stim'
         if include_condition and (not self.condition[0] in fold_change_index_cols):
