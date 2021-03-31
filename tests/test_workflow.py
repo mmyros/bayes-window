@@ -429,6 +429,7 @@ def test_chirp_data():
                                               'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
                       num_chains=1, n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+
     window.data_and_posterior
 
 
@@ -440,7 +441,8 @@ def test_chirp_data1():
                          group='Subject')
     window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
                       fold_change_index_cols=['Stim phase', 'Inversion',
-                                              'Brain region', 'stim_on', 'Fid', 'Subject'],
+                                              #'Brain region', 'stim_on', 'Fid', 'Subject'
+                                              ],
                       num_chains=1, n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 

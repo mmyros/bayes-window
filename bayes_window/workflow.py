@@ -47,6 +47,7 @@ class BayesWindow:
         #     self.data, self._key = df, None
         # else:
         self.data, self._key = utils.combined_condition(df.copy(), self.condition)
+        self.original_data = self.data.copy()
         self.detail = detail
         self.y = y
 
@@ -220,7 +221,7 @@ class BayesWindow:
                                                        group_name=self.group,
                                                        )
 
-        # if self.condition[0] is not None:  # Back to human-readable labels
+        # if self.condition[0] is not None:
         #     # self.data.combined_condition
         #     # self.data[col]
         #     # self._key[col]
@@ -228,6 +229,14 @@ class BayesWindow:
         #      for col in self._key.keys()
         #      if (not col == self.treatment) # and (col in df_result)
         #      ]
+        # Back to human-readable labels
+        if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
+            levels_to_replace = list(set(self.levels) - {self.treatment})
+            for level_values, data_subset in self.original_data.groupby(levels_to_replace):
+                for level_name, level_value in zip(levels_to_replace, level_values):
+                    df_result.loc[df_result['combined_condition'] == data_subset['combined_condition'].iloc[0],
+                                  level_name] = level_value
+
         self.data_and_posterior = df_result
         self.fold_change_index_cols = fold_change_index_cols
         return self
