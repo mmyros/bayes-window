@@ -35,10 +35,8 @@ def generate_fake_lfp(n_trials=10,
     df_monster = df_monster[df_monster.mouse_code == 1]
     df_monster = df_monster[df_monster.neuron.astype(int) < n_mice - 2]
     df_monster = df_monster.drop(['mouse_code', 'mouse', 'neuron_code'], axis=1)
-    df = df.rename({
-        'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
-    df_monster = df_monster.rename({
-        'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    df = df.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
+    df_monster = df_monster.rename({'firing_rate': 'Power', 'log_firing_rate': 'Log power', 'neuron': 'mouse'}, axis=1)
     return df, df_monster, index_cols, None
 
 

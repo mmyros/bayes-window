@@ -16,19 +16,21 @@
 # + [markdown] slideshow={"slide_type": "slide"}
 # # Compare to ANOVA and LMM: ROC curve
 
+from importlib import reload
+
+import numpy as np
+
 # + slideshow={"slide_type": "skip"}
 from bayes_window import model_comparison, models
 from bayes_window.generative_models import generate_fake_lfp
 
-import numpy as np
-from importlib import reload
 reload(model_comparison)
 
 # + slideshow={"slide_type": "skip"}
 res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(10), np.tile(np.linspace(.2, 20, 10), 10)]),
                                       n_trials=np.linspace(15, 70, 5).astype(int),
                                       trial_baseline_randomness=np.linspace(.2, 11, 15),
-                                      ys=('Log power',), # LME fails with 'Power'
+                                      ys=('Log_power',),  # LME fails with 'Power'
                                       parallel=True)
 
 # + [markdown] slideshow={"slide_type": "slide"}

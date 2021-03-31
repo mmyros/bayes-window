@@ -4,13 +4,13 @@ from bayes_window.generative_models import generate_fake_spikes
 from bayes_window.model_comparison import *
 
 
-@mark.parametrize('parallel', [True, False])
+@mark.parametrize('parallel', [False, True])
 def test_run_methods(parallel):
     res = run_conditions(
         true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
         n_trials=[9],
         parallel=parallel,
-        ys=('Log power', 'Power')
+        ys=('Log_power', 'Power')
     )
 
     plot_roc(res)[0].display()
@@ -42,9 +42,9 @@ def test_compare_models(parallel):
                    group='mouse',
                    parallel=parallel,
                    plotose=True,
-                   # num_chains=1,
-                   # num_warmup=100,
-                   # n_draws=100,
+                   num_chains=1,
+                   num_warmup=100,
+                   n_draws=100,
                    )
 
 

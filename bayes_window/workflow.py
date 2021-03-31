@@ -6,6 +6,7 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
+from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import models
 from bayes_window import utils
@@ -41,9 +42,17 @@ class BayesWindow:
         if self.condition[0]:
             assert self.condition[0] in df.columns
         self.levels = utils.parse_levels(self.treatment, self.condition, self.group)
-        self.data, self._key = utils.combined_condition(df, self.levels)
+        # Combined condition
+        # if self.condition[0] is None:
+        #     self.data, self._key = df, None
+        # else:
+        self.data, self._key = utils.combined_condition(df, self.condition)
         self.detail = detail
         self.y = y
+
+        # Transform conditions to integers as required by numpyro:
+        for level in self.levels:
+            self.data[level] = LabelEncoder().fit_transform(self.data[level])
 
         # Preallocate attributes:
         self.b_name = None  # Depends on model we'll fit
@@ -177,10 +186,12 @@ class BayesWindow:
         include_condition = self.condition[0] and np.unique(self.data[self.condition[0]]).size > 1
         self.b_name = 'b_stim_per_condition' if include_condition else 'b_stim'
         if include_condition and (not self.condition[0] in fold_change_index_cols):
-            fold_change_index_cols.extend(self.condition)
+            [fold_change_index_cols.extend([condition]) for condition in self.condition
+             if not (condition in fold_change_index_cols)]
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  treatment=self.data[self.treatment].values,
-                                 condition=self.data[self.condition[0]].values if self.condition[0] else None,
+                                 # condition=self.data[self.condition[0]].values if self.condition[0] else None,
+                                 condition=self.data['combined_condition'].values if self.condition[0] else None,
                                  group=self.data[self.group].values,
                                  model=model,
                                  **kwargs)
@@ -193,7 +204,8 @@ class BayesWindow:
                                                                           fold_change_index_cols=fold_change_index_cols,
                                                                           treatment_name=self.treatment,
                                                                           b_name=self.b_name,
-                                                                          posterior_index_name=self.condition[0],
+                                                                          posterior_index_name='combined_condition',
+                                                                          # posterior_index_name=self.condition[0],
                                                                           do_make_change=do_make_change,
                                                                           do_mean_over_trials=do_mean_over_trials,
                                                                           add_data=self.add_data,
@@ -208,9 +220,9 @@ class BayesWindow:
                                                        group_name=self.group,
                                                        )
 
-        # Back to human-readable labels
-        [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
-         if (not col == self.treatment) and (col in df_result)]
+        if self.condition[0] is not None:  # Back to human-readable labels
+            [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
+             if (not col == self.treatment) and (col in df_result)]
         self.data_and_posterior = df_result
         self.fold_change_index_cols = fold_change_index_cols
         return self

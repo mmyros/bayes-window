@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import arviz as az
 import numpyro
@@ -37,4 +38,3 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
         return trace
     else:
         return mcmc
-

@@ -1,17 +1,11 @@
-from arviz.plots.plot_utils import calculate_point_estimate
-from sklearn.preprocessing import LabelEncoder
-
-le = LabelEncoder()
 import warnings
 
 import arviz as az
 import numpy as np
 import pandas as pd
-import scipy
 import xarray as xr
+from arviz.plots.plot_utils import calculate_point_estimate
 from sklearn.preprocessing import LabelEncoder
-
-trans = LabelEncoder().fit_transform
 
 
 def level_to_data_column(level_name, kwargs):
@@ -62,6 +56,8 @@ def add_data_to_posterior(df_data,
     assert do_make_change in [False, 'subtract', 'divide']
     if not (treatment_name in fold_change_index_cols):
         fold_change_index_cols.append(treatment_name)
+    if not ('combined_condition' in fold_change_index_cols) and ('combined_condition' in df_data.columns):
+        fold_change_index_cols.append('combined_condition')
     # if not (group_name in index_cols):
     #     index_cols.append(group_name)
     if do_mean_over_trials:
@@ -107,31 +103,6 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
-def _mode(*args, **kwargs):
-    vals = scipy.stats.mode(*args, **kwargs)
-    # only return the mode (discard the count)
-    return vals[0].squeeze()
-
-
-def xar_mode(obj, dims_to_reduce: list = None, dim=None):
-    # xar_mode(trace[b_name], dims_to_reduce=['chain', 'draw']) # OR:
-    # xar_mode(trace[b_name], dim='neuron')
-
-    # note: apply always moves core dimensions to the end
-    # usually axis is simply -1 but scipy's mode function doesn't seem to like that
-    # this means that this version will only work for DataArrays (not Datasets)
-    assert isinstance(obj, xr.DataArray)
-    assert (dims_to_reduce is not None) or (dim is not None)
-    axis = obj.ndim - 1
-    if dims_to_reduce is None:
-        dims_to_reduce = list(set(obj.dims) - {dim})
-    return xr.apply_ufunc(_mode, obj,
-                          input_core_dims=[dims_to_reduce],
-                          # exclude_dims=set(['chain','draw']),
-                          kwargs={'axis': axis}
-                          )
-
-
 def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False,
              group_name='subject'):
     """
@@ -156,7 +127,7 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
 
     if hdi.ndim == 1:
-        max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")#, circular=False)
+        max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")  # , circular=False)
 
         mean = xr.DataArray([max_a_p],
                             coords={'hdi': ["center"], },
@@ -320,17 +291,20 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
 def combined_condition(df, levels):
     # String-valued combined condition
     # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
+    if levels[0] is None:
+        df['combined_condition'] = np.ones(df.shape[0])
+        return df, None
+
     df['combined_condition'] = df[levels[0]].astype('str')
     for level in levels[1:]:
         df['combined_condition'] += df[level].astype('str')
     data = df.copy()
     # Transform conditions to integers as required by numpyro:
-    data['combined_condition'] = le.fit_transform(df['combined_condition'])
-    # Transform conditions to integers as required by numpyro:
+    labeler = LabelEncoder()
+    data['combined_condition'] = labeler.fit_transform(df['combined_condition'])
+
+    # Keep key for later use
     key = dict()
     for level in levels:
-        data[level] = le.fit_transform(data[level])
-        # Keep key for later use
-        # TODO I don't think this key is currently used for plotting, is it? Test with mouse names
-        key[level] = dict(zip(range(len(le.classes_)), le.classes_))
+        key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
     return data, key
