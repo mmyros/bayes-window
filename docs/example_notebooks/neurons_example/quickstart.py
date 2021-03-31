@@ -50,11 +50,9 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # +
 bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=False,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron', 'neuron_x_mouse'), progress_bar=False,
+              dist_y='student', add_group_slope=True, add_group_intercept=False)
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
 bw.facet(column='mouse',width=200,height=200).display()
@@ -89,11 +87,9 @@ except np.linalg.LinAlgError as e:
 
 # +
 bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=False,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron', 'neuron_x_mouse'), progress_bar=False,
+              dist_y='student', add_group_slope=True, add_group_intercept=False)
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 bw.facet(column='mouse',width=200,height=200).display()
@@ -108,11 +104,9 @@ bw.fit_anova();
 # -
 
 bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
-bw.fit_slopes(add_data=True, model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=False,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+              fold_change_index_cols=('stim', 'mouse', 'neuron', 'neuron_x_mouse'), progress_bar=False,
+              dist_y='student', add_group_slope=True, add_group_intercept=False)
 
 # ## Model quality
 

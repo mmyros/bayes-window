@@ -18,7 +18,7 @@ def test_slopes_dont_make_change():
                                                                     mouse_response_slope=16)
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     try:
-        bw.fit_slopes(add_data=False, model=models.model_hierarchical, do_make_change=False,
+        bw.fit_slopes(model=models.model_hierarchical, do_make_change=False,
                       fold_change_index_cols=('stim', 'mouse', 'neuron'))
     except ValueError:
         pass
@@ -27,7 +27,7 @@ def test_slopes_dont_make_change():
 def test_fit_lme():
     df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_lme(add_data=False, )
+    bw.fit_lme()
     bw.plot_posteriors_slopes()
     bw.facet(row='mouse')
 
@@ -53,7 +53,7 @@ def test_fit_lme_w_data():
     df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
 
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_lme(add_data=False, do_make_change='divide')
+    bw.fit_lme(do_make_change='divide')
     assert bw.posterior is not None
     bw.plot_posteriors_slopes()
 
@@ -63,7 +63,7 @@ def test_fit_lme_w_data_condition():
 
     bw = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
 
-    bw.fit_lme(add_data=True, do_make_change='divide')
+    bw.fit_lme(do_make_change='divide')
     bw.plot_posteriors_slopes()
     bw.facet(column='neuron_x_mouse', width=300)
 
@@ -142,7 +142,7 @@ def test_estimate_posteriors_slope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
-    bw.fit_slopes(models.model_hierarchical, add_data=False)
+    bw.fit_slopes(models.model_hierarchical)
 
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
     chart.display()
@@ -156,7 +156,7 @@ def test_estimate_posteriors_slope_groupslope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
-    bw.fit_slopes(models.model_hierarchical, add_data=False, add_group_slope=True, add_group_intercept=True, )
+    bw.fit_slopes(models.model_hierarchical, add_group_slope=True, add_group_intercept=True)
 
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
     chart.display()
@@ -190,8 +190,7 @@ def test_estimate_posteriors_two_conditions_no_add_data(add_data):
                                     dur=2, )
 
     bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
-    bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
-                  add_data=add_data)
+    bw.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False)
     for condition_name in bw.condition:
         assert condition_name in bw.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
@@ -208,8 +207,8 @@ def test_estimate_posteriors_two_conditions_add_data():
                                     dur=2, )
 
     bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
-    bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
-                  add_data=True, num_chains=1, num_warmup=100, n_draws=100)
+    bw.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False, num_chains=1,
+                  num_warmup=100, n_draws=100)
     for condition_name in bw.condition:
         assert condition_name in bw.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
@@ -224,7 +223,7 @@ def test_estimate_posteriors_data_overlay_slope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    bw.fit_slopes(model=models.model_hierarchical, add_data=False)
+    bw.fit_slopes(model=models.model_hierarchical)
     chart = bw.plot_posteriors_slopes(independent_axes=False, add_posterior_density=False)
     chart.display()
     bw.facet(column='neuron_code', row='mouse_code')
@@ -237,7 +236,7 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    bw.fit_slopes(model=models.model_hierarchical, add_data=True)
+    bw.fit_slopes(model=models.model_hierarchical)
     chart = bw.plot_posteriors_no_slope(independent_axes=True)
     chart.display()
     chart = bw.facet(column='neuron_code', row='mouse')
@@ -282,7 +281,7 @@ def test_fit_slopes():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(model=models.model_hierarchical)
 
 
 def test_plot_slopes():
@@ -291,7 +290,7 @@ def test_plot_slopes():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(model=models.model_hierarchical)
     bw.plot()
 
 
@@ -301,7 +300,7 @@ def test_plot_slopes_2levelslope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, add_group_slope=True)
+    bw.fit_slopes(model=models.model_hierarchical, add_group_slope=True)
     bw.plot().display()
 
 
@@ -311,7 +310,7 @@ def test_plot_posteriors_no_slope():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(model=models.model_hierarchical)
     bw.plot_posteriors_slopes()
 
 
@@ -322,10 +321,10 @@ def test_plot_generic():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, )
+    bw.fit_slopes(model=models.model_hierarchical)
     bw.plot()
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=False, model=models.model_hierarchical, )
+    bw.fit_slopes(model=models.model_hierarchical)
     bw.plot()
     # conditions:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
@@ -344,7 +343,7 @@ def test_facet():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical)
+    bw.fit_slopes(model=models.model_hierarchical)
     bw.plot(add_posterior_density=False).facet('neuron', width=40)
 
     # conditions:
@@ -360,22 +359,19 @@ def test_facet():
 def test_single_condition_withdata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hier_stim_one_codition,
-                  do_make_change='divide', dist_y='normal')
+    bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # Without data again
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_slopes(add_data=False, model=models.model_hier_stim_one_codition,
-                  do_make_change='divide', dist_y='normal')
+    bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # With data again
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hier_stim_one_codition,
-                  do_make_change='divide', dist_y='normal')
+    bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
@@ -383,8 +379,7 @@ def test_single_condition_withdata():
 def test_single_condition_nodata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_slopes(add_data=False, model=models.model_hier_stim_one_codition,
-                  do_make_change='divide', dist_y='normal')
+    bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
     plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
@@ -393,8 +388,7 @@ def test_single_condition_nodata_dists():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     for dist in ['normal', 'lognormal', 'student']:
         bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-        bw.fit_slopes(add_data=False, model=models.model_hier_stim_one_codition,
-                      do_make_change='divide', dist_y=dist)
+        bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y=dist)
         plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
@@ -414,7 +408,7 @@ def test_explore_models(add_group_slope):
         conditions_to_test.append('neuron')
     for condition in conditions_to_test:
         bw = BayesWindow(df, y='isi', treatment='stim', condition=condition, group='mouse')
-        bw.fit_slopes(add_data=True, model=models.model_hierarchical, num_chains=1)
+        bw.fit_slopes(model=models.model_hierarchical, num_chains=1)
         bw.explore_models(parallel=parallel, add_group_slope=add_group_slope)
 
 
@@ -424,10 +418,10 @@ def test_chirp_data():
                          treatment='stim_on',
                          condition='Condition code',
                          group='Subject')
-    window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
-                      fold_change_index_cols=['Condition code',
-                                              'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
-                      num_chains=1, n_draws=100, num_warmup=100)
+    window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=['Condition code',
+                                                                               'Brain region', 'Stim phase', 'stim_on',
+                                                                               'Fid', 'Subject', 'Inversion'],
+                      do_mean_over_trials=True, num_chains=1, n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
     window.data_and_posterior
@@ -439,10 +433,9 @@ def test_chirp_data1():
                          treatment='stim_on',
                          condition=['Stim phase', 'Inversion'],
                          group='Subject')
-    window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
-                      fold_change_index_cols=['Stim phase', 'Inversion',
-                                              #'Brain region', 'stim_on', 'Fid', 'Subject'
-                                              ],
+    window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=['Stim phase', 'Inversion',
+                                                                               # 'Brain region', 'stim_on', 'Fid', 'Subject'
+                                                                               ], do_mean_over_trials=True,
                       num_chains=1, n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
@@ -453,10 +446,9 @@ def test_chirp_data2():
                          treatment='stim_on',
                          condition=['Condition code'],
                          group='Subject')
-    window.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=True,
-                      fold_change_index_cols=[  # 'Condition code',
-                          'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
-                      num_chains=1, n_draws=100, num_warmup=100)
+    window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',
+        'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], do_mean_over_trials=True, num_chains=1,
+                      n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
 
 
@@ -481,7 +473,7 @@ def random_tests():
                                                                     n_mice=4,
                                                                     dur=2, )
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    bw.fit_slopes(add_data=True, model=models.model_hierarchical, num_chains=1)
+    bw.fit_slopes(model=models.model_hierarchical, num_chains=1)
     bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=False)
 
     bw.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
@@ -502,10 +494,7 @@ def random_tests():
                          treatment='stim',
                          condition='neuron',
                          group='mouse')
-    window.fit_slopes(model=models.model_hierarchical,
-                      num_chains=1,
-                      # plot_index_cols=['Brain region', 'Stim phase', 'stim_on', 'Fid','Subject','Inversion'],
-                      )
+    window.fit_slopes(model=models.model_hierarchical, num_chains=1)
     c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
 
     window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)

@@ -16,7 +16,7 @@ def test_lme_with_data():
     df, df_monster, index_cols, _ = generate_fake_lfp(mouse_response_slope=8,
                                                       n_trials=40)
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    bw.fit_lme(add_data=True, do_make_change='subtract')
+    bw.fit_lme(do_make_change='subtract')
     bw.plot()
 
 
@@ -51,15 +51,10 @@ def test_plot_data_and_posterior():
                             n_draws=100, num_chains=1, )
 
         # Add data back
-        df_both, trace.posterior = add_data_to_posterior(df,
-                                                         posterior=trace.posterior,
-                                                         y=y,
+        df_both, trace.posterior = add_data_to_posterior(df, posterior=trace.posterior, y=y,
                                                          fold_change_index_cols=['neuron', 'stim', 'mouse', ],
-                                                         treatment_name='stim',
-                                                         treatments=(0, 1),
-                                                         b_name='b_stim_per_condition',  # for posterior
-                                                         posterior_index_name='neuron'  # for posterior
-                                                         )
+                                                         treatment_name='stim', treatments=(0, 1),
+                                                         b_name='b_stim_per_condition', posterior_index_name='neuron')
 
         # Plot data and posterior
         # chart = plot_data_and_posterior(df=df_both, y=f'{y} diff', x='neuron', color='mouse', title=y)

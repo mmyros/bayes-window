@@ -133,16 +133,13 @@ def plot_roc(df):
 def run_method(df, method='bw_student', y='Log power'):
     bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
     if method[:2] == 'bw':
-        bw.fit_slopes(model=models.model_hier_stim_one_codition,
-                      dist_y=method[3:],
-                      num_chains=1,
-                      add_data=False)
+        bw.fit_slopes(model=models.model_hier_stim_one_codition, dist_y=method[3:], num_chains=1)
         return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
         return bw.fit_anova()  # Returns p-value
 
     elif method == 'mlm':
-        posterior = bw.fit_lme(add_data=False).posterior
+        posterior = bw.fit_lme().posterior
         try:
             return posterior['lower interval'].iloc[0]
         except AttributeError:

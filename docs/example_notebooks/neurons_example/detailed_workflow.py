@@ -76,16 +76,10 @@ trace = fit_numpyro(y=df[y].values,
 
 # + hideCode=false hidePrompt=false
 reload(utils)
-df_both, trace = utils.add_data_to_posterior(df,
-                                             posterior=trace.posterior,
-                                             y=y,
+df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
                                              fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
-                                             treatment_name='stim',
-                                             b_name='b_stim_per_condition',
-                                             posterior_index_name='neuron',
-                                             add_data=True,
-                                             group_name='mouse',
-                                             )
+                                             treatment_name='stim', b_name='b_stim_per_condition',
+                                             posterior_index_name='neuron', group_name='mouse')
 
 # + [markdown] hideCode=false hidePrompt=false
 # ## Plot data and posterior

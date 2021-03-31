@@ -58,7 +58,6 @@ class BayesWindow:
         # Preallocate attributes:
         self.b_name = None  # Depends on model we'll fit
         self.do_make_change = None  # Depends on plotting input
-        self.add_data = None  # We'll use this in plotting
         self.independent_axes = None
         self.data_and_posterior = None
         self.posterior = None
@@ -80,14 +79,13 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, add_data=False, do_make_change='divide', add_interaction=False):
+    def fit_lme(self, do_make_change='divide', add_interaction=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
         #                 # exog_re=exog.iloc[:, 0]
         #                 )
         self.b_name = 'lme'
-        self.add_data = add_data
         # dehumanize all columns and variable names for statsmodels:
         [self.data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in self.data.columns]
         self.y = self.y.replace(" ", "_")
@@ -136,8 +134,7 @@ class BayesWindow:
                             groups=self.data[self.group]).fit()
         print(result.summary().tables[1])
         self.posterior = utils.scrub_lme_result(result, include_condition, condition, self.data, self.treatment)
-        if add_data:
-            self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
+        self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
                                                             condition, self.data, self.y, self.levels, self.treatment)
 
         return self
@@ -156,28 +153,23 @@ class BayesWindow:
 
         # Add data back
         if add_data:
-            self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data,
-                                                                              posterior=self.trace,
+            self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data, posterior=self.trace,
                                                                               y=self.y,
                                                                               fold_change_index_cols=self.levels[:3],
                                                                               treatment_name=self.levels[0],
                                                                               b_name=self.b_name,
                                                                               posterior_index_name='combined_condition',
-                                                                              do_mean_over_trials=False,
                                                                               do_make_change=False,
-                                                                              add_data=add_data,
-                                                                              group_name=self.group,
-                                                                              )
+                                                                              do_mean_over_trials=False,
+                                                                              group_name=self.group)
         return self
 
-    def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract',
-                   fold_change_index_cols=None, do_mean_over_trials=True, add_data: bool = True, **kwargs):
-        # TODO case with no group_name
+    def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
+                   do_mean_over_trials=True, **kwargs):
         if do_make_change not in ['subtract', 'divide']:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
         self.do_make_change = do_make_change
-        self.add_data = add_data  # We'll use this in plotting
         self.model = model
         # TODO handle no-group case
         if fold_change_index_cols is None:
@@ -189,6 +181,8 @@ class BayesWindow:
         if include_condition and (not self.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.condition
              if not (condition in fold_change_index_cols)]
+
+        # Fit
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  treatment=self.data[self.treatment].values,
                                  # condition=self.data[self.condition[0]].values if self.condition[0] else None,
@@ -196,39 +190,17 @@ class BayesWindow:
                                  group=self.data[self.group].values,
                                  model=model,
                                  **kwargs)
-        if add_data:
-            # Add data back
-            df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
-                                                                          posterior=self.trace.posterior,
-                                                                          y=self.y,
-                                                                          fold_change_index_cols=fold_change_index_cols,
-                                                                          treatment_name=self.treatment,
-                                                                          b_name=self.b_name,
-                                                                          posterior_index_name='combined_condition',
-                                                                          # posterior_index_name=self.condition[0],
-                                                                          do_make_change=do_make_change,
-                                                                          do_mean_over_trials=do_mean_over_trials,
-                                                                          add_data=self.add_data,
-                                                                          group_name=self.group,
-                                                                          )
-        else:  # Just convert posterior to dataframe
-            from bayes_window.utils import trace2df
-            # TODO we add data regardless. Is there a way to not use self.data in hdi2df_many_conditions?
-            df_result, self.trace.posterior = trace2df(self.trace.posterior,
-                                                       self.data,
-                                                       b_name=self.b_name,
-                                                       posterior_index_name='combined_condition',
-                                                       group_name=self.group,
-                                                       )
+        # Add data back
+        df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
+                                                                      posterior=self.trace.posterior, y=self.y,
+                                                                      fold_change_index_cols=fold_change_index_cols,
+                                                                      treatment_name=self.treatment,
+                                                                      b_name=self.b_name,
+                                                                      posterior_index_name='combined_condition',
+                                                                      do_make_change=do_make_change,
+                                                                      do_mean_over_trials=do_mean_over_trials,
+                                                                      group_name=self.group)
 
-        # if self.condition[0] is not None:
-        #     # self.data.combined_condition
-        #     # self.data[col]
-        #     # self._key[col]
-        #     [df_result[col].replace(self._key[col], inplace=True)
-        #      for col in self._key.keys()
-        #      if (not col == self.treatment) # and (col in df_result)
-        #      ]
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
             levels_to_replace = list(set(self.levels) - {self.treatment})
@@ -241,7 +213,8 @@ class BayesWindow:
         self.fold_change_index_cols = fold_change_index_cols
         return self
 
-    def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, independent_axes=False,
+    def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
+                               independent_axes=False,
                                add_posterior_density=True,
                                **kwargs):
         # Set some options
@@ -254,7 +227,7 @@ class BayesWindow:
 
         # Plot posterior
         if posterior is not None:
-            add_data = self.add_data and add_box
+            add_data = add_data and add_box
             base_chart = alt.Chart(posterior)
             chart_p = plot_posterior(title=f'{self.y}',
                                      x=x,

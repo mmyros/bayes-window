@@ -33,19 +33,9 @@ def parse_levels(treatment, condition, group):
     return levels
 
 
-def add_data_to_posterior(df_data,
-                          posterior,
-                          y=None,  # Only for fold change
-                          fold_change_index_cols=None,
-                          treatment_name='Event',
-                          treatments=None,  # eg ('stim_on', 'stim_stop')
-                          b_name='b_stim_per_condition',  # for posterior
-                          posterior_index_name='',  # for posterior
-                          do_make_change='subtract',
-                          do_mean_over_trials=True,
-                          add_data=False,
-                          group_name='subject',
-                          ):
+def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=None, treatment_name='Event',
+                          treatments=None, b_name='b_stim_per_condition', posterior_index_name='',
+                          do_make_change='subtract', do_mean_over_trials=True, group_name='subject'):
     # group_name should be conditions
     if type(fold_change_index_cols) == str:
         fold_change_index_cols = [fold_change_index_cols]
@@ -73,7 +63,7 @@ def add_data_to_posterior(df_data,
                                       do_take_mean=False)
     # Convert to dataframe and fill in data:
     df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, posterior_index_name=posterior_index_name,
-                                   add_data=add_data, group_name=group_name)
+                                   group_name=group_name)
     return df_bayes, posterior
 
 
@@ -108,22 +98,20 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
-def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='combined_condition', add_data=False,
+def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='combined_condition',
              group_name='subject'):
     """
     # Convert to dataframe and fill in original conditions
     group name is whatever was used to index posterior
     """
-    # TODO this is lazy. There may be more than one condition, need to include them all instead of combined_condition
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'a_subject_dim_0' in trace:
         trace = trace.rename({f'a_subject_dim_0': group_name})
     if f'b_stim_per_subject_dim_0' in trace:
         trace = trace.rename({f'b_stim_per_subject_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
-    if add_data and posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
-        warnings.warn(
-            f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that...")
+    if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
+        warnings.warn(f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
     hdi = az.hdi(trace)[b_name]
@@ -142,8 +130,6 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
         if not df_bayes.columns.str.contains('interval').any():
             # This may be always?
             df_bayes.columns += ' interval'
-        if not add_data:  # Done
-            return df_bayes, trace
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size
@@ -158,8 +144,6 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
         # Reset 2-level column from pivot_table:
         df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
         df_bayes.rename({f' {posterior_index_name}': posterior_index_name}, axis=1, inplace=True)
-        if not add_data:  # Done
-            return df_bayes, trace
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
 
 
@@ -178,8 +162,10 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
     mdf = df.set_index(index_cols).copy()
     if (mdf.xs(treatments[1], level=treatment_name).size !=
         mdf.xs(treatments[0], level=treatment_name).size):
+        debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
+                      mdf.xs(treatments[1], level=treatment_name).size)
         raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
-                         f'{mdf.xs(treatments[0], level=treatment_name).size, mdf.xs(treatments[1], level=treatment_name).size}')
+                         f'{debug_info}')
 
     # Subtract/divide
     try:
