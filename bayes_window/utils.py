@@ -103,7 +103,7 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
-def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='neuron', add_data=False,
+def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='combined_condition', add_data=False,
              group_name='subject'):
     """
     # Convert to dataframe and fill in original conditions

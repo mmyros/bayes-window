@@ -163,7 +163,7 @@ def test_estimate_posteriors_slope_groupslope():
     chart.display()
 
 
-def test_estimate_posteriors_slope_strengths():
+def test_estimate_posteriors_two_conditions():
     df = generate_spikes_stim_types(mouse_response_slope=3,
                                     n_trials=2,
                                     n_neurons=3,
@@ -174,6 +174,26 @@ def test_estimate_posteriors_slope_strengths():
     bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
                   add_data=False)
 
+    for condition_name in bw.condition:
+        assert condition_name in bw.data_and_posterior.columns, f'{condition_name} not in window.condition'
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart.display()
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart.display()
+
+
+def test_estimate_posteriors_two_conditions_add_data():
+    df = generate_spikes_stim_types(mouse_response_slope=3,
+                                    n_trials=2,
+                                    n_neurons=3,
+                                    n_mice=4,
+                                    dur=2, )
+
+    bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+    bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
+                  add_data=True, num_chains=1, num_warmup=100, n_draws=100)
+    for condition_name in bw.condition:
+        assert condition_name in bw.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
     chart.display()
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')

@@ -155,8 +155,8 @@ def run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False):
                                                       n_trials=n_trials,
                                                       trial_baseline_randomness=randomness
                                                       )
-    df = df.rename({'Log power': 'Log_power'}, axis=1)
-    df_monster = df_monster.rename({'Log power': 'Log_power'}, axis=1)
+    # df = df.rename({'Log power': 'Log_power'}, axis=1)
+    # df_monster = df_monster.rename({'Log power': 'Log_power'}, axis=1)
 
     if parallel:
         res = Parallel(n_jobs=len(methods) * len(ys), verbose=0)(delayed(run_method)(df=df, method=method, y=y)
@@ -174,7 +174,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    trial_baseline_randomness=(.2, .4, 1.8),
                    parallel=False,
                    methods=('anova', 'mlm', 'bw_lognormal', 'bw_normal',),  # 'bw_student'
-                   ys=('Log_power',)):
+                   ys=('Log power',)):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
         res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)

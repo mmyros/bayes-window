@@ -46,7 +46,7 @@ class BayesWindow:
         # if self.condition[0] is None:
         #     self.data, self._key = df, None
         # else:
-        self.data, self._key = utils.combined_condition(df, self.condition)
+        self.data, self._key = utils.combined_condition(df.copy(), self.condition)
         self.detail = detail
         self.y = y
 
@@ -216,12 +216,13 @@ class BayesWindow:
             # TODO we add data regardless. Is there a way to not use self.data?
             df_result, self.trace.posterior = trace2df(self.trace.posterior,
                                                        self.data, b_name=self.b_name,
-                                                       posterior_index_name=self.condition[0],
+                                                       posterior_index_name='combined_condition',
                                                        group_name=self.group,
                                                        )
 
         if self.condition[0] is not None:  # Back to human-readable labels
-            [df_result[col].replace(self._key[col], inplace=True) for col in self._key.keys()
+            [df_result[col].replace(self._key[col], inplace=True)
+             for col in self._key.keys()
              if (not col == self.treatment) and (col in df_result)]
         self.data_and_posterior = df_result
         self.fold_change_index_cols = fold_change_index_cols

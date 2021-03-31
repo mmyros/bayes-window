@@ -239,14 +239,16 @@ def fake_spikes_explore(df, df_monster, index_cols):
         height=300
     )
     # mean firing rate per mouse
-    fig_mice = alt.Chart(df[df['neuron'] == '0']).mark_line(fill=None, ).encode(
-        x=alt.X('stim'),
-        y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=False)),
+    fig_mice = alt.Chart(df[(df['neuron'] == '0') |
+                            (df['neuron'] == str(df['neuron'].astype(int).max()))]).mark_line(fill=None).encode(
+        x=alt.X('stim:O'),
+        y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=True), title='Log firing rate'),
         opacity=alt.value(1),
         size=alt.value(3),
-        facet='mouse:N'
+        color='mouse:N',
+        column=alt.Column('neuron', title=['Best (left) and worst (right)', 'neuron from each mouse'])
     ).properties(
-        title='Mice sorted by response',
+        title=['Some mice are more responsive '],
         # columns=5,
         width=width,
         height=300

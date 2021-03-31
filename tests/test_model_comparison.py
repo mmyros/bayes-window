@@ -10,7 +10,7 @@ def test_run_methods(parallel):
         true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
         n_trials=[9],
         parallel=parallel,
-        ys=('Log_power', 'Power')
+        ys=('Log power', 'Power')
     )
 
     plot_roc(res)[0].display()
