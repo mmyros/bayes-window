@@ -42,7 +42,7 @@ def test_compare_models(parallel):
                    group='mouse',
                    parallel=parallel,
                    plotose=True,
-                   num_chains=1,
+                   # num_chains=1,
                    num_warmup=100,
                    n_draws=100,
                    )

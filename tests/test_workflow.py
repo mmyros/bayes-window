@@ -1,10 +1,11 @@
 from pathlib import Path
 
+from pytest import mark
+
 from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
-from pytest import mark
 
 trans = LabelEncoder().fit_transform
 
@@ -162,8 +163,26 @@ def test_estimate_posteriors_slope_groupslope():
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')
     chart.display()
 
+# def test_estimate_posteriors_two_conditions_w_wo_data():
+#     df = generate_spikes_stim_types(mouse_response_slope=3,
+#                                     n_trials=2,
+#                                     n_neurons=3,
+#                                     n_mice=4,
+#                                     dur=2, )
+#
+#     bw1 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+#     bw1.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, add_data=False)
+#
+#     bw2 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+#     bw2.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, add_data=True)
+#
+#     assert (bw1.data_and_posterior['neuron_code'] == bw2.data_and_posterior['neuron_code']).all()
+#     assert (bw1.data_and_posterior['stim_strength'] == bw2.data_and_posterior['stim_strength']).all()
 
-def test_estimate_posteriors_two_conditions():
+
+from pytest import mark
+@mark.parametrize('add_data', [False, True])
+def test_estimate_posteriors_two_conditions_no_add_data(add_data):
     df = generate_spikes_stim_types(mouse_response_slope=3,
                                     n_trials=2,
                                     n_neurons=3,
@@ -172,8 +191,7 @@ def test_estimate_posteriors_two_conditions():
 
     bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
     bw.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, fold_change_index_cols=None,
-                  add_data=False)
-
+                  add_data=add_data)
     for condition_name in bw.condition:
         assert condition_name in bw.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
@@ -411,6 +429,7 @@ def test_chirp_data():
                                               'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'],
                       num_chains=1, n_draws=100, num_warmup=100)
     window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+    window.data_and_posterior
 
 
 def test_chirp_data1():

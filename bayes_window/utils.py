@@ -77,22 +77,27 @@ def add_data_to_posterior(df_data,
     return df_bayes, posterior
 
 
-def fill_row(condition_val, rows, df_bayes, condition_name):
+def fill_row(condition_val, data_rows, df_bayes, condition_name):
+    # Look up where posterior has the same condition value as in data
     this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
     if this_hdi.shape[0] == 0:
-        raise ValueError(
-            f"No such value {condition_val} in estimate's {condition_name}: it's {df_bayes[condition_name].unique()}")
+        raise ValueError(f"No such value {condition_val} in estimate's {condition_name}: "
+                         f"it's {df_bayes[condition_name].unique()}")
+    # Insert posterior into data at the corresponding location
     for col in ['lower interval', 'higher interval', 'center interval']:
-        rows.insert(rows.shape[1] - 1, col, this_hdi[col].values.squeeze())
-    return rows
+        data_rows.insert(data_rows.shape[1] - 1,  # Last column
+                         col,  # lower or higher or center interval
+                         this_hdi[col].values.squeeze()  # The value of posterior we just looked up
+                         )
+    return data_rows
 
 
 def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     # Check
     if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
         raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
-    rows = [fill_row(group_val, rows, df_bayes, posterior_index_name)
-            for group_val, rows in df_data.groupby([posterior_index_name])]
+    rows = [fill_row(group_val, data_rows, df_bayes, posterior_index_name)
+            for group_val, data_rows in df_data.groupby([posterior_index_name])]
     return pd.concat(rows)
 
 
@@ -288,15 +293,15 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
     return data_and_posterior
 
 
-def combined_condition(df, levels):
+def combined_condition(df: pd.DataFrame, conditions: list):
     # String-valued combined condition
     # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
-    if levels[0] is None:
+    if conditions[0] is None:
         df['combined_condition'] = np.ones(df.shape[0])
         return df, None
 
-    df['combined_condition'] = df[levels[0]].astype('str')
-    for level in levels[1:]:
+    df['combined_condition'] = df[conditions[0]].astype('str')
+    for level in conditions[1:]:
         df['combined_condition'] += df[level].astype('str')
     data = df.copy()
     # Transform conditions to integers as required by numpyro:
@@ -305,6 +310,6 @@ def combined_condition(df, levels):
 
     # Keep key for later use
     key = dict()
-    for level in levels:
+    for level in conditions:
         key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
     return data, key

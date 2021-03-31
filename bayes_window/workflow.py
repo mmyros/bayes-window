@@ -197,7 +197,6 @@ class BayesWindow:
                                  **kwargs)
         if add_data:
             # Add data back
-            # TODO posterior_index_name=self.condition[0] will not work if need combined_condition
             df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
                                                                           posterior=self.trace.posterior,
                                                                           y=self.y,
@@ -213,17 +212,22 @@ class BayesWindow:
                                                                           )
         else:  # Just convert posterior to dataframe
             from bayes_window.utils import trace2df
-            # TODO we add data regardless. Is there a way to not use self.data?
+            # TODO we add data regardless. Is there a way to not use self.data in hdi2df_many_conditions?
             df_result, self.trace.posterior = trace2df(self.trace.posterior,
-                                                       self.data, b_name=self.b_name,
+                                                       self.data,
+                                                       b_name=self.b_name,
                                                        posterior_index_name='combined_condition',
                                                        group_name=self.group,
                                                        )
 
-        if self.condition[0] is not None:  # Back to human-readable labels
-            [df_result[col].replace(self._key[col], inplace=True)
-             for col in self._key.keys()
-             if (not col == self.treatment) and (col in df_result)]
+        # if self.condition[0] is not None:  # Back to human-readable labels
+        #     # self.data.combined_condition
+        #     # self.data[col]
+        #     # self._key[col]
+        #     [df_result[col].replace(self._key[col], inplace=True)
+        #      for col in self._key.keys()
+        #      if (not col == self.treatment) # and (col in df_result)
+        #      ]
         self.data_and_posterior = df_result
         self.fold_change_index_cols = fold_change_index_cols
         return self
@@ -331,13 +335,15 @@ class BayesWindow:
 
         return self.chart
 
-    def plot(self, **kwargs):
+    def plot(self, x=None, color=None, **kwargs):
         # Convenience function
         if not self.b_name:
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
-            return visualization.plot_data(self.data, x=self.levels[0], y=self.y,
-                                           color=self.levels[1] if len(self.levels) > 1 else None,
+            return visualization.plot_data(self.data,
+                                           x=x or self.levels[0],
+                                           y=self.y,
+                                           color=color or (self.levels[1] if len(self.levels) > 1 else None),
                                            **kwargs)[0]
 
         elif self.b_name == 'lme':

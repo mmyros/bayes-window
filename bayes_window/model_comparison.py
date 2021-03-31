@@ -254,7 +254,7 @@ def compare_models(df, models: dict,
                    extra_args=[{}, {}, {'prior':'Exponential'}, {'prior':'Gamma'}])
     """
 
-    # numpyro.set_host_device_count(10)
+    # Calculate
     extra_model_args = extra_model_args or np.tile({}, len(models))
     if parallel:
         traces = Parallel(n_jobs=min(os.cpu_count(),
@@ -270,6 +270,7 @@ def compare_models(df, models: dict,
     for key, trace in zip(models.keys(), traces):
         traces_dict[key] = trace
 
+    # Plot
     if plotose:
         for trace_name, trace in traces_dict.items():
 
