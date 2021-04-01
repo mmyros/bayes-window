@@ -1,8 +1,10 @@
+import pdb
+from contextlib import nullcontext
+
 import jax.numpy as jnp
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-
 from numpyro.handlers import reparam
 from numpyro.infer.reparam import LocScaleReparam
 
@@ -11,11 +13,12 @@ def reparam_model(model):
     return reparam(model, config={'x': LocScaleReparam(0)})
 
 
-def sample_y(dist_y, theta, y):
-    if dist_y == 'gamma':
-        sigma_obs = numpyro.sample('sigma_obs', dist.Exponential(1))
-    else:
-        sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
+def sample_y(dist_y, theta, y, sigma_obs=None):
+    if not sigma_obs:
+        if dist_y == 'gamma':
+            sigma_obs = numpyro.sample('sigma_obs', dist.Exponential(1))
+        else:
+            sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
 
     if dist_y == 'student':
         numpyro.sample('y', dist.StudentT(numpyro.sample('nu_y', dist.Gamma(1, .1)), theta, sigma_obs), obs=y)
@@ -68,12 +71,70 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
     if (group is not None) and add_group_slope:
         sigma_b_group = numpyro.sample('sigma_b_group', dist.HalfNormal(1))
         b_stim_per_group = numpyro.sample('b_stim_per_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
-        slope += b_stim_per_group[group] * sigma_b_group
+        slope = slope + b_stim_per_group[group] * sigma_b_group
 
     if treatment is not None:
-        slope *= treatment
+        slope = slope * treatment
 
     sample_y(dist_y=dist_y, theta=intercept + slope, y=y)
+
+
+def model_hierarchical_for_render(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
+                                  add_group_intercept=True):
+
+    # Hyperpriors:
+    a = numpyro.sample('hyper_a', dist.Normal(0., 5))
+    sigma_a = numpyro.sample('hyper_sigma_a', dist.HalfNormal(1))
+
+    # with numpyro.plate('n_groups1', np.unique(group).size) if add_group_slope else nullcontext():
+    #     sigma_b = numpyro.sample('sigma_b', dist.HalfNormal(1))
+    #     b = numpyro.sample('b', dist.Normal(0., 1))
+    #     with numpyro.plate('n_conditions', np.unique(condition).size):
+    #         # Varying slopes:
+    #         b_condition = numpyro.sample('b_stim', dist.Normal(b, sigma_b))
+
+    sigma_b = numpyro.sample('hyper_sigma_b_condition', dist.HalfNormal(1))
+    b = numpyro.sample('hyper_b_condition', dist.Normal(0., 1))
+    with (  # numpyro.plate('n_groups1', np.unique(group).size) if add_group_slope else
+        numpyro.plate('n_conditions', np.unique(condition).size)):
+        # Varying slopes:
+        b_condition = numpyro.sample('b_stim_per_condition', dist.Normal(b, sigma_b))
+
+    sigma_b = numpyro.sample('hyper_sigma_b_group', dist.HalfNormal(1))
+    b = numpyro.sample('hyper_b_group', dist.Normal(0., 1))
+    if add_group_slope:
+        with numpyro.plate('n_groups', np.unique(group).size):
+            # Varying slopes:
+            b_group = numpyro.sample('b_group', dist.Normal(b, sigma_b))
+    else:
+        b_group = 0
+    if add_group_intercept:
+        with numpyro.plate('n_groups', np.unique(group).size):
+            # Varying intercepts:
+            a_group = numpyro.sample('a_group', dist.Normal(a, sigma_a))
+        theta = a_group[group] + (b_condition[condition] + b_group[group]) * treatment
+    else:
+        theta = a + (b_condition[condition] + b_group[group]) * treatment
+    sample_y(dist_y=dist_y, theta=theta, y=y)
+
+
+def model_hierarchical_next(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
+                            add_group_intercept=True):
+    # Hyperpriors:
+    a = numpyro.sample('a', dist.Normal(0., 5))
+    sigma_a = numpyro.sample('sigma_a', dist.HalfNormal(1))
+    b = numpyro.sample('b', dist.Normal(0., 1))
+    sigma_b = numpyro.sample('sigma_b', dist.HalfNormal(1))
+
+    with numpyro.plate('n_conditions', np.unique(condition).size) if add_group_slope else nullcontext():
+        # Varying slopes:
+        b_condition = numpyro.sample('b_stim_per_subject', dist.Normal(b, sigma_b))
+
+    with numpyro.plate('n_groups', np.unique(group).size) if add_group_intercept else nullcontext():
+        # Varying intercepts:
+        a_group = numpyro.sample('a_group', dist.Normal(a, sigma_a))
+        theta = a_group[group] + b_condition[condition] * treatment
+        sample_y(dist_y=dist_y, theta=theta, y=y)
 
 
 def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal', **kwargs):

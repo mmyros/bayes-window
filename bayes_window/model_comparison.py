@@ -193,7 +193,7 @@ def split_train_predict(df, model, y, **kwargs):
     :return:
     """
 
-    level_names = ['treatment', 'condition', 'group']
+    level_names = ['treatment', 'group']
     # Drop levels that were not requested
     level_names = [level_name for level_name in level_names if (level_name in kwargs.keys())]
     # Drop levels not present in data
@@ -202,6 +202,7 @@ def split_train_predict(df, model, y, **kwargs):
     # df_cols = utils.parse_levels(*level_names)
 
     df_cols = [utils.level_to_data_column(level_name, kwargs) for level_name in level_names]
+    df_cols.extend(['combined_condition'])
 
     # split into training and test
     if len(df_cols) > 0:
@@ -212,7 +213,7 @@ def split_train_predict(df, model, y, **kwargs):
     model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
     mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1)
-    ppc = Predictive(model, parallel=False, num_samples=1000)
+    ppc = Predictive(model, parallel=False, num_samples=2000)
     ppc = ppc(random.PRNGKey(17), **model_args)
 
     predictive = az.from_numpyro(mcmc,

@@ -191,7 +191,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
     # mean firing rate per trial per mouse
     width = 50
     fig_trials = alt.Chart(df).mark_line(fill=None, ).encode(
-        x=alt.X('stim'),
+        x=alt.X('stim:O'),
         y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=False)),
         color='neuron:N',
         detail='i_trial:Q',
@@ -210,7 +210,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
     fig_select = alt.Chart(df[(df['neuron'] == '0') |
                               (df['neuron'] == str(df['neuron'].astype(int).max().astype(int) - 1))]).mark_line(
         fill=None, ).encode(
-        x=alt.X('stim'),
+        x=alt.X('stim:O'),
         y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=False)),
         color='neuron:N',
         detail='i_trial:Q',
@@ -226,7 +226,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
 
     # mean firing rate per mouse
     fig_neurons = alt.Chart(df).mark_line(fill=None, ).encode(
-        x=alt.X('stim'),
+        x=alt.X('stim:O'),
         y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=False)),
         color='neuron:N',
         opacity=alt.value(1),
@@ -264,7 +264,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         (df_monster['mouse'] == f'm{df_monster["mouse_code"].astype(int).max()}bayes')
         ]
     fig_isi = alt.Chart(df_isi).mark_tick(opacity=.2).encode(
-        x=alt.X('stim'),
+        x=alt.X('stim:O'),
         y=alt.Y('mean(log_1/isi)', scale=alt.Scale(zero=False), ),
         color='neuron:N',
         detail='i_spike:Q',  # Crucial: Q!
@@ -273,7 +273,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
         height=500
     )
     fig_overlay = alt.Chart(df_isi).mark_line(fill=None, ).encode(
-        x=alt.X('stim'),
+        x=alt.X('stim:O'),
         y=alt.Y('log_firing_rate', scale=alt.Scale(zero=False)),
         color='neuron:N',
         detail='i_trial:Q',

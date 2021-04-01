@@ -67,7 +67,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
         size = alt.condition(~highlight, alt.value(1), alt.value(3))
     else:
         size = alt.value(1.)
-  
+
     lines = base.mark_line(clip=True, fill=None, opacity=.6).encode(
         size=size,
         x=x,
@@ -96,7 +96,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
     return lines, points
 
 
-def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
+def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
               **kwargs):
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
@@ -121,6 +121,18 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
         #                             domain=list(np.quantile(base.data[y], [.05, .95])))),
         #     tooltip=color,
         # ).interactive())
+    # else:
+    #
+    #     charts.append(base.mark_circle(clip=True, opacity=0, filled=True).encode(
+    #
+    #         x=x,
+    #         color=f'{color}',
+    #         y=alt.Y(f'mean({y})',
+    #                 axis=alt.Axis(title='', orient='right'),
+    #                 scale=alt.Scale(zero=False,
+    #                                 domain=list(np.quantile(base.data[y], [.05, .95])))),
+    #         detail=detail
+    #     ))
     else:  # Stripplot
         charts.append(base.mark_tick(clip=True, opacity=1, size=12).encode(
             x=x,
@@ -131,7 +143,6 @@ def plot_data(df=None, x=None, y=None, color=None, add_box=True, base_chart=None
                     scale=alt.Scale(zero=False, domain=y_domain)),
             tooltip=color
         ))
-    # axis = alt.Axis(title='') # labels=False, tickCount=0,
 
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
@@ -175,7 +186,6 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Make the zero line
-    add_zero_line=True
     if add_zero_line:
         title = f'Δ {title}'
         base_chart.data['zero'] = 0

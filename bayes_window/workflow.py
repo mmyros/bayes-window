@@ -79,7 +79,7 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, do_make_change='divide', add_interaction=False):
+    def fit_lme(self, do_make_change='divide', add_interaction=False,add_data=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
@@ -134,8 +134,9 @@ class BayesWindow:
                             groups=self.data[self.group]).fit()
         print(result.summary().tables[1])
         self.posterior = utils.scrub_lme_result(result, include_condition, condition, self.data, self.treatment)
-        self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-                                                            condition, self.data, self.y, self.levels, self.treatment)
+        if add_data:
+            self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
+                                                        condition, self.data, self.y, self.levels, self.treatment)
 
         return self
 
@@ -165,7 +166,7 @@ class BayesWindow:
         return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
-                   do_mean_over_trials=True, **kwargs):
+                   do_mean_over_trials=True, fit_method=fit_numpyro, **kwargs):
         if do_make_change not in ['subtract', 'divide']:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
@@ -183,7 +184,7 @@ class BayesWindow:
              if not (condition in fold_change_index_cols)]
 
         # Fit
-        self.trace = fit_numpyro(y=self.data[self.y].values,
+        self.trace = fit_method(y=self.data[self.y].values,
                                  treatment=self.data[self.treatment].values,
                                  # condition=self.data[self.condition[0]].values if self.condition[0] else None,
                                  condition=self.data['combined_condition'].values if self.condition[0] else None,
@@ -317,15 +318,15 @@ class BayesWindow:
 
         return self.chart
 
-    def plot(self, x=None, color=None, **kwargs):
+    def plot(self, **kwargs):
         # Convenience function
         if not self.b_name:
             warnings.warn('No model has been fit. Defaulting to plotting "slopes" for data. Use .plot_slopes'
                           'or .plot_posteriors_no_slope to be explicit ')
+            # x = self.levels[0] if 'x' not in kwargs else None
+            # color = color or (self.levels[1] if len(self.levels) > 1 else None),
             return visualization.plot_data(self.data,
-                                           x=x or self.levels[0],
                                            y=self.y,
-                                           color=color or (self.levels[1] if len(self.levels) > 1 else None),
                                            **kwargs)[0]
 
         elif self.b_name == 'lme':
@@ -407,7 +408,7 @@ class BayesWindow:
             if add_group_slope:
                 if self.group is None:
                     raise KeyError('You asked to include group slope. Initalize BayesWindow object with group input')
-                models['no_group_slope'] = self.model
+                models['with_group_slope'] = self.model
                 # add_group_slope is False by default in model_hierarchical
                 extra_model_args.extend([{'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
                                           'add_group_slope': True}])
