@@ -79,7 +79,7 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, do_make_change='divide', add_interaction=False,add_data=False):
+    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
@@ -136,7 +136,7 @@ class BayesWindow:
         self.posterior = utils.scrub_lme_result(result, include_condition, condition, self.data, self.treatment)
         if add_data:
             self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-                                                        condition, self.data, self.y, self.levels, self.treatment)
+                                                            condition, self.data, self.y, self.levels, self.treatment)
 
         return self
 
@@ -166,9 +166,9 @@ class BayesWindow:
         return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
-                   do_mean_over_trials=True, fit_method=fit_numpyro, **kwargs):
-        if do_make_change not in ['subtract', 'divide']:
-            raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
+                   do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
+        # if do_make_change not in ['subtract', 'divide']:
+        #     raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
         self.do_make_change = do_make_change
         self.model = model
@@ -177,22 +177,24 @@ class BayesWindow:
             # TODO case with no plot_index_cols should include any multiindex?
             fold_change_index_cols = self.levels
         fold_change_index_cols = list(fold_change_index_cols)
-        include_condition = self.condition[0] and np.unique(self.data[self.condition[0]]).size > 1
-        self.b_name = 'b_stim_per_condition' if include_condition else 'b_stim'
-        if include_condition and (not self.condition[0] in fold_change_index_cols):
+        if add_condition_slope:
+            add_condition_slope = self.condition[0] and (np.unique(self.data['combined_condition']).size > 1)
+        self.b_name = 'b_stim_per_condition' if add_condition_slope else 'b_stim'
+        if add_condition_slope and (not self.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.condition
              if not (condition in fold_change_index_cols)]
 
         # Fit
         self.trace = fit_method(y=self.data[self.y].values,
-                                 treatment=self.data[self.treatment].values,
-                                 # condition=self.data[self.condition[0]].values if self.condition[0] else None,
-                                 condition=self.data['combined_condition'].values if self.condition[0] else None,
-                                 group=self.data[self.group].values,
-                                 model=model,
-                                 **kwargs)
+                                treatment=self.data[self.treatment].values,
+                                # condition=self.data[self.condition[0]].values if self.condition[0] else None,
+                                condition=self.data['combined_condition'].values if self.condition[0] else None,
+                                group=self.data[self.group].values,
+                                model=model,
+                                add_condition_slope=add_condition_slope,
+                                **kwargs)
         # Add data back
-        df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data,
+        df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data.copy(),
                                                                       posterior=self.trace.posterior, y=self.y,
                                                                       fold_change_index_cols=fold_change_index_cols,
                                                                       treatment_name=self.treatment,
@@ -201,6 +203,7 @@ class BayesWindow:
                                                                       do_make_change=do_make_change,
                                                                       do_mean_over_trials=do_mean_over_trials,
                                                                       group_name=self.group)
+        #todo trace2df back
 
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
@@ -258,8 +261,11 @@ class BayesWindow:
             y_scale = None
             self.chart = chart_p
 
+        if np.unique(self.data['combined_condition']).size > 1:
+            add_posterior_density = False
         if x != ':O':
-            if len(self.data[x[:-2]].unique()) > 1:  # That would be too dense. Override add_posterior_density
+            if (len(self.data[x[:-2]].unique()) > 1):
+                # That would be too dense. Override add_posterior_density
                 add_posterior_density = False
 
         if posterior is not None and add_posterior_density and (self.b_name != 'lme'):
@@ -293,7 +299,7 @@ class BayesWindow:
             chart_p = visualization.plot_posterior(x=x,
                                                    do_make_change=False,
                                                    add_data=add_data,
-                                                   title=f'{self.y} estimate',  # TODO uncomment
+                                                   title=f'{self.y} estimate',
                                                    base_chart=base_chart,
                                                    **kwargs
                                                    )
@@ -336,7 +342,7 @@ class BayesWindow:
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
-    def facet(self, width=50, height=60, **kwargs):
+    def facet(self, width=150, height=160, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
         if self.independent_axes is None:
             # TODO let's not force users to plot. have a sensible default

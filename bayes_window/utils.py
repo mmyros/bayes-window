@@ -54,13 +54,16 @@ def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=Non
         df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
     if do_make_change:
         # Make (fold) change
-        df_data, _ = make_fold_change(df_data,
-                                      y=y,
-                                      index_cols=fold_change_index_cols,
-                                      treatment_name=treatment_name,
-                                      treatments=treatments,
-                                      fold_change_method=do_make_change,
-                                      do_take_mean=False)
+        try:
+            df_data, _ = make_fold_change(df_data,
+                                          y=y,
+                                          index_cols=fold_change_index_cols,
+                                          treatment_name=treatment_name,
+                                          treatments=treatments,
+                                          fold_change_method=do_make_change,
+                                          do_take_mean=False)
+        except Exception as e:
+            print(e)
     # Convert to dataframe and fill in data:
     df_bayes, posterior = trace2df(posterior, df_data, b_name=b_name, posterior_index_name=posterior_index_name,
                                    group_name=group_name)

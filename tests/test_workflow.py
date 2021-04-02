@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from pytest import mark
-
 from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
@@ -150,6 +148,24 @@ def test_estimate_posteriors_slope():
     chart.display()
 
 
+def test_estimate_posteriors_slope_uneven_n_data_per_condition():
+    # Trying to reproduce Uneven number of entries in conditions! Try setting do_take_mean=True
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=10,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=2, )
+    df = df.drop(df[(df['i_trial'] == 0) &
+                    # (df['neuron_x_mouse'] == '0m0bayes') &
+                    (df['stim'] == 0)].index)
+    bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
+    bw.fit_slopes(models.model_hierarchical, do_make_change='divide')
+
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart.display()
+    chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart.display()
+
+
 def test_estimate_posteriors_slope_groupslope():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
@@ -162,6 +178,7 @@ def test_estimate_posteriors_slope_groupslope():
     chart.display()
     chart = bw.plot(x='neuron_code', column='neuron_code', row='mouse_code')
     chart.display()
+
 
 # def test_estimate_posteriors_two_conditions_w_wo_data():
 #     df = generate_spikes_stim_types(mouse_response_slope=3,
@@ -181,6 +198,8 @@ def test_estimate_posteriors_slope_groupslope():
 
 
 from pytest import mark
+
+
 @mark.parametrize('add_data', [False, True])
 def test_estimate_posteriors_two_conditions_no_add_data(add_data):
     df = generate_spikes_stim_types(mouse_response_slope=3,

@@ -133,16 +133,16 @@ def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, 
     #                                 domain=list(np.quantile(base.data[y], [.05, .95])))),
     #         detail=detail
     #     ))
-    else:  # Stripplot
-        charts.append(base.mark_tick(clip=True, opacity=1, size=12).encode(
-            x=x,
-            color=f'{color}',
-            detail=detail,
-            y=alt.Y(f'{y}',
-                    axis=alt.Axis(orient='right'),
-                    scale=alt.Scale(zero=False, domain=y_domain)),
-            tooltip=color
-        ))
+    # else:  # Stripplot
+    #     charts.append(base.mark_tick(clip=True, opacity=1, size=12).encode(
+    #         x=x,
+    #         color=f'{color}',
+    #         detail=detail,
+    #         y=alt.Y(f'{y}',
+    #                 axis=alt.Axis(orient='right'),
+    #                 scale=alt.Scale(zero=False, domain=y_domain)),
+    #         tooltip=color
+    #     ))
 
     if add_box:
         # Shift x axis for box so that it doesnt overlap:
@@ -230,7 +230,7 @@ def plot_data_slope_trials(x,
                            df=None,
                            **kwargs):
     assert (df is not None) or (base_chart is not None)
-    color = color or ':O'
+    color = color or ':N'
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     base_chart = base_chart or alt.Chart(df)

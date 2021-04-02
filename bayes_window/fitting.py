@@ -1,3 +1,5 @@
+import pdb
+
 import jax.numpy as jnp
 import numpyro
 import numpyro.optim as optim
@@ -59,7 +61,6 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
     if 'sample_stats' in trace:
         if trace.sample_stats.diverging.sum(['chain', 'draw']).values > 0:
             print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
-
     if convert_to_arviz:
         return trace
     else:

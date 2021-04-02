@@ -1,4 +1,3 @@
-import pdb
 from contextlib import nullcontext
 
 import jax.numpy as jnp
@@ -45,7 +44,7 @@ def model_single(y, condition, dist_y='normal'):
 
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
-                       add_group_intercept=True):
+                       add_group_intercept=True, add_condition_slope=True):
     n_subjects = np.unique(group).shape[0]
     # condition = condition.astype(int)
     intercept = numpyro.sample('a', dist.Normal(0, 1))
@@ -55,7 +54,9 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         a_subject = numpyro.sample('a_subject', dist.HalfNormal(jnp.tile(1, n_subjects)))
         intercept += a_subject[group] * sigma_a_subject
 
-    if (condition is None) or np.unique(condition).size < 2:
+    if (condition is None) or (np.unique(condition).size < 2):
+        add_condition_slope = False  # no need for per-condition slope
+    if not add_condition_slope:
         slope = numpyro.sample('b_stim', dist.Normal(0, 10))
     else:
         n_conditions = np.unique(condition).shape[0]
@@ -81,7 +82,6 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
 
 def model_hierarchical_for_render(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
                                   add_group_intercept=True):
-
     # Hyperpriors:
     a = numpyro.sample('hyper_a', dist.Normal(0., 5))
     sigma_a = numpyro.sample('hyper_sigma_a', dist.HalfNormal(1))

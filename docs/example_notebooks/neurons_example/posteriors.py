@@ -13,7 +13,7 @@
 #     name: pycharm-d5912792
 # ---
 
-# # Neurons example with posteriors, not slopes
+# # Neurons example, no slopes
 #
 
 # +
@@ -35,30 +35,26 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
 
 # ## Quick workflow
 
-#facet,independent_axes=False, no fitting
-# Width works!
-reload(workflow)
-reload(visualization)
 bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse',)
-bw.plot().facet('neuron')
+bw.plot(x='stim').facet('neuron')
 
-# # TODO this default is fishy
+# TODO this default is fishy
 
 bw.plot_posteriors_no_slope()
 
 # This is stil fishy: why vertical lines? all sources of variance should be accounted for
 
-bw.plot_posteriors_no_slope(x='stim', detail='neuron', color='mouse:O')
+bw.plot_posteriors_no_slope(x='stim', detail='neuron', color='mouse:N')
 
 # It's because of trial, look:
 
-bw.plot_posteriors_no_slope(x='stim', color='neuron:O')
+bw.plot_posteriors_no_slope(x='stim', color='neuron:N')
 bw.facet(column='mouse')
 
 bw.detail='i_trial'
-bw.plot_posteriors_no_slope(x='stim', color='neuron:O')
+bw.plot_posteriors_no_slope(x='stim', color='neuron:N')
 
-# # And this default is thus fishy,too
+#  And this default is thus fishy,too
 
 bw.facet(column='mouse',height=80,width=80)
 
@@ -72,14 +68,16 @@ reload(visualization)
 bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
 
 bw.fit_conditions(model=models.model_single, )
+# -
 
-bw.plot_posteriors_no_slope(x='stim:O',independent_axes=False,add_data=False).display()
+
+# TODO data is fine, posterior is not
+
+bw.plot_posteriors_no_slope(x='stim:O',color='neuron:N',independent_axes=False,add_data=True)#.display()
+bw.facet(column='mouse')
 
 
 # +
-#facet,independent_axes=False, add data
-reload(workflow)
-reload(visualization)
 df.neuron=df.neuron.astype(int)
 bw=workflow.BayesWindow(df,y='isi',treatment='stim', condition='neuron', group='mouse')
 
