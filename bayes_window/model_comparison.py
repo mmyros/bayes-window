@@ -199,10 +199,10 @@ def split_train_predict(df, model, y, **kwargs):
     # Drop levels not present in data
     level_names = [level_name for level_name in level_names if kwargs[level_name] not in [None, [None]]]
     # Corresponding df labels:
-    # df_cols = utils.parse_levels(*level_names)
-
     df_cols = [utils.level_to_data_column(level_name, kwargs) for level_name in level_names]
-    df_cols.extend(['combined_condition'])
+
+    if 'combined_condition' in df.columns:
+        df_cols.extend(['combined_condition'])
 
     # split into training and test
     if len(df_cols) > 0:
@@ -212,10 +212,11 @@ def split_train_predict(df, model, y, **kwargs):
     model_args = {'y': df_test[y].values}
     model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
-    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1)
-    ppc = Predictive(model, parallel=False, num_samples=2000)
+    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1, n_draws=2000)
+    ppc = Predictive(model, parallel=False, num_samples=2000, batch_ndims=2)
     ppc = ppc(random.PRNGKey(17), **model_args)
-
+    assert ((ppc['y'].shape[0] == mcmc.num_chains and ppc['y'].shape[1] == mcmc.num_samples) |
+            (ppc['y'].shape[0] == mcmc.num_chains * mcmc.num_samples)), 'there will be warning below'
     predictive = az.from_numpyro(mcmc,
                                  posterior_predictive=ppc,
                                  # coords={"mouse": df_test['mouse_code']},

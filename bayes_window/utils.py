@@ -88,7 +88,7 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
 def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     # Check
     if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
-        raise ValueError('Groups were constructed differently for estimation and data. Cant add data for plots')
+        warnings.warn('Groups were constructed differently for estimation and data. Cant add data for plots')
     rows = [fill_row(group_val, data_rows, df_bayes, posterior_index_name)
             for group_val, data_rows in df_data.groupby([posterior_index_name])]
     return pd.concat(rows)
@@ -167,11 +167,23 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         mdf.xs(treatments[0], level=treatment_name).size):
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        raise IndexError(f'Uneven number of entries in conditions! Try setting do_take_mean=True'
-                         f'{debug_info}')
+        warnings.warn(f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
+                      f'{debug_info}')
+        #TODO drop conditions that dont have both treatments
 
-    # Subtract/divide
-    try:
+        # mdf = df.set_index(treatment_name).copy()
+
+        if fold_change_method == 'subtract':
+            data = (
+                mdf.xs(treatments[1], )[y] -
+                mdf.xs(treatments[0], )[y]
+            ).reset_index()
+        else:
+            data = (mdf.xs(treatments[1], )[y] /
+                    mdf.xs(treatments[0], )[y]
+                    ).reset_index()
+    else:
+        # Subtract/divide
         if fold_change_method == 'subtract':
             data = (
                 mdf.xs(treatments[1], level=treatment_name)[y] -
@@ -181,18 +193,15 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
             data = (mdf.xs(treatments[1], level=treatment_name)[y] /
                     mdf.xs(treatments[0], level=treatment_name)[y]
                     ).reset_index()
-    except Exception as e:
-        print(f'Try recasting {treatment_name} as integer and try again. Alternatively, use bayes_window.workflow.'
-              f' We do that automatically there ')
-        raise e
     y1 = f'{y} diff'
     data.rename({y: y1}, axis=1, inplace=True)
-    if np.isnan(data[y1]).all():
-        print(f'For {treatments}, data has all-nan {y1}: {data.head()}')
-        print(f'Condition 1: {mdf.xs(treatments[1], level=treatment_name)[y].head()}')
-        print(f'Condition 2: {mdf.xs(treatments[0], level=treatment_name)[y].head()}')
-        raise ValueError(f'For {treatments}, data has all-nan {y1}. Ensure there a similar treatment to {y} does not'
-                         f'shadow it!')
+    # Some debug
+    # if np.isnan(data[y1]).all():
+    #     print(f'For {treatments}, data has all-nan {y1}: {data.head()}')
+    #     print(f'Condition 1: {mdf.xs(treatments[1], level=treatment_name)[y].head()}')
+    #     print(f'Condition 2: {mdf.xs(treatments[0], level=treatment_name)[y].head()}')
+    #     raise ValueError(f'For {treatments}, data has all-nan {y1}. Ensure there a similar treatment to {y} does not'
+    #                      f'shadow it!')
 
     return data, y1
 
@@ -302,3 +311,57 @@ def combined_condition(df: pd.DataFrame, conditions: list):
     for level in conditions:
         key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
     return data, key
+
+
+def load_radon():
+    # !pip install pymc3
+    import numpy as np
+    import pandas as pd
+    # import pymc3 as pm
+    # Import radon data
+    try:
+        srrs2 = pd.read_csv("../docs/example_notebooks/radon_example/srrs2.dat", error_bad_lines=False)
+    except FileNotFoundError:
+        try:
+            srrs2 = pd.read_csv("docs/example_notebooks/radon_example/srrs2.dat", error_bad_lines=False)
+        except FileNotFoundError:
+            srrs2 = pd.read_csv("srrs2.dat", error_bad_lines=False)
+    srrs2.columns = srrs2.columns.map(str.strip)
+    srrs_mn = srrs2[srrs2.state == "MN"].copy()
+
+    # Next, obtain the county-level predictor, uranium, by combining two variables.
+
+    srrs_mn["fips"] = srrs_mn.stfips * 1000 + srrs_mn.cntyfips
+    try:
+        cty = pd.read_csv("../docs/example_notebooks/radon_example/cty.dat", error_bad_lines=False)
+    except FileNotFoundError:
+        try:
+            cty = pd.read_csv("docs/example_notebooks/radon_example/cty.dat", error_bad_lines=False)
+        except FileNotFoundError:
+            cty = pd.read_csv("cty.dat", error_bad_lines=False)
+    cty_mn = cty[cty.st == "MN"].copy()
+    cty_mn["fips"] = 1000 * cty_mn.stfips + cty_mn.ctfips
+
+    # Use the merge method to combine home- and county-level information in a single DataFrame.
+
+    srrs_mn = srrs_mn.merge(cty_mn[["fips", "Uppm"]], on="fips")
+    srrs_mn = srrs_mn.drop_duplicates(subset="idnum")
+    u = np.log(srrs_mn.Uppm).unique()
+
+    n = len(srrs_mn)
+
+    srrs_mn.head()
+
+    srrs_mn.county = srrs_mn.county.map(str.strip)
+    mn_counties = srrs_mn.county.unique()
+    counties = len(mn_counties)
+    county_lookup = dict(zip(mn_counties, range(counties)))
+
+    # Finally, create local copies of variables.
+
+    county = srrs_mn["county_code"] = srrs_mn.county.replace(county_lookup).values
+    radon = srrs_mn.activity
+    srrs_mn["log_radon"] = log_radon = np.log(radon + 0.1).values
+    floor = srrs_mn.floor.values
+
+    return pd.DataFrame({'county': county, 'radon': radon, 'floor': floor})

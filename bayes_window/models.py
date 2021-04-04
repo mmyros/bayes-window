@@ -44,7 +44,7 @@ def model_single(y, condition, dist_y='normal'):
 
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
-                       add_group_intercept=True, add_condition_slope=True):
+                       add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False):
     n_subjects = np.unique(group).shape[0]
     # condition = condition.astype(int)
     intercept = numpyro.sample('a', dist.Normal(0, 1))
@@ -72,6 +72,11 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
     if (group is not None) and add_group_slope:
         sigma_b_group = numpyro.sample('sigma_b_group', dist.HalfNormal(1))
         b_stim_per_group = numpyro.sample('b_stim_per_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
+        slope = slope + b_stim_per_group[group] * sigma_b_group
+
+    if (group2 is not None) and add_group2_slope:
+        sigma_b_group = numpyro.sample('sigma_b_group2', dist.HalfNormal(1))
+        b_stim_per_group = numpyro.sample('b_stim_per_group2', dist.Normal(jnp.tile(0, n_subjects), 1))
         slope = slope + b_stim_per_group[group] * sigma_b_group
 
     if treatment is not None:

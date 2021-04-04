@@ -6,6 +6,27 @@ from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
 
 trans = LabelEncoder().fit_transform
+from bayes_window.utils import load_radon
+
+from pytest import mark
+
+
+@mark.parametrize('add_posterior_density', [True, False], )
+@mark.parametrize('add_data', [True, False])
+@mark.parametrize('add_condition_slope', [True, False])
+@mark.parametrize('add_group_slope', [True, False])
+@mark.parametrize('do_mean_over_trials', [True, False])
+@mark.parametrize('do_make_change', ['subtract', 'divide', False])
+def test_radon(add_posterior_density, add_data, add_condition_slope,
+               add_group_slope, do_mean_over_trials, do_make_change
+               ):
+    df = load_radon()
+    window = BayesWindow(df, y='radon', treatment='floor', condition=['county'])
+    window.plot(x='county').facet(row='floor').display()
+    window.fit_slopes(add_condition_slope=add_condition_slope, do_mean_over_trials=do_mean_over_trials,
+                      add_group_slope=add_group_slope, do_make_change=do_make_change)
+    window.plot().display()
+    window.plot(x=':O', add_data=add_data, add_posterior_density=add_posterior_density).display()
 
 
 def test_slopes_dont_make_change():

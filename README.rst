@@ -31,6 +31,7 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
+- plots as attributes for easy composability
 - Fit checks for LME under plot_diagnostics()
 - Refactor workflow.py
 - Less haphazard testing

@@ -79,7 +79,7 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False):
+    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, override_formula=None):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
@@ -128,6 +128,8 @@ class BayesWindow:
         else:
             condition = None
             formula = f"{self.y} ~ 1 + {self.treatment}"
+        if override_formula:
+            formula = override_formula
         print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
@@ -189,7 +191,7 @@ class BayesWindow:
                                 treatment=self.data[self.treatment].values,
                                 # condition=self.data[self.condition[0]].values if self.condition[0] else None,
                                 condition=self.data['combined_condition'].values if self.condition[0] else None,
-                                group=self.data[self.group].values,
+                                group=self.data[self.group].values if self.group else None,
                                 model=model,
                                 add_condition_slope=add_condition_slope,
                                 **kwargs)
@@ -203,12 +205,14 @@ class BayesWindow:
                                                                       do_make_change=do_make_change,
                                                                       do_mean_over_trials=do_mean_over_trials,
                                                                       group_name=self.group)
-        #todo trace2df back
+        # todo trace2df back
 
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
             levels_to_replace = list(set(self.levels) - {self.treatment})
             for level_values, data_subset in self.original_data.groupby(levels_to_replace):
+                if not hasattr(level_values, '__len__'):  # This level is a scalar
+                    level_values = [level_values]
                 for level_name, level_value in zip(levels_to_replace, level_values):
                     df_result.loc[df_result['combined_condition'] == data_subset['combined_condition'].iloc[0],
                                   level_name] = level_value
@@ -245,9 +249,9 @@ class BayesWindow:
         if add_data:
             assert self.data_and_posterior is not None
             y = f'{self.y} diff'
-            if y not in self.data_and_posterior:
+            if y not in self.data_and_posterior.columns:
                 raise KeyError(f'change in data was not added, but add_data requested:'
-                               f'{self.y} is not in {self.data_and_posterior.keys}')
+                               f'{y} is not in {self.data_and_posterior.columns}')
             if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
