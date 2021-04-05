@@ -59,6 +59,7 @@ visualization.plot_data(x='neuron', y=dy, color='mouse_code', add_box=True, df=d
 # TODO leave axis labels here somehow
 
 # + [markdown] hideCode=false hidePrompt=false
+#
 # ## Estimate model
 
 # + hideCode=false hidePrompt=false

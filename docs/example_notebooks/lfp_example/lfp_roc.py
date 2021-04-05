@@ -16,6 +16,7 @@
 # + [markdown] slideshow={"slide_type": "slide"}
 # # Compare to ANOVA and LMM: ROC curve
 
+# + slideshow={"slide_type": "slide"}
 from importlib import reload
 
 import numpy as np

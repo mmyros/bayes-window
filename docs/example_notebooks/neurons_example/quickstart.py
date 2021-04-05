@@ -16,8 +16,6 @@
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # # Neurons example, pt. 1
 # ## Generate some data
-#
-#
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 from bayes_window import models, fake_spikes_explore, BayesWindow
