@@ -11,6 +11,7 @@ Welcome to Bayes Window's documentation!
    example_notebooks/lfp_example/quick_lfp
    example_notebooks/neurons_example/quickstart
    example_notebooks/neurons_example/posteriors
+   example_notebooks/neurons_example/detailed_workflow
    modules
    contributing
    authors
