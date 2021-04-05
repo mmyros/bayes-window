@@ -15,7 +15,7 @@ Welcome to Bayes Window's documentation!
    example_notebooks/neurons_example/model_comparison
    example_notebooks/neurons_example/monster
    example_notebooks/radon_example/radon
-   #example_notebooks/motivation/metropolis
+   example_notebooks/motivation/metropolis
    modules
    contributing
    authors
