@@ -14,13 +14,10 @@
 # ---
 
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
-# # Neurons example: high-level interface
+# # Neurons example, pt. 1
 # ## Generate some data
 #
 #
-# -
-
-from numpyro.infer.autoguide import AutoLaplaceApproximation, Trace_ELBO
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 from bayes_window import models, fake_spikes_explore, BayesWindow
@@ -36,8 +33,13 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                mouse_response_slope=40,
                                                                overall_stim_response_strength=45)
 
+df.groupby(['neuron_x_mouse','neuron','mouse']).mean().head(9)
+
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Exploratory plot without any fitting
+# -
+
+# Three mice, five neurons each. Mouse #0/neuron #4 has the least effect, mouse #2/neuron #0 the most
 
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
 
@@ -82,14 +84,6 @@ try:
 except np.linalg.LinAlgError as e:
     print(e)
 
-bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse',)
-#bw.fit_anova()
-try:
-    bw.fit_lme()
-    bw.plot_posteriors_slopes(x='neuron_x_mouse:O')
-except np.linalg.LinAlgError as e:
-    print(e)
-
 # ### Firing rate
 
 # +
@@ -112,6 +106,9 @@ bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mous
 bw.fit_anova();
 # -
 
+# ## Model quality
+
+# +
 bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
 bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
               progress_bar=False,
@@ -119,7 +116,33 @@ bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
               add_group_slope=True, add_group_intercept=False,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
-# ## Model quality
-
-# + slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 bw.plot_model_quality()
+# -
+
+# ## LME fails
+
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',)
+bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=False)
+
+
+bw.plot_posteriors_slopes(x='neuron_x_mouse:O').display()
+#bw.facet(column='mouse').display()
+"Proper faceting will work when data addition is implemented in fit_lme()"
+
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',)
+bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True)
+
+
+bw.plot_posteriors_slopes(x='neuron_x_mouse:O').display()
+    
+
+# Need nested design, but get singular matrix:
+
+# +
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',)
+try:
+    bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True, add_nested_group=True)
+except Exception as e:
+    print(e)
+        
+

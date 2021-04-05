@@ -146,7 +146,7 @@ def generate_fake_spikes(n_trials=6,
 
     # Make index for pymc
 
-    df['neuron_x_mouse'] = df['neuron'] + df['mouse']
+    df['neuron_x_mouse'] = df['mouse'] + df['neuron']
     df['mouse_code'] = trans(df['mouse'])
     df['neuron_code'] = trans(df['neuron_x_mouse'])
     df['mouse_code'] = trans(df['mouse'])

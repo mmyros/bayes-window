@@ -79,7 +79,8 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, override_formula=None):
+    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, override_formula=None,
+                add_group_intercept=True, add_group_slope=False, add_nested_group=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
         #                 groups=self.data[self.group],
@@ -111,11 +112,22 @@ class BayesWindow:
                                                   prefix_sep='__',
                                                   drop_first=False)), axis=1)
             dummy_conditions = [cond for cond in self.data.columns if cond[:len(condition) + 2] == f'{condition}__']
-            # formula = f"{self.y} ~ (1 | {self.group}) + ({dummy_conditions[0]}|{self.group})"
-            formula = f"{self.y} ~ 1+ ({dummy_conditions[0]}|{self.group})"
-            for dummy_condition in dummy_conditions[1:]:
-                formula += f" + ({dummy_condition}|{self.group}) "
-                # formula += f"  {dummy_condition}+ (0 + {dummy_condition} | {self.group})"
+            if add_group_intercept and not add_group_slope and not add_nested_group:
+                formula = f"{self.y} ~ (1|{self.group}) + {self.treatment}| {dummy_conditions[0]}"
+                # eg 'firing_rate ~ stim|neuron_x_mouse__0 +stim|neuron_x_mouse__1 ... + ( 1 |mouse )'
+                for dummy_condition in dummy_conditions[1:]:
+                    formula += f" + {self.treatment}|{dummy_condition}"
+            elif add_group_intercept and add_group_slope and not add_nested_group:
+                formula = (f"{self.y} ~ ({self.treatment}|{self.group}) + "
+                           f"{self.treatment}| {dummy_conditions[0]}")
+                for dummy_condition in dummy_conditions[1:]:
+                    formula += f" + {self.treatment}|{dummy_condition}"
+            elif add_group_intercept and add_group_slope and add_nested_group:
+                formula = (f"{self.y} ~ ({self.treatment}|{self.group}) + "
+                           f"{self.treatment}| {dummy_conditions[0]}:{self.group}")
+                for dummy_condition in dummy_conditions[1:]:
+                    formula += f" + {self.treatment}|{dummy_condition}:{self.group}"
+
             # if add_interaction:
             #     formula += f"+ {condition} * {self.treatment}"
 

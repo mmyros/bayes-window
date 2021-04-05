@@ -208,11 +208,13 @@ def scrub_lme_result(result, include_condition, condition, data, treatment):
     if include_condition:
         # Only take relevant estimates
         res = res.loc[[index for index in res.index
-                       if (index[:len(condition)] == condition)]]
+                       if (condition[:-3] in index)]]
         if res.shape[0] > len(data[condition].unique()):
             # If  conditionals are included, remove non-conditionals
             res = res.loc[[index for index in res.index
-                           if (index[:len(condition)] == condition) and ('|' in index)]]
+                           if (condition[:-3] in index)
+                           # if (index[:len(condition)] == condition)
+                           and ('|' in index)]]
         # Restore condition names
         res[condition] = [data[condition].unique()[i] for i, index in enumerate(res.index)]
         res = res.reset_index(drop=True).set_index(condition)  # To prevent changing condition to float below
