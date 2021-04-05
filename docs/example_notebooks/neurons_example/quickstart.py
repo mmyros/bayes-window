@@ -134,7 +134,7 @@ bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True)
 
 
 bw.plot_posteriors_slopes(x='neuron_x_mouse:O').display()
-    
+
 
 # Need nested design, but get singular matrix:
 
