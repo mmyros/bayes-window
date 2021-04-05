@@ -10,6 +10,7 @@ Welcome to Bayes Window's documentation!
    usage
    example_notebooks/lfp_example/quick_lfp
    example_notebooks/neurons_example/quickstart
+   example_notebooks/neurons_example/posteriors
    modules
    contributing
    authors
