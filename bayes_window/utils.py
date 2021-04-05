@@ -167,21 +167,18 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         mdf.xs(treatments[0], level=treatment_name).size):
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        warnings.warn(f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
+        raise IndexError(f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
                       f'{debug_info}')
-        #TODO drop conditions that dont have both treatments
-
-        # mdf = df.set_index(treatment_name).copy()
-
-        if fold_change_method == 'subtract':
-            data = (
-                mdf.xs(treatments[1], )[y] -
-                mdf.xs(treatments[0], )[y]
-            ).reset_index()
-        else:
-            data = (mdf.xs(treatments[1], )[y] /
-                    mdf.xs(treatments[0], )[y]
-                    ).reset_index()
+        # Some posteriors wont work then
+        # if fold_change_method == 'subtract':
+        #     data = (
+        #         mdf.xs(treatments[1], )[y] -
+        #         mdf.xs(treatments[0], )[y]
+        #     ).reset_index()
+        # else:
+        #     data = (mdf.xs(treatments[1], )[y] /
+        #             mdf.xs(treatments[0], )[y]
+        #             ).reset_index()
     else:
         # Subtract/divide
         if fold_change_method == 'subtract':

@@ -122,12 +122,12 @@ class BayesWindow:
         elif self.group:
             condition = None
             # Random intercepts and slopes (and their correlation): (Variable | Group)
-            formula = f'{self.y} ~  (0+ {self.treatment} | {self.group})'  # (1 | {self.group}) +
+            formula = f'{self.y} ~  {self.treatment} + (1 | {self.group})'  # (1 | {self.group}) +
             # Random intercepts and slopes (without their correlation): (1 | Group) + (0 + Variable | Group)
             # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         else:
             condition = None
-            formula = f"{self.y} ~ 1 + {self.treatment}"
+            formula = f"{self.y} ~ {self.treatment}"
         if override_formula:
             formula = override_formula
         print(f'Using formula {formula}')
@@ -135,11 +135,11 @@ class BayesWindow:
                             self.data,
                             groups=self.data[self.group]).fit()
         print(result.summary().tables[1])
-        self.posterior = utils.scrub_lme_result(result, include_condition, condition, self.data, self.treatment)
+        self.data_and_posterior = utils.scrub_lme_result(result, include_condition, condition, self.data,
+                                                         self.treatment)
         if add_data:
             self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
                                                             condition, self.data, self.y, self.levels, self.treatment)
-
         return self
 
     def fit_conditions(self, model=models.model_single, add_data=True, **kwargs):
@@ -172,6 +172,9 @@ class BayesWindow:
         # if do_make_change not in ['subtract', 'divide']:
         #     raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
 
+        if self.b_name is not None:
+            raise SyntaxError("A model is already present in this BayesWindow object. "
+                              "Please create a new one by calling BayesWindow(...) again")
         self.do_make_change = do_make_change
         self.model = model
         # TODO handle no-group case
@@ -245,13 +248,14 @@ class BayesWindow:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
             chart_p = None
+        if add_data and f'{self.y} diff' not in self.data_and_posterior.columns:
+            warnings.warn(f'change in data was not added, but add_data requested:'
+                          f'{self.y} diff is not in {self.data_and_posterior.columns}')
+            add_data = False
 
         if add_data:
             assert self.data_and_posterior is not None
             y = f'{self.y} diff'
-            if y not in self.data_and_posterior.columns:
-                raise KeyError(f'change in data was not added, but add_data requested:'
-                               f'{y} is not in {self.data_and_posterior.columns}')
             if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
                 assert detail in self.fold_change_index_cols
@@ -273,7 +277,8 @@ class BayesWindow:
                 add_posterior_density = False
 
         if posterior is not None and add_posterior_density and (self.b_name != 'lme'):
-            chart_kde = visualization.plot_posterior_density(base_chart, y, y_scale, self.trace, posterior, self.b_name)
+            chart_kde = visualization.plot_posterior_density(base_chart, y, y_scale, self.trace, posterior,
+                                                             self.b_name, do_make_change=self.do_make_change)
 
             # Add kde to charts:
             if add_box and add_data:
@@ -340,7 +345,10 @@ class BayesWindow:
                                            **kwargs)[0]
 
         elif self.b_name == 'lme':
-            return BayesWindow.plot_posteriors_slopes(self, **kwargs)
+            if 'add_data' in kwargs.keys():
+                warnings.warn('add_data keyword is not implemented for LME')
+                kwargs.pop('add_data')
+            return BayesWindow.plot_posteriors_slopes(self, add_data=False, **kwargs)
         elif 'b_stim' in self.b_name:
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':

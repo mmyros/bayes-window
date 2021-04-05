@@ -139,7 +139,7 @@ def run_method(df, method='bw_student', y='Log power'):
         return bw.fit_anova()  # Returns p-value
 
     elif method == 'mlm':
-        posterior = bw.fit_lme().posterior
+        posterior = bw.fit_lme().data_and_posterior
         try:
             return posterior['lower interval'].iloc[0]
         except AttributeError:

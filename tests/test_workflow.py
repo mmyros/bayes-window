@@ -13,11 +13,12 @@ from pytest import mark
 
 @mark.parametrize('add_posterior_density', [True, False], )
 @mark.parametrize('add_data', [True, False])
+@mark.parametrize('add_box', [True, False])
 @mark.parametrize('add_condition_slope', [True, False])
 @mark.parametrize('add_group_slope', [True, False])
 @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])
-def test_radon(add_posterior_density, add_data, add_condition_slope,
+def test_radon(add_posterior_density, add_data,add_box, add_condition_slope,
                add_group_slope, do_mean_over_trials, do_make_change
                ):
     df = load_radon()
@@ -25,8 +26,8 @@ def test_radon(add_posterior_density, add_data, add_condition_slope,
     window.plot(x='county').facet(row='floor').display()
     window.fit_slopes(add_condition_slope=add_condition_slope, do_mean_over_trials=do_mean_over_trials,
                       add_group_slope=add_group_slope, do_make_change=do_make_change)
-    window.plot().display()
-    window.plot(x=':O', add_data=add_data, add_posterior_density=add_posterior_density).display()
+    # window.plot().display()
+    window.plot(x=':O', add_data=add_data, add_box=add_box, add_posterior_density=add_posterior_density).display()
 
 
 def test_slopes_dont_make_change():
@@ -73,7 +74,7 @@ def test_fit_lme_w_data():
 
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_lme(do_make_change='divide')
-    assert bw.posterior is not None
+    assert bw.data_and_posterior is not None
     bw.plot_posteriors_slopes()
 
 
@@ -290,7 +291,8 @@ def test_plot_no_slope_data_only():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart = BayesWindow(df, y='isi', treatment='stim').plot_posteriors_no_slope()
+    window = BayesWindow(df, y='isi', treatment='stim')
+    chart=window.plot_posteriors_no_slope()
     chart.display()
 
 
@@ -301,7 +303,8 @@ def test_plot_slope_data_only():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    chart = BayesWindow(df, y='isi', treatment='stim').plot_posteriors_no_slope()
+    window= BayesWindow(df, y='isi', treatment='stim')
+    chart =window.plot_posteriors_no_slope()
     chart.display()
 
 
