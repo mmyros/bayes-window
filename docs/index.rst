@@ -9,6 +9,7 @@ Welcome to Bayes Window's documentation!
    installation
    usage
    example_notebooks/lfp_example/quick_lfp
+   example_notebooks/neurons_example/quickstart
    modules
    contributing
    authors
