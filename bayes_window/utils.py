@@ -126,7 +126,8 @@ def get_hdi_map(posterior, circular=False):
                    for _, b in posterior.groupby(dim)]
 
         # Merge HDI and MAP
-        var_name = hdi.columns[-1]
+        
+        assert var_name in intercepts.columns
         intercepts[var_name] = max_a_p
 
         df_bayes = hdi.rename({var_name: 'interval'}, axis=1)
@@ -157,9 +158,9 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
     # max_a_p = trace[b_name].mean(['chain', 'draw']).values
     # b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
 
-    df_bayes = get_hdi_map(trace.posterior[b_name])
+    df_bayes = get_hdi_map(trace[b_name])
 
-    if trace.posterior[b_name] == 2: # No extra dimension, just chains and draws
+    if trace[b_name].ndim == 2: # No extra dimension, just chains and draws
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
