@@ -104,9 +104,6 @@ def hdi2df_one_condition(df_bayes, df_data):
 def get_hdi_map(posterior, circular=False):
     # HDI and mean over draws (will replace with MAP)
     hdi = az.hdi(posterior).to_dataframe()
-    # Name of the variable we are estimating (eg intercept_per_group)
-    var_name = hdi.columns[-1]
-
     if posterior.ndim == 2:
         # Get MAP
         max_a_p = calculate_point_estimate('mode', posterior.values.flatten(), bw="default", circular=circular)
@@ -119,6 +116,8 @@ def get_hdi_map(posterior, circular=False):
     else:
         # The dimension name, other than draws and chains (eg mouse)
         dim = posterior.dims[-1]
+        # Name of the variable we are estimating (eg intercept_per_group)
+        var_name = hdi.columns[-1]
 
         intercepts = posterior.mean(['chain', 'draw']).to_dataframe()
 
