@@ -101,6 +101,41 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
+def get_hdi_map(posterior, circular=False):
+    # HDI and mean over draws (will replace with MAP)
+    hdi = az.hdi(posterior).to_dataframe()
+    if posterior.ndim == 2:
+        # Get MAP
+        max_a_p = calculate_point_estimate('mode', posterior.values.flatten(), bw="default", circular=circular)
+
+        df_bayes = pd.DataFrame({'higher interval': hdi.loc['higher', 'a'],
+                                 'lower interval': hdi.loc['lower', 'a'],
+                                 'center': max_a_p,
+                                 },
+                                index=[0])
+    else:
+        # The dimension name, other than draws and chains (eg mouse)
+        dim = posterior.dims[-1]
+        # Name of the variable we are estimating (eg intercept_per_group)
+        var_name = hdi.columns[-1]
+
+        intercepts = posterior.mean(['chain', 'draw']).to_dataframe()
+
+        # Get MAP
+        max_a_p = [calculate_point_estimate('mode', b.values.flatten(), bw="default", circular=circular)
+                   for _, b in posterior.groupby(dim)]
+
+        # Merge HDI and MAP
+        var_name = hdi.columns[-1]
+        intercepts[var_name] = max_a_p
+
+        df_bayes = hdi.rename({var_name: 'interval'}, axis=1)
+        df_bayes = df_bayes.pivot_table(index=dim, columns=['hdi', ])
+        df_bayes.columns = [' '.join(np.flip(col)) for col in df_bayes.columns]
+        df_bayes = df_bayes.join(intercepts.rename({var_name: 'center'}, axis=1))  # .reset_index()
+    return df_bayes
+
+
 def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name='combined_condition',
              group_name='subject'):
     """
@@ -117,39 +152,50 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         warnings.warn(f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
-    hdi = az.hdi(trace)[b_name]
+    # hdi = az.hdi(trace)[b_name]
 
     # max_a_p = trace[b_name].mean(['chain', 'draw']).values
-    b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
+    # b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
 
-    if hdi.ndim == 1:
-        max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")  # , circular=False)
+    df_bayes = get_hdi_map(trace.posterior[b_name])
 
-        est = xr.DataArray([max_a_p],
-                           coords={'hdi': ["center"], },
-                           dims='hdi')
-        df_bayes = xr.concat([hdi, est], 'hdi').to_dataframe().reset_index()
-        df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
-        if not df_bayes.columns.str.contains('interval').any():
-            # This may be always?
-            df_bayes.columns += ' interval'
-
-
+    if trace.posterior[b_name] == 2: # No extra dimension, just chains and draws
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
-        assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size
-        max_a_p = [calculate_point_estimate('mode', b, bw="default", circular=False) for b in b_all_draws]
-
-        est = xr.DataArray([max_a_p],
-                           coords={'hdi': ["center"], posterior_index_name: hdi[posterior_index_name]},
-                           dims=['hdi', posterior_index_name])
-
-        df_bayes = xr.concat([hdi, est], 'hdi').rename('interval').to_dataframe()
-        df_bayes = df_bayes.pivot_table(index=posterior_index_name, columns=['hdi', ]).reset_index()
-        # Reset 2-level column from pivot_table:
-        df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
-        df_bayes.rename({f' {posterior_index_name}': posterior_index_name}, axis=1, inplace=True)
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
+    # hdi = az.hdi(trace)[b_name]
+    #
+    # # max_a_p = trace[b_name].mean(['chain', 'draw']).values
+    # b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
+    #
+    # if hdi.ndim == 1:
+    #     max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")  # , circular=False)
+    #
+    #     est = xr.DataArray([max_a_p],
+    #                        coords={'hdi': ["center"], },
+    #                        dims='hdi')
+    #     df_bayes = xr.concat([hdi, est], 'hdi').to_dataframe().reset_index()
+    #     df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
+    #     if not df_bayes.columns.str.contains('interval').any():
+    #         # This may be always?
+    #         df_bayes.columns += ' interval'
+    #
+    #
+    #     return hdi2df_one_condition(df_bayes, df_data), trace
+    # else:
+    #     assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size
+    #     max_a_p = [calculate_point_estimate('mode', b, bw="default", circular=False) for b in b_all_draws]
+    #
+    #     est = xr.DataArray([max_a_p],
+    #                        coords={'hdi': ["center"], posterior_index_name: hdi[posterior_index_name]},
+    #                        dims=['hdi', posterior_index_name])
+    #
+    #     df_bayes = xr.concat([hdi, est], 'hdi').rename('interval').to_dataframe()
+    #     df_bayes = df_bayes.pivot_table(index=posterior_index_name, columns=['hdi', ]).reset_index()
+    #     # Reset 2-level column from pivot_table:
+    #     df_bayes.columns = [" ".join(np.flip(pair)) for pair in df_bayes.columns]
+    #     df_bayes.rename({f' {posterior_index_name}': posterior_index_name}, axis=1, inplace=True)
+    #     return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),

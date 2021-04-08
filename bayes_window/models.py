@@ -1,4 +1,4 @@
-from contextlib import nullcontext
+# from contextlib import nullcontext
 
 import jax.numpy as jnp
 import numpy as np
@@ -133,11 +133,11 @@ def model_hierarchical_next(y, condition=None, group=None, treatment=None, dist_
     b = numpyro.sample('b', dist.Normal(0., 1))
     sigma_b = numpyro.sample('sigma_b', dist.HalfNormal(1))
 
-    with numpyro.plate('n_conditions', np.unique(condition).size) if add_group_slope else nullcontext():
+    with numpyro.plate('n_conditions', np.unique(condition).size):# if add_group_slope else nullcontext():
         # Varying slopes:
         b_condition = numpyro.sample('slope_per_group', dist.Normal(b, sigma_b))
 
-    with numpyro.plate('n_groups', np.unique(group).size) if add_group_intercept else nullcontext():
+    with numpyro.plate('n_groups', np.unique(group).size):# if add_group_intercept else nullcontext():
         # Varying intercepts:
         a_group = numpyro.sample('a_group', dist.Normal(a, sigma_a))
         theta = a_group[group] + b_condition[condition] * treatment
