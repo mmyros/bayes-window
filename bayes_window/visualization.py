@@ -175,7 +175,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                       domain=[min(minmax), max(minmax)])
 
     # error_bars
-    chart = base_chart.mark_rule(size=2).encode(
+    chart = base_chart.mark_rule(size=2,clip=True).encode(
         x=x,
         y=alt.Y('lower interval:Q',
                 scale=scale,

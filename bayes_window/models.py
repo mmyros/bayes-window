@@ -44,15 +44,15 @@ def model_single(y, condition, dist_y='normal'):
 
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
-                       add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False):
+                       add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False,
+                       robust_slopes=True):
     n_subjects = np.unique(group).shape[0]
-    # condition = condition.astype(int)
-    intercept = numpyro.sample('a', dist.Normal(0, 1))
-    # intercept = 0
     if (group is not None) and add_group_intercept:
         sigma_a_subject = numpyro.sample('sigma_a_subject', dist.HalfNormal(1))
         a_subject = numpyro.sample('a_subject', dist.HalfNormal(jnp.tile(1, n_subjects)))
-        intercept += a_subject[group] * sigma_a_subject
+        intercept = a_subject[group] * sigma_a_subject
+    else:
+        intercept = numpyro.sample('a', dist.Normal(0, 1))
 
     if (condition is None) or (np.unique(condition).size < 2):
         add_condition_slope = False  # no need for per-condition slope
@@ -60,11 +60,14 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         slope = numpyro.sample('b_stim', dist.Normal(0, 10))
     else:
         n_conditions = np.unique(condition).shape[0]
-        # b_stim_per_condition = numpyro.sample('b_stim_per_condition',
-        #                                       dist.Normal(jnp.tile(0, n_conditions), 10))
-        # Robust slopes:
-        b_stim_per_condition = numpyro.sample('b_stim_per_condition',
-                                              dist.StudentT(1, jnp.tile(0, n_conditions), 10))
+        if robust_slopes:
+            # Robust slopes:
+            b_stim_per_condition = numpyro.sample('b_stim_per_condition',
+                                                  dist.StudentT(1, jnp.tile(0, n_conditions), 10))
+        else:
+            b_stim_per_condition = numpyro.sample('b_stim_per_condition',
+                                                  dist.Normal(jnp.tile(0, n_conditions), 10))
+
 
         sigma_b_condition = numpyro.sample('sigma_b_condition', dist.HalfNormal(1))
         slope = b_stim_per_condition[condition] * sigma_b_condition

@@ -21,6 +21,8 @@
 from bayes_window import models, fake_spikes_explore, BayesWindow
 from bayes_window.generative_models import generate_fake_spikes
 import numpy as np
+import altair as alt
+alt.renderers.enable('altair_saver', fmts=['png']);
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
@@ -29,9 +31,9 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=20,
                                                                 n_mice=3,
                                                                 dur=5,
                                                                mouse_response_slope=40,
-                                                               overall_stim_response_strength=45)
+                                                               overall_stim_response_strength=5)
 
-df.groupby(['neuron_x_mouse','neuron','mouse']).mean().head(9)
+
 
 # + [markdown] slideshow={"slide_type": "slide"} hideCode=false hidePrompt=false
 # ## Exploratory plot without any fitting
@@ -51,12 +53,44 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 # ### ISI
 
+df['log_isi']=np.log10(df['isi'])
+
+alt.data_transformers.disable_max_rows()
+bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.plot(x='neuron',color='stim',detail='i_trial',add_box=False).facet(column='mouse',)
+
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.plot(x='neuron',add_box=True).facet(row='mouse',column='stim')
+
+# ## Vanilla regression
+
 # +
 bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
-bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=False,
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='normal',
+              robust_slopes=False,
+              add_group_slope=False, 
+              add_group_intercept=True, 
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
+
+
+bw.facet(column='mouse',width=200,height=200).display()
+# -
+
+# ## GLM 
+# ($y\sim Gamma(\theta)$)
+
+# +
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='gamma',
+              robust_slopes=False,
+              add_group_slope=False, 
+              add_group_intercept=True, 
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
@@ -76,11 +110,9 @@ chart_slopes
 
 bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse',)
 #bw.fit_anova()
-try:
-    bw.fit_lme()
-    bw.plot_posteriors_slopes(x='neuron_x_mouse:O')
-except np.linalg.LinAlgError as e:
-    print(e)
+bw.fit_lme()
+
+bw.plot_posteriors_slopes(x='neuron_x_mouse:O')
 
 # ### Firing rate
 
@@ -101,17 +133,19 @@ bw.facet(column='mouse',width=200,height=200).display()
 # + slideshow={"slide_type": "fragment"} hideCode=false hidePrompt=false
 bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mouse', group='mouse')
 
-bw.fit_anova();
+bw.fit_anova(formula='firing_rate ~ stim+ mouse + stim*mouse + neuron_x_mouse + stim * neuron_x_mouse');
 # -
 
 # ## Model quality
 
 # +
-bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
-bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
-              progress_bar=False,
-              dist_y='student',
-              add_group_slope=True, add_group_intercept=False,
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='gamma',
+              robust_slopes=False,
+              add_group_intercept=False,
+              add_group_slope=False, 
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
 bw.plot_model_quality()

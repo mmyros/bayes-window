@@ -64,7 +64,7 @@ class BayesWindow:
         self.trace = None
         self.model = None
 
-    def fit_anova(self):
+    def fit_anova(self, formula=None):
         from statsmodels.stats.anova import anova_lm
         if self.group:
             # Average over group:
@@ -74,7 +74,8 @@ class BayesWindow:
         # dehumanize all columns and variable names for statsmodels:
         [data.rename({col: col.replace(" ", "_")}, axis=1, inplace=True) for col in data.columns]
         self.y = self.y.replace(" ", "_")
-        formula = f'{self.y}~{self.treatment}'
+        if not formula:
+            formula = f'{self.y}~{self.treatment}'
         lm = sm.ols(formula, data=data).fit()
         print(f'{formula}\n {anova_lm(lm, typ=2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05

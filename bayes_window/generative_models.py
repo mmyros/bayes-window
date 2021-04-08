@@ -60,6 +60,7 @@ def generate_fake_spikes(n_trials=6,
                          do_ave_trial=False,
                          trial_baseline_randomness=.2,
                          do_bad_mice=False,
+                         fastest_fr=15                         
                          ):
     """
     # mouse id affects slope of fr
@@ -86,9 +87,9 @@ def generate_fake_spikes(n_trials=6,
         print(f'Stim response per mouse (in Hz) is {stim_response_mouse}')
 
     fast_rates = np.logspace(np.log10(slowest_fr + .1 + stim_response_mouse[range(n_mice)]),
-                             np.log10(38), n_neurons)
+                             np.log10(fastest_fr), n_neurons)
     slow_rates = np.logspace(np.tile(np.log10(slowest_fr), n_mice),
-                             np.log10(38), n_neurons)
+                             np.log10(fastest_fr), n_neurons)
     if verbose:
         print(f'Stim response per mouse (in Hz) is {fast_rates - slow_rates}')
         print(f'Fast rates = {fast_rates},\n slow rates= {slow_rates}')
