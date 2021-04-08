@@ -70,8 +70,8 @@ bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='normal',
               robust_slopes=False,
-              add_group_slope=False, 
-              add_group_intercept=True, 
+              add_group_slope=False,
+              add_group_intercept=True,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
@@ -80,7 +80,7 @@ bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box
 bw.facet(column='mouse',width=200,height=200).display()
 # -
 
-# ## GLM 
+# ## GLM
 # ($y\sim Gamma(\theta)$)
 
 # +
@@ -89,8 +89,8 @@ bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='gamma',
               robust_slopes=False,
-              add_group_slope=False, 
-              add_group_intercept=True, 
+              add_group_slope=True,
+              add_group_intercept=True,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
@@ -100,10 +100,10 @@ bw.facet(column='mouse',width=200,height=200).display()
 
 # + hidePrompt=true
 import altair as alt
-slopes=bw.trace.posterior['b_stim_per_subject'].mean(['chain','draw']).to_dataframe().reset_index()
+slopes=bw.trace.posterior['slope_per_group'].mean(['chain','draw']).to_dataframe().reset_index()
 chart_slopes=alt.Chart(slopes).mark_bar().encode(
     x=alt.X('mouse_:O',title='Mouse'),
-    y=alt.Y('b_stim_per_subject', title='Slope')
+    y=alt.Y('slope_per_group', title='Slope')
 )
 chart_slopes
 # -
@@ -139,17 +139,90 @@ bw.fit_anova(formula='firing_rate ~ stim+ mouse + stim*mouse + neuron_x_mouse + 
 # ## Model quality
 
 # +
+# Vanilla robust no interept or slope
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='student',
+              robust_slopes=True,
+              add_group_intercept=False,
+              add_group_slope=False,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot_model_quality()
+
+# +
+# Vanilla robust, intercept only
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='student',
+              robust_slopes=True,
+              add_group_intercept=True,
+              add_group_slope=False,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot_model_quality()
+
+# +
+# Vanilla robust, slopes only
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='student',
+              robust_slopes=True,
+              add_group_intercept=False,
+              add_group_slope=True,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot_model_quality()
+
+# +
+# Vanilla robust intercept and group
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='student',
+              robust_slopes=True,
+              add_group_intercept=True,
+              add_group_slope=True,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot_model_quality()
+
+# +
+# Gamma GLM slope only
+reload(models)
 bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
 bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='gamma',
               robust_slopes=False,
               add_group_intercept=False,
-              add_group_slope=False, 
+              add_group_slope=True,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
 
 bw.plot_model_quality()
 # -
+
+bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
+bw.facet(column='mouse',width=200,height=200).display()
+
+# +
+# Gamma GLM intercept only
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw.fit_slopes(model=(models.model_hierarchical),
+              do_make_change='subtract',
+              dist_y='gamma',
+              robust_slopes=False,
+              add_group_intercept=True,
+              add_group_slope=False,
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+
+bw.plot_model_quality()
+# -
+
+# group slopes+ group intercepts=>divergences
 
 # ## LME fails
 
@@ -176,5 +249,5 @@ try:
     bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True, add_nested_group=True)
 except Exception as e:
     print(e)
-        
+
 

@@ -74,7 +74,7 @@ def test_fit_numpyro_serial():
                             n_draws=100, num_chains=1, )
         # chart = visualization.plot_posterior_altair(trace,
         #                                             df,
-        #                                             b_name='b_stim_per_condition',
+        #                                             b_name='slope_per_condition',
         #                                             x='stim',
         #                                             group_name='neuron'
         #                                             )

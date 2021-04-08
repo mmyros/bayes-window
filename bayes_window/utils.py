@@ -34,7 +34,7 @@ def parse_levels(treatment, condition, group):
 
 
 def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=None, treatment_name='Event',
-                          treatments=None, b_name='b_stim_per_condition', posterior_index_name='',
+                          treatments=None, b_name='slope_per_condition', posterior_index_name='',
                           do_make_change='subtract', do_mean_over_trials=True, group_name='subject'):
     # group_name should be conditions
     if type(fold_change_index_cols) == str:
@@ -101,7 +101,7 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
-def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name='combined_condition',
+def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name='combined_condition',
              group_name='subject'):
     """
     # Convert to dataframe and fill in original conditions
@@ -109,10 +109,10 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     """
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
-    if f'a_subject_dim_0' in trace:
-        trace = trace.rename({f'a_subject_dim_0': group_name})
-    if f'b_stim_per_subject_dim_0' in trace:
-        trace = trace.rename({f'b_stim_per_subject_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
+    if f'intercept_per_group_dim_0' in trace:
+        trace = trace.rename({f'intercept_per_group_dim_0': group_name})
+    if f'slope_per_group_dim_0' in trace:
+        trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
     if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
         warnings.warn(f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
@@ -125,10 +125,10 @@ def trace2df(trace, df_data, b_name='b_stim_per_condition', posterior_index_name
     if hdi.ndim == 1:
         max_a_p = calculate_point_estimate('mode', b_all_draws, bw="default")  # , circular=False)
 
-        mean = xr.DataArray([max_a_p],
-                            coords={'hdi': ["center"], },
-                            dims='hdi')
-        df_bayes = xr.concat([hdi, mean], 'hdi').to_dataframe().reset_index()
+        est = xr.DataArray([max_a_p],
+                           coords={'hdi': ["center"], },
+                           dims='hdi')
+        df_bayes = xr.concat([hdi, est], 'hdi').to_dataframe().reset_index()
         df_bayes = df_bayes.pivot_table(columns='hdi').reset_index(drop=True)
         if not df_bayes.columns.str.contains('interval').any():
             # This may be always?
@@ -167,8 +167,9 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         mdf.xs(treatments[0], level=treatment_name).size):
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        raise IndexError(f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
-                      f'{debug_info}')
+        raise IndexError(
+            f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
+            f'{debug_info}')
         # Some posteriors wont work then
         # if fold_change_method == 'subtract':
         #     data = (

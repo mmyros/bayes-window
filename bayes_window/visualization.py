@@ -175,13 +175,13 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                       domain=[min(minmax), max(minmax)])
 
     # error_bars
-    chart = base_chart.mark_rule(size=2,clip=True).encode(
+    chart = base_chart.mark_rule(size=2, clip=True).encode(
         x=x,
         y=alt.Y('lower interval:Q',
                 scale=scale,
                 # axis=alt.Axis(labels=False, tickCount=1, title='')
                 axis=alt.Axis(orient='left', title='')
-        ),
+                ),
         y2='higher interval:Q',
     )
 
@@ -251,7 +251,7 @@ def plot_data_slope_trials(x,
     return fig_trials
 
 
-def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name,do_make_change):
+def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name, do_make_change):
     alt.data_transformers.disable_max_rows()
 
     # Same y domain as in plot_data and plot_posterior:

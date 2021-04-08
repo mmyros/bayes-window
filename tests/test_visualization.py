@@ -54,7 +54,7 @@ def test_plot_data_and_posterior():
         df_both, trace.posterior = add_data_to_posterior(df, posterior=trace.posterior, y=y,
                                                          fold_change_index_cols=['neuron', 'stim', 'mouse', ],
                                                          treatment_name='stim', treatments=(0, 1),
-                                                         b_name='b_stim_per_condition', posterior_index_name='neuron')
+                                                         b_name='slope_per_condition', posterior_index_name='neuron')
 
         # Plot data and posterior
         # chart = plot_data_and_posterior(df=df_both, y=f'{y} diff', x='neuron', color='mouse', title=y)

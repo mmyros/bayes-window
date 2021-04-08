@@ -25,7 +25,8 @@ def test_radon(add_posterior_density, add_data,add_box, add_condition_slope,
     window = BayesWindow(df, y='radon', treatment='floor', condition=['county'])
     window.plot(x='county').facet(row='floor').display()
     window.fit_slopes(add_condition_slope=add_condition_slope, do_mean_over_trials=do_mean_over_trials,
-                      add_group_slope=add_group_slope, do_make_change=do_make_change)
+                      add_group_slope=add_group_slope, do_make_change=do_make_change,
+                      n_draws=100, num_chains=1, num_warmup=100)
     # window.plot().display()
     window.plot(x=':O', add_data=add_data, add_box=add_box, add_posterior_density=add_posterior_density).display()
 
@@ -62,7 +63,7 @@ def test_fit_lme_w_condition():
                                                                     overall_stim_response_strength=45)
     try:
         bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
-        assert bw.fit_lme().posterior is not None
+        assert bw.fit_lme().data_and_posterior is not None
         bw.plot_posteriors_slopes()
         bw.facet(column='neuron_x_mouse', width=300)
     except LinAlgError as e:

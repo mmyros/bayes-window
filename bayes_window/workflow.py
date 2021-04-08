@@ -197,7 +197,7 @@ class BayesWindow:
         fold_change_index_cols = list(fold_change_index_cols)
         if add_condition_slope:
             add_condition_slope = self.condition[0] and (np.unique(self.data['combined_condition']).size > 1)
-        self.b_name = 'b_stim_per_condition' if add_condition_slope else 'b_stim'
+        self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
         if add_condition_slope and (not self.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.condition
              if not (condition in fold_change_index_cols)]
@@ -362,7 +362,7 @@ class BayesWindow:
                 warnings.warn('add_data keyword is not implemented for LME')
                 kwargs.pop('add_data')
             return BayesWindow.plot_posteriors_slopes(self, add_data=False, **kwargs)
-        elif 'b_stim' in self.b_name:
+        elif 'slope' in self.b_name:
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
@@ -412,7 +412,7 @@ class BayesWindow:
                                   parallel=True,
                                   **kwargs
                                   )
-        elif 'b_stim' in self.b_name:
+        elif 'slope' in self.b_name:
             models = {
                 'full_normal': self.model,
                 'no_condition': self.model,
