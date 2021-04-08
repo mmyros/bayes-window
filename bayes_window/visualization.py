@@ -148,7 +148,8 @@ def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, 
         # Shift x axis for box so that it doesnt overlap:
         # if len(base[x[:-2]].unique()) == 1:
         #     df['x_box'] = df[x[:-2]] + .01
-        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black').encode(
+        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black',
+                                        median=alt.MarkConfig(color='red', strokeWidth=20)).encode(
             x=x,
             y=alt.Y(f'{y}:Q',
                     axis=alt.Axis(orient='right', title=''),

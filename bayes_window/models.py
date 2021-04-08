@@ -151,7 +151,7 @@ def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal',
     # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
     # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
 
-    a_group = numpyro.sample(f'intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 1))
+    a_group = numpyro.sample(f'intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 100))
     sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
 
     b = numpyro.sample('slope', dist.Normal(0, 1))

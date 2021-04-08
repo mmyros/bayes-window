@@ -133,6 +133,8 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         if not df_bayes.columns.str.contains('interval').any():
             # This may be always?
             df_bayes.columns += ' interval'
+
+
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         assert b_all_draws.shape[1] == trace['chain'].size * trace['draw'].size

@@ -27,6 +27,7 @@ def generate_fake_lfp(n_trials=10,
                                                          n_mice=2,
                                                          dur=dur,
                                                          mouse_response_slope=mouse_response_slope,
+                                                         fastest_fr=38,
                                                          **kwargs)
 
     df = df[df.mouse_code == 1]
@@ -60,7 +61,7 @@ def generate_fake_spikes(n_trials=6,
                          do_ave_trial=False,
                          trial_baseline_randomness=.2,
                          do_bad_mice=False,
-                         fastest_fr=15                         
+                         fastest_fr=15
                          ):
     """
     # mouse id affects slope of fr
