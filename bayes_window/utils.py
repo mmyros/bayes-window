@@ -104,20 +104,21 @@ def hdi2df_one_condition(df_bayes, df_data):
 def get_hdi_map(posterior, circular=False):
     # HDI and mean over draws (will replace with MAP)
     hdi = az.hdi(posterior).to_dataframe()
+    # Name of the variable we are estimating (eg intercept_per_group)
+    var_name = hdi.columns[-1]
+
     if posterior.ndim == 2:
         # Get MAP
         max_a_p = calculate_point_estimate('mode', posterior.values.flatten(), bw="default", circular=circular)
 
-        df_bayes = pd.DataFrame({'higher interval': hdi.loc['higher', 'a'],
-                                 'lower interval': hdi.loc['lower', 'a'],
-                                 'center': max_a_p,
+        df_bayes = pd.DataFrame({'higher interval': hdi.loc['higher', var_name],
+                                 'lower interval': hdi.loc['lower', var_name],
+                                 'center interval': max_a_p,
                                  },
                                 index=[0])
     else:
         # The dimension name, other than draws and chains (eg mouse)
         dim = posterior.dims[-1]
-        # Name of the variable we are estimating (eg intercept_per_group)
-        var_name = hdi.columns[-1]
 
         intercepts = posterior.mean(['chain', 'draw']).to_dataframe()
 
@@ -126,13 +127,12 @@ def get_hdi_map(posterior, circular=False):
                    for _, b in posterior.groupby(dim)]
 
         # Merge HDI and MAP
-        var_name = hdi.columns[-1]
         intercepts[var_name] = max_a_p
 
         df_bayes = hdi.rename({var_name: 'interval'}, axis=1)
         df_bayes = df_bayes.pivot_table(index=dim, columns=['hdi', ])
         df_bayes.columns = [' '.join(np.flip(col)) for col in df_bayes.columns]
-        df_bayes = df_bayes.join(intercepts.rename({var_name: 'center'}, axis=1))  # .reset_index()
+        df_bayes = df_bayes.join(intercepts.rename({var_name: 'center interval'}, axis=1)).reset_index()
     return df_bayes
 
 
@@ -157,9 +157,9 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
     # max_a_p = trace[b_name].mean(['chain', 'draw']).values
     # b_all_draws = trace[b_name].stack(draws=['chain', 'draw']).reset_index('draws')
 
-    df_bayes = get_hdi_map(trace.posterior[b_name])
+    df_bayes = get_hdi_map(trace[b_name])
 
-    if trace.posterior[b_name] == 2: # No extra dimension, just chains and draws
+    if trace[b_name].ndim == 2: # No extra dimension, just chains and draws
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
