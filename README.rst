@@ -40,7 +40,6 @@ TODO
 - Prior predictive and posterior predictive plots
 - wait for resolution to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
 - delete facet attribute of chart if independent_axes=True - how? Ask in altair github
-- Formalize detailed data plot: trial-slope plus box. Try to add posteriors? see notebook
 - Random-effect plots (eg intercepts): bw.plot_extras?
    - see lfp notebook
 - Decide on Vega theme
