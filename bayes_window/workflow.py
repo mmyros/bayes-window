@@ -184,7 +184,8 @@ class BayesWindow:
                    do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
         # if do_make_change not in ['subtract', 'divide']:
         #     raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
-
+        if not add_condition_slope:
+            warnings.warn(f'add_condition_slope is not requested. Slopes will be the same across {self.condition}')
         if self.b_name is not None:
             raise SyntaxError("A model is already present in this BayesWindow object. "
                               "Please create a new one by calling BayesWindow(...) again")
