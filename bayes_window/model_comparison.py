@@ -170,7 +170,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    n_trials=range(8, 30, 7),
                    trial_baseline_randomness=(.2, .4, 1.8),
                    parallel=False,
-                   methods=('anova', 'mlm', 'bw_lognormal', 'bw_normal',),  # 'bw_student'
+                   methods=('anova', 'mlm', 'bw_gamma', 'bw_normal'),  # 'bw_student'
                    ys=('Log power',)):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
@@ -252,7 +252,7 @@ def compare_models(df, models: dict,
                    data=[df,df,df_monster,df_monster],
                    extra_args=[{}, {}, {'prior':'Exponential'}, {'prior':'Gamma'}])
     """
-
+    # TODO save all model args in BayesWindow in self
     # Calculate
     extra_model_args = extra_model_args or np.tile({}, len(models))
     if parallel:

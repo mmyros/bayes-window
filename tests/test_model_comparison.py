@@ -72,3 +72,13 @@ def test_compare_models2(parallel):
                    condition=None,
                    parallel=False
                    )
+
+# def test_compare_modesl3():
+#     from bayes_window import model_comparison
+#
+#     res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(5),
+#                                                                  np.tile(np.linspace(.2, 20, 5), 3)]),
+#                                           n_trials=np.linspace(15, 70, 5).astype(int),
+#                                           trial_baseline_randomness=np.linspace(.2, 11, 3),
+#                                           ys=('Power', 'Log power', ),
+#                                           parallel=True)
