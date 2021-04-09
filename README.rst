@@ -22,6 +22,10 @@ Bayes Window
 .. image:: https://codecov.io/gh/mmyros/bayes-window/branch/master/graph/badge.svg?token=CQMHJRNC9I
       :target: https://codecov.io/gh/mmyros/bayes-window
 
+.. image:: https://img.shields.io/lgtm/grade/python/g/mmyros/bayes-window.svg?logo=lgtm&logoWidth=18
+      :target: https://lgtm.com/projects/g/mmyros/bayes-window/context:python
+      :alt: Language grade: Python
+
 
 Pretty and easy hierarchical Bayesian or linear mixed effects estimation with data overlay
 
