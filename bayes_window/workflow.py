@@ -367,12 +367,21 @@ class BayesWindow:
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
-    def plot_data_details(self):
-        if self.detail is None:
-            raise RuntimeError('This plot requires a details argument when constructing BayesWindow')
-        c1 = plot_data(df=df, x=self.treatment, y=self.y)[0].properties(width=60)
-        c2 = plot_data_slope_trials(df=df, x=self.treatment, y=self.y, color=None, detail=self.detail)
-        return (c1 + c2)  # .facet(column)
+    def plot_data_details(self, facet=True):
+        if (self.detail is None) or (self.detail == ':O'):
+            warnings.warn('This plot works best with a "detail" argument when constructing BayesWindow')
+        c1 = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(width=60)
+        c2 = visualization.plot_data_slope_trials(df=self.data, x=self.treatment, y=self.y, color=None,
+                                                  detail=self.detail)
+        chart = c1 + c2
+        if facet:
+            if self.group and self.condition[0]:
+                chart = chart.facet(column=self.group, row=self.condition[0])
+            elif self.group:
+                chart = chart.facet(column=self.group)
+            elif self.condition[0]:
+                chart = chart.facet(column=self.condition[0])
+        return chart
 
     def facet(self, width=150, height=160, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
