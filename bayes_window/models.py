@@ -46,20 +46,31 @@ def model_single(y, condition, dist_y='normal'):
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
                        add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False,
                        robust_slopes=True):
-    n_subjects = np.unique(group).shape[0]
-    if (group is not None) and add_group_intercept:
-        sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
-        a_group = numpyro.sample(f'intercept_per_group', dist.HalfNormal(jnp.tile(100, n_subjects)))
-        intercept = a_group[group] * sigma_a_group
-    else:
-        intercept = numpyro.sample('intercept', dist.Normal(0, 100))
-
+    # Determine some options
+    if (group is not None) or (np.unique(condition).size < 2):
+        add_group_intercept = False  # Override if we have no groups
     if (condition is None) or (np.unique(condition).size < 2):
         add_condition_slope = False  # no need for per-condition slope
+    n_subjects = np.unique(group).shape[0]
+    n_conditions = np.unique(condition).shape[0]
+
+    # Intercept overall
+    if dist_y in ('gamma', 'exponential') or add_group_intercept:
+        intercept = 0
+    else:
+        # If not GLM, then center intercepts. If no group intercept, this is needed regardless of GLM
+        intercept = numpyro.sample('intercept', dist.Normal(0, 100))
+
+    # Intercept per group
+    if add_group_intercept:
+        sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
+        a_group = numpyro.sample(f'intercept_per_group', dist.HalfNormal(jnp.tile(100, n_subjects)))
+        intercept += a_group[group] * sigma_a_group
+
+    # Slope overall
     if not add_condition_slope:
         slope = numpyro.sample('slope', dist.Normal(0, 100))
     else:
-        n_conditions = np.unique(condition).shape[0]
         if robust_slopes:
             # Robust slopes:
             b_per_condition = numpyro.sample('slope_per_condition',
@@ -71,15 +82,17 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         sigma_b_condition = numpyro.sample('sigma_slope_per_condition', dist.HalfNormal(100))
         slope = b_per_condition[condition] * sigma_b_condition
 
-    if (group is not None) and add_group_slope:
+    # Slope per group
+    if group is not None and add_group_slope:
         sigma_b_group = numpyro.sample('sigma_slope_per_group', dist.HalfNormal(100))
         b_per_group = numpyro.sample('slope_per_group', dist.Normal(jnp.tile(0, n_subjects), 100))
-        slope = slope + b_per_group[group] * sigma_b_group
+        slope += b_per_group[group] * sigma_b_group
 
-    if (group2 is not None) and add_group2_slope:
-        sigma_b_group = numpyro.sample('sigma_slope_per_group2', dist.HalfNormal(100))
-        b_per_group = numpyro.sample('slope_per_group2', dist.Normal(jnp.tile(0, n_subjects), 100))
-        slope = slope + b_per_group[group] * sigma_b_group
+    # Slope per group 2 (eg. slope1=neurons, slope2=subjects)
+    if group2 is not None and add_group2_slope:
+        sigma_b_group2 = numpyro.sample('sigma_slope_per_group2', dist.HalfNormal(100))
+        b_per_group2 = numpyro.sample('slope_per_group2', dist.Normal(jnp.tile(0, n_subjects), 100))
+        slope += b_per_group2[group2] * sigma_b_group2
 
     if treatment is not None:
         slope = slope * treatment
@@ -133,11 +146,11 @@ def model_hierarchical_next(y, condition=None, group=None, treatment=None, dist_
     b = numpyro.sample('b', dist.Normal(0., 1))
     sigma_b = numpyro.sample('sigma_b', dist.HalfNormal(1))
 
-    with numpyro.plate('n_conditions', np.unique(condition).size):# if add_group_slope else nullcontext():
+    with numpyro.plate('n_conditions', np.unique(condition).size):  # if add_group_slope else nullcontext():
         # Varying slopes:
         b_condition = numpyro.sample('slope_per_group', dist.Normal(b, sigma_b))
 
-    with numpyro.plate('n_groups', np.unique(group).size):# if add_group_intercept else nullcontext():
+    with numpyro.plate('n_groups', np.unique(group).size):  # if add_group_intercept else nullcontext():
         # Varying intercepts:
         a_group = numpyro.sample('a_group', dist.Normal(a, sigma_a))
         theta = a_group[group] + b_condition[condition] * treatment
