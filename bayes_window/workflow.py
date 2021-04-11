@@ -222,7 +222,6 @@ class BayesWindow:
                                                                       do_make_change=do_make_change,
                                                                       do_mean_over_trials=do_mean_over_trials,
                                                                       group_name=self.group)
-        # todo trace2df back
 
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
@@ -233,8 +232,14 @@ class BayesWindow:
                 for level_name, level_value in zip(levels_to_replace, level_values):
                     df_result.loc[df_result['combined_condition'] == data_subset['combined_condition'].iloc[0],
                                   level_name] = level_value
+        else:
+            levels_to_replace = None
 
         self.data_and_posterior = df_result
+        # sanity check:
+        if self.data_and_posterior.shape[0] * 2 != self.data.shape[0]:
+            print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
+                  f'may suffer. Did was there another index column (like i_trial) other than {levels_to_replace}?')
         self.fold_change_index_cols = fold_change_index_cols
         return self
 
@@ -312,6 +317,7 @@ class BayesWindow:
             self.charts_for_facet.extend(self.chart_data_line)
         else:
             self.chart_data_line = empty_chart
+
         self.chart_data_boxplot = base_chart.mark_boxplot(
             clip=True, opacity=.3, size=9, color='black',
             median=alt.MarkConfig(color='red', strokeWidth=20)
