@@ -544,3 +544,4 @@ def random_tests():
 
     window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
     window.facet(column='neuron', row='mouse')
+

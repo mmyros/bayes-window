@@ -252,19 +252,18 @@ def plot_data_slope_trials(x,
     return fig_trials
 
 
-def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name, do_make_change):
+def plot_posterior_density(base_chart, y, y_domain, trace, posterior, b_name, do_make_change):
     alt.data_transformers.disable_max_rows()
 
     # Same y domain as in plot_data and plot_posterior:
-    if y in base_chart.data.columns and y_scale is not None:  # eg if we had add_data=True
-        scale = alt.Scale(domain=y_scale)
+    if y in base_chart.data.columns and y_domain is not None:  # eg if we had add_data=True
+        scale = alt.Scale(domain=y_domain)
     else:
         # Axis limits
         minmax = [float(posterior['lower interval'].min()), 0,
                   float(posterior['higher interval'].max())]
         scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                           domain=[min(minmax), max(minmax)])
-        # scale = alt.Scale()
 
     # dataframe with posterior (combine chains):
     df = trace.posterior.stack(draws=("chain", "draw")).reset_index(["draws"]).to_dataframe().reset_index()
@@ -276,8 +275,8 @@ def plot_posterior_density(base_chart, y, y_scale, trace, posterior, b_name, do_
         as_=[b_name, 'density'],
         extent=[posterior['lower interval'].min(), posterior['higher interval'].max()],
         counts=True,
-    ).mark_area(orient='horizontal', clip=False, fillOpacity=.2, color='black').encode(
-        y=alt.Y(b_name, scale=scale, title=''),
+    ).mark_area(orient='horizontal', clip=False, fillOpacity=.06, color='black', strokeOpacity=.7, stroke='black').encode(
+        y=alt.Y(b_name, scale=scale, title='', axis=alt.Axis(orient='left', title='')),
         x=alt.X('density:Q', stack='center', title='',  # scale=alt.Scale(domain=[-n_draws, n_draws]),
                 axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
                 ),
