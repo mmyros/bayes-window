@@ -264,11 +264,15 @@ class BayesWindow:
         if posterior is not None:
             base_chart = alt.Chart(posterior)
             self.base_chart = base_chart
-            self.chart_posterior = plot_posterior(title=f'{self.y}',
-                                                  x=x,
-                                                  base_chart=base_chart,
-                                                  do_make_change=self.do_make_change)
-            self.charts.append(self.chart_posterior)
+            self.chart_posterior_whiskers, self.chart_posterior_center = plot_posterior(
+                title=f'{self.y}',
+                x=x,
+                base_chart=base_chart,
+                do_make_change=self.do_make_change)
+            self.chart_posterior = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
+            self.charts.append(self.chart_posterior_whiskers)
+            self.charts.append(self.chart_posterior_center)
+            self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
             if (self.b_name != 'lme') and not add_x_axis:
                 # Y Axis limits to match self.chart_posterior
                 minmax = [float(posterior['lower interval'].min()), 0,
@@ -287,6 +291,9 @@ class BayesWindow:
             base_chart = alt.Chart(self.data)
             self.chart_posterior = base_chart.mark_rule().encode()  # Empty chart
 
+        # Default empty chart:
+        empty_chart = base_chart.mark_rule().encode()
+
         # 2. Plot data
         y = f'{self.y} diff'
         if y not in posterior:
@@ -301,9 +308,10 @@ class BayesWindow:
         y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
         if add_x_axis:
             self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail, highlight=False)
-            self.charts.append(self.chart_data_line)
+            self.charts.extend(self.chart_data_line)
+            self.charts_for_facet.extend(self.chart_data_line)
         else:
-            self.chart_data_line = base_chart.mark_rule().encode()  # Empty chart
+            self.chart_data_line = empty_chart
         self.chart_data_boxplot = base_chart.mark_boxplot(
             clip=True, opacity=.3, size=9, color='black',
             median=alt.MarkConfig(color='red', strokeWidth=20)
@@ -315,6 +323,7 @@ class BayesWindow:
                     )
         )
         self.charts.append(self.chart_data_boxplot)
+        self.charts_for_facet.append(self.chart_data_boxplot)
         return self
 
     def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
@@ -333,10 +342,10 @@ class BayesWindow:
         if posterior is not None:
             add_data = add_data and add_box
             base_chart = alt.Chart(posterior)
-            chart_p = plot_posterior(title=f'{self.y}',
-                                     x=x,
-                                     base_chart=base_chart,
-                                     do_make_change=self.do_make_change)
+            chart_p = alt.layer(*plot_posterior(title=f'{self.y}',
+                                                x=x,
+                                                base_chart=base_chart,
+                                                do_make_change=self.do_make_change))
         else:
             base_chart = alt.Chart(self.data)
             add_data = True  # Otherwise nothing to do
@@ -398,13 +407,13 @@ class BayesWindow:
         if self.data_and_posterior is not None:
             base_chart = alt.Chart(self.data_and_posterior)
             # Plot posterior
-            chart_p = visualization.plot_posterior(x=x,
-                                                   do_make_change=False,
-                                                   add_data=add_data,
-                                                   title=f'{self.y} estimate',
-                                                   base_chart=base_chart,
-                                                   **kwargs
-                                                   )
+            chart_p = alt.layer(*visualization.plot_posterior(x=x,
+                                                              do_make_change=False,
+                                                              add_data=add_data,
+                                                              title=f'{self.y} estimate',
+                                                              base_chart=base_chart,
+                                                              **kwargs
+                                                              ))
             if not add_data:  # done
                 self.chart = chart_p
         else:

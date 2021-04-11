@@ -405,19 +405,19 @@ def test_single_condition_withdata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
-    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    alt.layer(*plot_posterior(df=bw.data_and_posterior, title=f'Log power', )).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # Without data again
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
-    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    alt.layer(*plot_posterior(df=bw.data_and_posterior, title=f'Log power', )).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # With data again
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
-    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    alt.layer(*plot_posterior(df=bw.data_and_posterior, title=f'Log power', )).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
 
@@ -425,7 +425,7 @@ def test_single_condition_nodata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
-    plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+    alt.layer(*plot_posterior(df=bw.data_and_posterior, title=f'Log power', )).display()
     bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
 
@@ -434,7 +434,7 @@ def test_single_condition_nodata_dists():
     for dist in ['normal', 'lognormal', 'student']:
         bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
         bw.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y=dist)
-        plot_posterior(df=bw.data_and_posterior, title=f'Log power', ).display()
+        alt.layer(*plot_posterior(df=bw.data_and_posterior, title=f'Log power', )).display()
         bw.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
 

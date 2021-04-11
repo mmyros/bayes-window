@@ -176,7 +176,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                       domain=[min(minmax), max(minmax)])
 
     # error_bars
-    chart = base_chart.mark_rule(size=2, clip=True).encode(
+    chart_posterior_whiskers = base_chart.mark_rule(size=2, clip=True).encode(
         x=x,
         y=alt.Y('lower interval:Q',
                 scale=scale,
@@ -187,20 +187,20 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Make the zero line
-    if add_zero_line:
-        title = f'Δ {title}'
-        base_chart.data['zero'] = 0
-        chart += base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
-            y=alt.Y(
-                'zero',
-                scale=scale,
-                axis=alt.Axis(title='', orient='left')
-            )
-        )
+    # if add_zero_line:
+    #     title = f'Δ {title}'
+    #     base_chart.data['zero'] = 0
+    #     charts.append(base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+    #         y=alt.Y(
+    #             'zero',
+    #             scale=scale,
+    #             axis=alt.Axis(title='', orient='left')
+    #         )
+    #     ))
 
     # line or bar for center interval (left axis)
     if (x == ':O') or (x == ':N'):
-        chart += base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
+        chart_posterior_center = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
@@ -210,7 +210,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
         )
     else:
-        chart += base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
+        chart_posterior_center = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
             y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
@@ -220,7 +220,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
         )
 
-    return chart
+    return chart_posterior_whiskers, chart_posterior_center
 
 
 def plot_data_slope_trials(x,
@@ -275,7 +275,8 @@ def plot_posterior_density(base_chart, y, y_domain, trace, posterior, b_name, do
         as_=[b_name, 'density'],
         extent=[posterior['lower interval'].min(), posterior['higher interval'].max()],
         counts=True,
-    ).mark_area(orient='horizontal', clip=False, fillOpacity=.06, color='black', strokeOpacity=.7, stroke='black').encode(
+    ).mark_area(orient='horizontal', clip=False, fillOpacity=.06, color='black', strokeOpacity=.7,
+                stroke='black').encode(
         y=alt.Y(b_name, scale=scale, title='', axis=alt.Axis(orient='left', title='')),
         x=alt.X('density:Q', stack='center', title='',  # scale=alt.Scale(domain=[-n_draws, n_draws]),
                 axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
