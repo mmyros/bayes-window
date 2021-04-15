@@ -70,6 +70,19 @@ def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=Non
 
 
 def fill_row(condition_val, data_rows, df_bayes, condition_name):
+    """
+
+    Parameters
+    ----------
+    condition_val: Current value of condition_name to look up in df_bayes
+    data_rows: rows to fill with corresponding entries from df_bayes (will be concated later
+    df_bayes: dataframe to fill from
+    condition_name: eg combined_condition
+
+    Returns
+    -------
+
+    """
     # Look up where posterior has the same condition value as in data
     this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
     if this_hdi.shape[0] == 0:

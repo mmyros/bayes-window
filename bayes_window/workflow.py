@@ -77,7 +77,7 @@ class BayesWindow:
         self.charts = []
 
         # Some charts of data that don't need fitting
-        self.chart_data_boxplot = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(
+        self.chart_data_box_for_detail = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(
             width=60)
         if self.detail in self.data.columns:
             self.chart_data_detail = visualization.plot_data_slope_trials(df=self.data, x=self.treatment, y=self.y,
@@ -85,13 +85,10 @@ class BayesWindow:
                                                                           detail=self.detail)
         else:
             self.chart_data_detail = alt.Chart(self.data).mark_rule().encode()  # Empty chart
-        self.chart_data_box_detail = alt.layer(self.chart_data_boxplot, self.chart_data_detail)
-        if self.group and self.condition[0]:
-            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.group, row=self.condition[0])
-        elif self.group:
-            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.group)
-        elif self.condition[0]:
-            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.condition[0])
+        self.chart_data_box_detail = alt.layer(self.chart_data_box_for_detail, self.chart_data_detail)
+        self.chart_data_box_detail = visualization.auto_facet(self.chart_data_box_detail,
+                                                              self.group,
+                                                              self.condition)
 
     def fit_anova(self, formula=None, **kwargs):
         from statsmodels.stats.anova import anova_lm
@@ -264,17 +261,15 @@ class BayesWindow:
                     level_values = [level_values]
                 for level_name, level_value in zip(levels_to_replace, level_values):
                     df_result.loc[df_result['combined_condition'] == data_subset['combined_condition'].iloc[0],
-                                  level_name] = level_value
-        else:
-            levels_to_replace = None
+                                  level_name] = level_value        # sanity check:
+            if self.data_and_posterior.shape[0] * 2 != self.data.shape[0]:
+                print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
+                      f'may suffer. Did was there another index column (like i_trial) other than {levels_to_replace}?')
+
 
         self.data_and_posterior = df_result
 
-        # sanity check:
-        if self.data_and_posterior.shape[0] * 2 != self.data.shape[0]:
-            print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
-                  f'may suffer. Did was there another index column (like i_trial) other than {levels_to_replace}?')
-        self.fold_change_index_cols = fold_change_index_cols
+        # self.fold_change_index_cols = fold_change_index_cols
 
         # Default plots:
         try:
@@ -338,7 +333,6 @@ class BayesWindow:
         if y in posterior:
             if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
-                assert detail in self.fold_change_index_cols
 
             # Plot data:
             y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
@@ -410,7 +404,6 @@ class BayesWindow:
             y = f'{self.y} diff'
             if (detail != ':N') and (detail != ':O'):
                 assert detail in self.data
-                assert detail in self.fold_change_index_cols
 
             chart_d, y_scale = visualization.plot_data(x=x, y=y, color=color, add_box=add_box,
                                                        detail=detail,

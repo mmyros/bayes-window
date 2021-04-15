@@ -60,6 +60,15 @@ def facet(base_chart,
     return chart
 
 
+def auto_facet(chart, group, condition):
+    if group and condition[0]:
+        chart = chart.facet(column=group, row=condition[0])
+    elif group:
+        chart = chart.facet(column=group)
+    elif condition[0]:
+        chart = chart.facet(column=condition[0])
+    return chart
+
 def line_with_highlight(base, x, y, color, detail, highlight=True):
     # Highlight doesnt work with overlays, but at least we get visible dots in legend
     if highlight:
