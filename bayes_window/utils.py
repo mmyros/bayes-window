@@ -77,7 +77,7 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
                          f"it's {df_bayes[condition_name].unique()}")
     # Insert posterior into data at the corresponding location
     for col in df_bayes.columns[df_bayes.columns.str.contains('interval')]:
-        #['lower interval', 'higher interval', 'center interval']:
+        # ['lower interval', 'higher interval', 'center interval']:
         data_rows.insert(data_rows.shape[1] - 1,  # Last column
                          col,  # lower or higher or center interval
                          this_hdi[col].values.squeeze()  # The value of posterior we just looked up
@@ -89,13 +89,11 @@ def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     # Check
     if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
         warnings.warn('Groups were constructed differently for estimation and data. Cant add data for plots')
-    rows = [fill_row(group_val, data_rows, df_bayes, posterior_index_name)
-            for group_val, data_rows in df_data.groupby([posterior_index_name])]
-    return pd.concat(rows)
+    return pd.concat([fill_row(group_val, data_rows, df_bayes, posterior_index_name)
+                      for group_val, data_rows in df_data.groupby([posterior_index_name])])
 
 
 def hdi2df_one_condition(df_bayes, df_data):
-    # df_bayes[group_name] = df_data[group_name].iloc[0]
     for col in ['lower interval', 'higher interval', 'center interval']:
         df_data.insert(df_data.shape[1], col, df_bayes[col].values.squeeze())
     return df_data
@@ -144,7 +142,7 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'intercept_per_group_dim_0' in trace:
-        trace = trace.rename({f'intercept_per_group_dim_0': group_name})
+        trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
     if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
@@ -326,10 +324,6 @@ def combined_condition(df: pd.DataFrame, conditions: list):
 
 
 def load_radon():
-    # !pip install pymc3
-    import numpy as np
-    import pandas as pd
-    # import pymc3 as pm
     # Import radon data
     try:
         srrs2 = pd.read_csv("../docs/example_notebooks/radon_example/srrs2.dat", error_bad_lines=False)
@@ -358,12 +352,6 @@ def load_radon():
 
     srrs_mn = srrs_mn.merge(cty_mn[["fips", "Uppm"]], on="fips")
     srrs_mn = srrs_mn.drop_duplicates(subset="idnum")
-    u = np.log(srrs_mn.Uppm).unique()
-
-    n = len(srrs_mn)
-
-    srrs_mn.head()
-
     srrs_mn.county = srrs_mn.county.map(str.strip)
     mn_counties = srrs_mn.county.unique()
     counties = len(mn_counties)
@@ -373,7 +361,7 @@ def load_radon():
 
     county = srrs_mn["county_code"] = srrs_mn.county.replace(county_lookup).values
     radon = srrs_mn.activity
-    srrs_mn["log_radon"] = log_radon = np.log(radon + 0.1).values
+    srrs_mn["log_radon"] = np.log(radon + 0.1).values
     floor = srrs_mn.floor.values
 
     return pd.DataFrame({'county': county, 'radon': radon, 'floor': floor})

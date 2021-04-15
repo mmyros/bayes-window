@@ -1,9 +1,4 @@
-import pdb
-
-import jax.numpy as jnp
-import numpyro
-import numpyro.optim as optim
-from jax import lax
+# import pdb
 # import jax.numpy as jnp
 # import numpyro
 # import numpyro.optim as optim

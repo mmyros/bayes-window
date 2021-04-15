@@ -18,6 +18,7 @@ from bayes_window.visualization import plot_posterior
 reload(visualization)
 reload(utils)
 
+
 # noinspection PyMethodFirstArgAssignment
 class BayesWindow:
     def __init__(self,
@@ -64,6 +65,16 @@ class BayesWindow:
         self.posterior = None
         self.trace = None
         self.model = None
+
+        # Preallocate charts
+        base_chart = alt.Chart(self.data)
+
+        # Default empty chart:
+        empty_chart = base_chart.mark_rule().encode()
+        self.chart_posterior_hdi = empty_chart
+        self.chart_data_line = empty_chart
+        self.chart_posterior_kde = empty_chart  # Empty chart
+        self.charts = []
 
         # Some charts of data that don't need fitting
         self.chart_data_boxplot = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(
@@ -280,7 +291,6 @@ class BayesWindow:
 
     def create_regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
-        self.charts = []
         x = x or self.levels[-1]
         if x[-2] != ':':
             x += ':O'
@@ -295,19 +305,18 @@ class BayesWindow:
 
         posterior = self.posterior if self.data_and_posterior is None else self.data_and_posterior
         add_x_axis = False
-        if len(x) > 2:
-            if len(posterior[x[:-2]].unique() == 1):
-                add_x_axis = True
+        if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
+            add_x_axis = True
 
         # 1. Plot posterior
         if posterior is not None:
             base_chart = alt.Chart(posterior)
-            self.base_chart = base_chart
-            self.chart_posterior_whiskers, self.chart_posterior_center = plot_posterior(
-                title=f'{self.y}',
-                x=x,
-                base_chart=base_chart,
-                do_make_change=self.do_make_change)
+            self.chart_base_posterior = base_chart
+            (self.chart_posterior_whiskers,
+             self.chart_posterior_center) = plot_posterior(title=f'{self.y}',
+                                                           x=x,
+                                                           base_chart=base_chart,
+                                                           do_make_change=self.do_make_change)
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
@@ -323,15 +332,6 @@ class BayesWindow:
                                                                                 self.b_name,
                                                                                 do_make_change=self.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
-            else:
-                self.chart_posterior_kde = base_chart.mark_rule().encode()  # Empty chart
-
-        else:
-            base_chart = alt.Chart(self.data)
-            self.chart_posterior_hdi = base_chart.mark_rule().encode()  # Empty chart
-
-        # Default empty chart:
-        empty_chart = base_chart.mark_rule().encode()
 
         # 2. Plot data
         y = f'{self.y} diff'
@@ -347,8 +347,6 @@ class BayesWindow:
                                                                          highlight=False)
                 self.charts.extend(self.chart_data_line)
                 self.charts_for_facet.extend(self.chart_data_line)
-            else:
-                self.chart_data_line = empty_chart
 
             self.chart_data_boxplot = base_chart.mark_boxplot(
                 clip=True, opacity=.3, size=9, color='black',
@@ -372,13 +370,14 @@ class BayesWindow:
         self.chart_posterior = visualization.facet(self.chart_posterior, **kwargs)
 
         # 4. Make overlay for data_detail_plot
-
+        # BayesWindow.plot_slopes_shading(self)
         return self
 
     def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
                                independent_axes=False,
                                add_posterior_density=True,
                                **kwargs):
+        # TODO deprecate
         warnings.warn('plot_posteriors_slopes() is deprecated. Use `chart_posterior` attribute,'
                       ' customizable via `create_regression_charts`')
         # Set some options
@@ -448,7 +447,7 @@ class BayesWindow:
         pd.concat([utils.get_hdi_map(self.trace.posterior[var], prefix=f'{var} ')
                    for var in self.trace.posterior.data_vars], axis=1)
         # 1. intercepts for stim=1
-        self.data_and_posterior['intercept']
+        self.data_and_posterior['mu_intercept_per_group center interval']
         # 2. slopes+ intercepts
         self.data_and_posterior['intercept'] * self.data_and_posterior['slope']
         # 3. Overlay with

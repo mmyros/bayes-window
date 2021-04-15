@@ -14,22 +14,27 @@ df_radon = load_radon()
 
 
 @mark.parametrize('add_posterior_density', [True, False], )
-@mark.parametrize('add_data', [True, False])
-@mark.parametrize('add_box', [True, False])
+# @mark.parametrize('add_data', [True, False])
+# @mark.parametrize('add_box', [True, False])
 @mark.parametrize('add_condition_slope', [True, False])
 @mark.parametrize('add_group_slope', [True, False])
-@mark.parametrize('do_mean_over_trials', [True, False])
+# @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])
-def test_radon(add_posterior_density, add_data, add_box, add_condition_slope,
-               add_group_slope, do_mean_over_trials, do_make_change
+def test_radon(add_posterior_density,
+               # add_data, add_box,
+               add_condition_slope,
+               add_group_slope,
+               # do_mean_over_trials,
+               do_make_change
                ):
     window = BayesWindow(df_radon, y='radon', treatment='floor', condition=['county'])
     # window.plot(x='county').facet(row='floor').display()
-    window.fit_slopes(add_condition_slope=add_condition_slope, do_mean_over_trials=do_mean_over_trials,
+    window.fit_slopes(add_condition_slope=add_condition_slope, #do_mean_over_trials=do_mean_over_trials,
                       add_group_slope=add_group_slope, do_make_change=do_make_change,
                       n_draws=100, num_chains=1, num_warmup=100)
     # window.plot().display()
-    window.plot(x=':O', add_data=add_data, add_box=add_box, add_posterior_density=add_posterior_density).display()
+    window.plot(x=':O', #add_data=add_data, add_box=add_box,
+                add_posterior_density=add_posterior_density).display()
 
 
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])

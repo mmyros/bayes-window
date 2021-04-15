@@ -49,7 +49,8 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
     n_subjects = np.unique(group).shape[0]
     if (group is not None) and add_group_intercept:
         sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
-        a_group = numpyro.sample(f'intercept_per_group', dist.HalfNormal(jnp.tile(100, n_subjects)))
+        a_group = numpyro.sample(f'mu_intercept_per_group', dist.HalfNormal(jnp.tile(100, n_subjects)))
+        # TODO this should be Normal, not halfnormal. Even Gamma might be ok
         intercept = a_group[group] * sigma_a_group
     else:
         intercept = numpyro.sample('intercept', dist.Normal(0, 100))
@@ -151,7 +152,7 @@ def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal',
     # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
     # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
 
-    a_group = numpyro.sample(f'intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 100))
+    a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 100))
     sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
 
     b = numpyro.sample('slope', dist.Normal(0, 1))
