@@ -261,15 +261,19 @@ class BayesWindow:
 
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
-            levels_to_replace = list(set(self.levels) - {self.treatment})
+            levels_to_replace = list(set(self.levels + ['combined_condition']) - {self.treatment})
             for level_values, data_subset in self.original_data.groupby(levels_to_replace):
                 if not hasattr(level_values, '__len__'):  # This level is a scalar
                     level_values = [level_values]
+                from itertools import product
                 for level_name, level_value in zip(levels_to_replace, level_values):
-                    result_subset = df_result.loc[df_result['combined_condition'] ==
-                                                  data_subset['combined_condition'].iloc[0]]
-
-                    result_subset[level_name] = level_value
+                    print(level_name, level_value)
+                    result_subset = df_result
+                    df_result.loc[[(df_result['combined_condition'] ==
+                                    data_subset['combined_condition'].iloc[0])
+                                   # &(df_result[])
+                                   ],
+                                  level_name] = level_value
             # sanity check:
             if df_result.shape[0] * 2 != self.data.shape[0]:
                 print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
