@@ -443,6 +443,19 @@ class BayesWindow:
             self.chart = self.chart.resolve_scale(y='independent')
         return self.chart
 
+    def plot_slopes_shading(self):
+        # 0. Use
+        pd.concat([utils.get_hdi_map(self.trace.posterior[var], prefix=f'{var} ')
+                   for var in self.trace.posterior.data_vars], axis=1)
+        # 1. intercepts for stim=1
+        self.data_and_posterior['intercept']
+        # 2. slopes+ intercepts
+        self.data_and_posterior['intercept'] * self.data_and_posterior['slope']
+        # 3. Overlay with
+        self.chart_data_detail
+        # 4. color by dimension of slope (condition (and group if self.group))
+        pass
+
     def plot_posteriors_no_slope(self,
                                  x=None,
                                  add_data=False,

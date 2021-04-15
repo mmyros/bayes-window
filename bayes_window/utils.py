@@ -100,7 +100,7 @@ def hdi2df_one_condition(df_bayes, df_data):
     return df_data
 
 
-def get_hdi_map(posterior, circular=False):
+def get_hdi_map(posterior, circular=False, prefix=''):
     # HDI and mean over draws (will replace with MAP)
     hdi = az.hdi(posterior).to_dataframe()
     var_name = hdi.columns[-1]
@@ -108,30 +108,29 @@ def get_hdi_map(posterior, circular=False):
         # Get MAP
         max_a_p = calculate_point_estimate('mode', posterior.values.flatten(), bw="default", circular=circular)
 
-        df_bayes = pd.DataFrame({'higher interval': hdi.loc['higher', var_name],
-                                 'lower interval': hdi.loc['lower', var_name],
-                                 'center interval': max_a_p,
-                                 },
-                                index=[0])
+        hdi = pd.DataFrame({f'{prefix}higher interval': hdi.loc['higher', var_name],
+                            f'{prefix}lower interval': hdi.loc['lower', var_name],
+                            f'{prefix}center interval': max_a_p,
+                            },
+                           index=[0])
     else:
         # The dimension name, other than draws and chains (eg mouse)
         dim = posterior.dims[-1]
         # Name of the variable we are estimating (eg intercept_per_group)
 
-        intercepts = posterior.mean(['chain', 'draw']).to_dataframe()
+        m_a_p = posterior.mean(['chain', 'draw']).to_dataframe()
 
         # Get MAP
-        max_a_p = [calculate_point_estimate('mode', b.values.flatten(), bw="default", circular=circular)
-                   for _, b in posterior.groupby(dim)]
+        m_a_p[var_name] = [calculate_point_estimate('mode', b.values.flatten(), bw="default", circular=circular)
+                           for _, b in posterior.groupby(dim)]
 
         # Merge HDI and MAP
-        intercepts[var_name] = max_a_p
-
-        df_bayes = hdi.rename({var_name: 'interval'}, axis=1)
-        df_bayes = df_bayes.pivot_table(index=dim, columns=['hdi', ])
-        df_bayes.columns = [' '.join(np.flip(col)) for col in df_bayes.columns]
-        df_bayes = df_bayes.join(intercepts.rename({var_name: 'center interval'}, axis=1)).reset_index()
-    return df_bayes
+        hdi = hdi.rename({var_name: 'interval'}, axis=1)
+        hdi = hdi.pivot_table(index=dim, columns=['hdi', ])
+        # Reset column multiindex: Join 'interval' with 'higher
+        hdi.columns = [prefix + (' '.join(np.flip(col))) for col in hdi.columns]
+        hdi = hdi.join(m_a_p.rename({var_name: f'{prefix}center interval'}, axis=1)).reset_index()
+    return hdi
 
 
 def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name='combined_condition',
@@ -152,8 +151,9 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
     # HDI and MAP:
-    df_bayes = get_hdi_map(trace[b_name])
-
+    # df_bayes = get_hdi_map(trace[b_name])
+    df_bayes = pd.concat([get_hdi_map(trace[var], prefix=f'{var} ' if var != b_name else '')
+                          for var in trace.data_vars], axis=1)
     # Insert posteriors into data:
     if trace[b_name].ndim == 2:  # No extra dimension, just chains and draws
         return hdi2df_one_condition(df_bayes, df_data), trace

@@ -145,9 +145,6 @@ def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, 
     #     ))
 
     if add_box:
-        # Shift x axis for box so that it doesnt overlap:
-        # if len(base[x[:-2]].unique()) == 1:
-        #     df['x_box'] = df[x[:-2]] + .01
         charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black',
                                         median=alt.MarkConfig(color='red', strokeWidth=20)).encode(
             x=x,
@@ -157,24 +154,6 @@ def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, 
                     )
         ))
     return alt.layer(*charts), y_domain
-
-
-def plot_box(df=None, x='', y=None, color=None, base_chart=None):
-    assert (df is not None) or (base_chart is not None)
-    if (x == '') or (x[-2] != ':'):
-        x = f'{x}:O'
-    # Plot data:
-    base = base_chart or alt.Chart(df)
-    y_domain = list(np.quantile(base.data[y], [.05, .95]))
-    box = base.mark_boxplot(clip=True, opacity=.3, size=9, color='black',
-                            median=alt.MarkConfig(color='red', strokeWidth=20)).encode(
-        x=x,
-        y=alt.Y(f'{y}:Q',
-                axis=alt.Axis(orient='right', title=''),
-                scale=alt.Scale(zero=False, domain=y_domain)
-                )
-    )
-    return box
 
 
 def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, add_zero_line=True, **kwargs):
@@ -300,4 +279,3 @@ def plot_posterior_density(base_chart, y, y_domain, trace, posterior, b_name, do
                 axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
                 ),
     ).properties(width=30)
-
