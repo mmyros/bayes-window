@@ -5,6 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
+
 def facet(base_chart,
           column=None,
           row=None,
@@ -68,6 +69,7 @@ def auto_facet(chart, group, condition):
     elif condition[0]:
         chart = chart.facet(column=condition[0])
     return chart
+
 
 def line_with_highlight(base, x, y, color, detail, highlight=True):
     # Highlight doesnt work with overlays, but at least we get visible dots in legend

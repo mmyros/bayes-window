@@ -154,7 +154,7 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
     # Rename axis names to what they actually represent:
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
-    if f'intercept_per_group_dim_0' in trace:
+    if f'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
