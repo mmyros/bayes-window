@@ -76,7 +76,8 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
         raise ValueError(f"No such value {condition_val} in estimate's {condition_name}: "
                          f"it's {df_bayes[condition_name].unique()}")
     # Insert posterior into data at the corresponding location
-    for col in ['lower interval', 'higher interval', 'center interval']:
+    for col in df_bayes.columns[df_bayes.columns.str.contains('interval')]:
+        #['lower interval', 'higher interval', 'center interval']:
         data_rows.insert(data_rows.shape[1] - 1,  # Last column
                          col,  # lower or higher or center interval
                          this_hdi[col].values.squeeze()  # The value of posterior we just looked up

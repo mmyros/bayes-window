@@ -16,7 +16,7 @@ from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
 
 reload(visualization)
-
+reload(utils)
 
 # noinspection PyMethodFirstArgAssignment
 class BayesWindow:
