@@ -20,6 +20,7 @@
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 from bayes_window import models, fake_spikes_explore, BayesWindow
 from bayes_window.generative_models import generate_fake_spikes
+from importlib import reload
 import numpy as np
 import altair as alt
 alt.renderers.enable('altair_saver', fmts=['png']);
@@ -64,15 +65,18 @@ bw.plot(x='neuron',add_box=True).facet(row='mouse',column='stim')
 
 # ## Vanilla regression
 
+bw.levels
+
 # +
-bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse', detail='i_trial')
 bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='normal',
               robust_slopes=False,
               add_group_slope=False,
               add_group_intercept=True,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse', 'i_trial')
+             )
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
 
@@ -84,14 +88,14 @@ bw.facet(column='mouse',width=200,height=200).display()
 # ($y\sim Gamma(\theta)$)
 
 # +
-bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse', detail='i_trial')
 bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='gamma',
               robust_slopes=False,
               add_group_slope=True,
               add_group_intercept=True,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
+              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse','i_trial'))
 
 bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=True)
 

@@ -18,6 +18,7 @@ from bayes_window.visualization import plot_posterior
 reload(visualization)
 
 
+# noinspection PyMethodFirstArgAssignment
 class BayesWindow:
     def __init__(self,
                  df: pd.DataFrame,
@@ -64,6 +65,23 @@ class BayesWindow:
         self.trace = None
         self.model = None
 
+        # Some charts of data that don't need fitting
+        self.chart_data_boxplot = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(
+            width=60)
+        if self.detail in self.data.columns:
+            self.chart_data_detail = visualization.plot_data_slope_trials(df=self.data, x=self.treatment, y=self.y,
+                                                                          color=None,
+                                                                          detail=self.detail)
+        else:
+            self.chart_data_detail = alt.Chart(self.data).mark_rule().encode()  # Empty chart
+        self.chart_data_box_detail = alt.layer(self.chart_data_boxplot, self.chart_data_detail)
+        if self.group and self.condition[0]:
+            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.group, row=self.condition[0])
+        elif self.group:
+            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.group)
+        elif self.condition[0]:
+            self.chart_data_box_detail = self.chart_data_box_detail.facet(column=self.condition[0])
+
     def fit_anova(self, formula=None, **kwargs):
         from statsmodels.stats.anova import anova_lm
         if self.group:
@@ -80,7 +98,7 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2, **kwargs).round(2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, override_formula=None,
+    def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
         # model = MixedLM(endog=self.data[self.y],
         #                 exog=self.data[self.condition],
@@ -106,6 +124,7 @@ class BayesWindow:
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
             condition = self.condition[0].replace(" ", "_")
+
             # Make dummy variables for each level in condition:
             self.data = pd.concat((self.data,
                                    pd.get_dummies(self.data[condition],
@@ -119,8 +138,9 @@ class BayesWindow:
                 for dummy_condition in dummy_conditions[1:]:
                     formula += f" + {self.treatment}|{dummy_condition}"
             elif add_group_intercept and add_group_slope and not add_nested_group:
-                formula = (f"{self.y} ~ ({self.treatment}|{self.group}) + "
-                           f"{self.treatment}| {dummy_conditions[0]}")
+                formula = (f"{self.y} ~ ({self.treatment}|{self.group}) "
+                           f" + {self.treatment}| {dummy_conditions[0]}"
+                           )
                 for dummy_condition in dummy_conditions[1:]:
                     formula += f" + {self.treatment}|{dummy_condition}"
             elif add_group_intercept and add_group_slope and add_nested_group:
@@ -135,14 +155,14 @@ class BayesWindow:
         elif self.group:
             condition = None
             # Random intercepts and slopes (and their correlation): (Variable | Group)
-            formula = f'{self.y} ~  {self.treatment} + (1 | {self.group})'  # (1 | {self.group}) +
+            formula = f'{self.y} ~  C({self.treatment}, Treatment) + (1 | {self.group})'  # (1 | {self.group}) +
             # Random intercepts and slopes (without their correlation): (1 | Group) + (0 + Variable | Group)
             # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         else:
             condition = None
-            formula = f"{self.y} ~ {self.treatment}"
-        if override_formula:
-            formula = override_formula
+            formula = f"{self.y} ~ C({self.treatment}, Treatment)"
+        if formula:
+            formula = formula
         print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
@@ -196,6 +216,8 @@ class BayesWindow:
             # TODO case with no plot_index_cols should include any multiindex?
             fold_change_index_cols = self.levels
         fold_change_index_cols = list(fold_change_index_cols)
+        if self.detail and (self.detail in self.data.columns) and (self.detail not in fold_change_index_cols):
+            fold_change_index_cols += [self.detail]
         if add_condition_slope:
             add_condition_slope = self.condition[0] and (np.unique(self.data['combined_condition']).size > 1)
         self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
@@ -236,17 +258,29 @@ class BayesWindow:
             levels_to_replace = None
 
         self.data_and_posterior = df_result
+
         # sanity check:
         if self.data_and_posterior.shape[0] * 2 != self.data.shape[0]:
             print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
                   f'may suffer. Did was there another index column (like i_trial) other than {levels_to_replace}?')
         self.fold_change_index_cols = fold_change_index_cols
+
+        # Default plots:
+        try:
+            if self.condition[0] and len(self.condition) > 1:
+                BayesWindow.create_regression_charts(self, x=self.condition[0], column=self.group,
+                                                     row=self.condition[1])
+            elif self.condition[0]:
+                BayesWindow.create_regression_charts(self, x=self.condition[0], column=self.group)
+            else:
+                BayesWindow.create_regression_charts(self, x=self.condition[0], column=self.group)
+        except Exception as e:  # In case I haven't thought of something
+            print(f'Please use window.create_regression_charts(): {e}')
         return self
 
-    def create_posterior_charts(self, x=':O', color=':N', detail=':N', independent_axes=False):
+    def create_regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
         self.charts = []
-        self.independent_axes = independent_axes
         x = x or self.levels[-1]
         if x[-2] != ':':
             x += ':O'
@@ -274,7 +308,7 @@ class BayesWindow:
                 x=x,
                 base_chart=base_chart,
                 do_make_change=self.do_make_change)
-            self.chart_posterior = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
+            self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
@@ -294,48 +328,59 @@ class BayesWindow:
 
         else:
             base_chart = alt.Chart(self.data)
-            self.chart_posterior = base_chart.mark_rule().encode()  # Empty chart
+            self.chart_posterior_hdi = base_chart.mark_rule().encode()  # Empty chart
 
         # Default empty chart:
         empty_chart = base_chart.mark_rule().encode()
 
         # 2. Plot data
         y = f'{self.y} diff'
-        if y not in posterior:
+        if y in posterior:
+            if (detail != ':N') and (detail != ':O'):
+                assert detail in self.data
+                assert detail in self.fold_change_index_cols
+
+            # Plot data:
+            y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
+            if add_x_axis:
+                self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail,
+                                                                         highlight=False)
+                self.charts.extend(self.chart_data_line)
+                self.charts_for_facet.extend(self.chart_data_line)
+            else:
+                self.chart_data_line = empty_chart
+
+            self.chart_data_boxplot = base_chart.mark_boxplot(
+                clip=True, opacity=.3, size=9, color='black',
+                median=alt.MarkConfig(color='red', strokeWidth=20)
+            ).encode(
+                x=x,
+                y=alt.Y(f'{y}:Q',
+                        axis=alt.Axis(orient='right', title=''),
+                        scale=alt.Scale(zero=False, domain=y_domain)
+                        )
+            )
+            self.charts.append(self.chart_data_boxplot)
+            self.charts_for_facet.append(self.chart_data_boxplot)
+        else:  # No data overlay
             warnings.warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
-            return self
 
-        if (detail != ':N') and (detail != ':O'):
-            assert detail in self.data
-            assert detail in self.fold_change_index_cols
+        # 3. Make layered chart out of posterior and data
+        self.chart_posterior = alt.layer(*self.charts_for_facet)
+        if independent_axes:
+            self.chart_posterior = self.chart_posterior.resolve_scale(y='independent')
+        self.chart_posterior = visualization.facet(self.chart_posterior, **kwargs)
 
-        # Plot data:
-        y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
-        if add_x_axis:
-            self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail, highlight=False)
-            self.charts.extend(self.chart_data_line)
-            self.charts_for_facet.extend(self.chart_data_line)
-        else:
-            self.chart_data_line = empty_chart
+        # 4. Make overlay for data_detail_plot
 
-        self.chart_data_boxplot = base_chart.mark_boxplot(
-            clip=True, opacity=.3, size=9, color='black',
-            median=alt.MarkConfig(color='red', strokeWidth=20)
-        ).encode(
-            x=x,
-            y=alt.Y(f'{y}:Q',
-                    axis=alt.Axis(orient='right', title=''),
-                    scale=alt.Scale(zero=False, domain=y_domain)
-                    )
-        )
-        self.charts.append(self.chart_data_boxplot)
-        self.charts_for_facet.append(self.chart_data_boxplot)
         return self
 
     def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
                                independent_axes=False,
                                add_posterior_density=True,
                                **kwargs):
+        warnings.warn('plot_posteriors_slopes() is deprecated. Use `chart_posterior` attribute,'
+                      ' customizable via `create_regression_charts`')
         # Set some options
         self.independent_axes = independent_axes
         x = x or self.levels[-1]
@@ -461,22 +506,6 @@ class BayesWindow:
             return BayesWindow.plot_posteriors_slopes(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
-
-    def plot_data_details(self, facet=True):
-        if (self.detail is None) or (self.detail == ':O'):
-            warnings.warn('This plot works best with a "detail" argument when constructing BayesWindow')
-        c1 = visualization.plot_data(df=self.data, x=self.treatment, y=self.y)[0].properties(width=60)
-        c2 = visualization.plot_data_slope_trials(df=self.data, x=self.treatment, y=self.y, color=None,
-                                                  detail=self.detail)
-        chart = c1 + c2
-        if facet:
-            if self.group and self.condition[0]:
-                chart = chart.facet(column=self.group, row=self.condition[0])
-            elif self.group:
-                chart = chart.facet(column=self.group)
-            elif self.condition[0]:
-                chart = chart.facet(column=self.condition[0])
-        return chart
 
     def facet(self, width=150, height=160, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
