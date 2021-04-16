@@ -351,7 +351,8 @@ class BayesWindow:
                                                                              x=x,
                                                                              base_chart=None,
                                                                              do_make_change=self.do_make_change))
-            except KeyError:
+            except KeyError as e:
+                print(e)
                 pass
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
