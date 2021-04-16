@@ -330,7 +330,7 @@ class BayesWindow:
         if color[-2] != ':':
             color = f'{color}:N'
         self.charts = []
-        posterior = self.posterior if self.data_and_posterior is None else self.data_and_posterior
+        posterior = self.data_and_posterior
         add_x_axis = False
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
             add_x_axis = True
@@ -344,6 +344,12 @@ class BayesWindow:
                                                            x=x,
                                                            base_chart=base_chart,
                                                            do_make_change=self.do_make_change)
+            # No-data plot
+            self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=posterior[-1],
+                                                                         title=f'{self.y}',
+                                                                         x=x,
+                                                                         base_chart=None,
+                                                                         do_make_change=self.do_make_change))
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
@@ -431,7 +437,6 @@ class BayesWindow:
         self.chart_data_detail
         # 4. color by dimension of slope (condition (and group if self.group))
 
-
     def plot_posteriors_no_slope(self,
                                  x=None,
                                  add_data=False,
@@ -444,7 +449,7 @@ class BayesWindow:
         detail = detail or self.detail
         color = color or self.condition[0]
         # TODO default for detail
-        chart_p=None
+        chart_p = None
         if self.data_and_posterior is not None:
             base_chart = alt.Chart(self.data_and_posterior)
             # Plot posterior
