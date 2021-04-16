@@ -473,7 +473,7 @@ class BayesWindow:
             if 'add_data' in kwargs.keys():
                 warnings.warn('add_data keyword is not implemented for LME')
                 kwargs.pop('add_data')
-            return BayesWindow.regression_charts(self, add_data=False, **kwargs)
+            return BayesWindow.regression_charts(self, **kwargs)
         elif 'slope' in self.b_name:
             return BayesWindow.regression_charts(self, **kwargs)
         elif self.b_name == 'mu_per_condition':

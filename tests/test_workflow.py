@@ -58,7 +58,7 @@ def test_fit_lme():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_lme()
     window.regression_charts()
-    window.facet(row='mouse')
+    # window.facet(row='mouse') # currently group is coded as a random variable
 
 
 def test_fit_lme_w_condition():
@@ -72,8 +72,8 @@ def test_fit_lme_w_condition():
     try:
         window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
         assert window.fit_lme().data_and_posterior is not None
-        window.regression_charts()
-        window.facet(column='neuron_x_mouse', width=300)
+        window.regression_charts().display()
+        window.facet(column='neuron_x_mouse', width=300).display()
     except LinAlgError as e:
         print(e)
 
@@ -84,17 +84,17 @@ def test_fit_lme_w_data():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_lme(do_make_change='divide')
     assert window.data_and_posterior is not None
-    window.regression_charts()
+    window.regression_charts().display()
 
 
 def test_fit_lme_w_data_condition():
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
 
-    window = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
+    window = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron_x_mouse')
 
     window.fit_lme(do_make_change='divide')
-    window.regression_charts()
-    window.facet(column='neuron_x_mouse', width=300)
+    window.regression_charts().display()
+    window.facet(column='neuron_x_mouse', width=300).display()
 
 
 def test_estimate_posteriors():
