@@ -86,7 +86,7 @@ df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
 # ## Plot data and posterior
 
 # + hideCode=false hidePrompt=false
-# BayesWindow.plot_posteriors_slopes(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
+# BayesWindow.regression_charts(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
 reload(visualization)
 
 chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code',add_box=True, highlight=False)

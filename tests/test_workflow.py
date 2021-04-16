@@ -13,14 +13,13 @@ from pytest import mark
 df_radon = load_radon()
 
 
-@mark.parametrize('add_posterior_density', [True, False], )
 # @mark.parametrize('add_data', [True, False])
 # @mark.parametrize('add_box', [True, False])
 @mark.parametrize('add_condition_slope', [True, False])
 @mark.parametrize('add_group_slope', [False, True])
 # @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])
-def test_radon(add_posterior_density,
+def test_radon(
                # add_data, add_box,
                add_condition_slope,
                add_group_slope,
@@ -34,8 +33,8 @@ def test_radon(add_posterior_density,
                       n_draws=100, num_chains=1, num_warmup=100)
     # window.plot().display()
     window.plot(x=':O', #add_data=add_data, add_box=add_box,
-                add_posterior_density=add_posterior_density).display()
-    window.make_regression_charts()
+                ).display()
+    window.regression_charts()
 
 
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
@@ -58,7 +57,7 @@ def test_fit_lme():
     df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_lme()
-    window.plot_posteriors_slopes()
+    window.regression_charts()
     window.facet(row='mouse')
 
 
@@ -73,7 +72,7 @@ def test_fit_lme_w_condition():
     try:
         window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
         assert window.fit_lme().data_and_posterior is not None
-        window.plot_posteriors_slopes()
+        window.regression_charts()
         window.facet(column='neuron_x_mouse', width=300)
     except LinAlgError as e:
         print(e)
@@ -85,7 +84,7 @@ def test_fit_lme_w_data():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_lme(do_make_change='divide')
     assert window.data_and_posterior is not None
-    window.plot_posteriors_slopes()
+    window.regression_charts()
 
 
 def test_fit_lme_w_data_condition():
@@ -94,7 +93,7 @@ def test_fit_lme_w_data_condition():
     window = BayesWindow(df, y='isi', treatment='stim', group='mouse', condition='neuron')
 
     window.fit_lme(do_make_change='divide')
-    window.plot_posteriors_slopes()
+    window.regression_charts()
     window.facet(column='neuron_x_mouse', width=300)
 
 
@@ -258,7 +257,7 @@ def test_estimate_posteriors_data_overlay_slope():
                                                                     dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
-    chart = window.plot_posteriors_slopes(independent_axes=False, add_posterior_density=False)
+    chart = window.regression_charts(independent_axes=False)
     chart.display()
     window.facet(column='neuron_code', row='mouse_code')
     chart.display()
@@ -347,7 +346,7 @@ def test_plot_posteriors_no_slope():
                                                                     dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
-    window.plot_posteriors_slopes()
+    window.regression_charts()
 
 
 def test_plot_generic():
@@ -380,7 +379,7 @@ def test_facet():
                                                                     dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
-    window.plot(add_posterior_density=False).facet('neuron', width=40)
+    window.plot().facet('neuron', width=40)
 
     # conditions:
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
@@ -397,19 +396,19 @@ def test_single_condition_withdata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+    window.regression_charts(add_box=True, independent_axes=True).display()
 
     # Without data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+    window.regression_charts(add_box=True, independent_axes=True).display()
 
     # With data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+    window.regression_charts(add_box=True, independent_axes=True).display()
 
 
 def test_single_condition_nodata():
@@ -417,7 +416,7 @@ def test_single_condition_nodata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+    window.regression_charts(add_box=True, independent_axes=True).display()
 
 
 def test_single_condition_nodata_dists():
@@ -426,7 +425,7 @@ def test_single_condition_nodata_dists():
         window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
         window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
         alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-        window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
+        window.regression_charts(add_box=True, independent_axes=True).display()
 
 
 # @mark.parametrize('condition', [None, 'neuron'])
@@ -458,7 +457,7 @@ def test_chirp_data():
                                                                                'Brain region', 'Stim phase', 'stim_on',
                                                                                'Fid', 'Subject', 'Inversion'],
                       do_mean_over_trials=True, num_chains=1, n_draws=100, num_warmup=100)
-    window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+    window.regression_charts(x='Stim phase', color='Fid', independent_axes=True)
 
     window.data_and_posterior
 
@@ -473,7 +472,7 @@ def test_chirp_data1():
                                                                                # 'Brain region', 'stim_on', 'Fid', 'Subject'
                                                                                ], do_mean_over_trials=True,
                       num_chains=1, n_draws=100, num_warmup=100)
-    window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+    window.regression_charts(x='Stim phase', color='Fid', independent_axes=True)
 
 
 def test_chirp_data2():
@@ -485,7 +484,7 @@ def test_chirp_data2():
     window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',
         'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], do_mean_over_trials=True, num_chains=1,
                       n_draws=100, num_warmup=100)
-    window.plot_posteriors_slopes(x='Stim phase', color='Fid', independent_axes=True)
+    window.regression_charts(x='Stim phase', color='Fid', independent_axes=True)
 
 
 def test_conditions2():
@@ -512,13 +511,13 @@ def random_tests():
     window.fit_slopes(model=models.model_hierarchical, num_chains=1)
     window.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=False)
 
-    window.plot_posteriors_slopes(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
+    window.regression_charts(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
 
-    window.plot_posteriors_slopes(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
+    window.regression_charts(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
 
-    window.plot_posteriors_slopes(independent_axes=False, x='neuron:O', color='mouse')
+    window.regression_charts(independent_axes=False, x='neuron:O', color='mouse')
 
-    chart = window.plot_posteriors_slopes(add_box=True, independent_axes=True, x='neuron:O', color='mouse')
+    chart = window.regression_charts(add_box=True, independent_axes=True, x='neuron:O', color='mouse')
 
     chart
 
@@ -531,9 +530,9 @@ def random_tests():
                          condition='neuron',
                          group='mouse')
     window.fit_slopes(model=models.model_hierarchical, num_chains=1)
-    c = window.plot_posteriors_slopes(x='neuron', color='i_trial')
+    c = window.regression_charts(x='neuron', color='i_trial')
 
-    window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
+    window.regression_charts()  # x='Stim phase', color='Fid')#,independent_axes=True)
     window.facet(column='neuron', row='mouse')
 
 

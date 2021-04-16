@@ -116,7 +116,7 @@ bw = BayesWindow(df, y='firing_rate', treatment='stim', condition='neuron_x_mous
 #bw.fit_anova()
 bw.fit_lme()
 
-bw.plot_posteriors_slopes(x='neuron_x_mouse:O')
+bw.regression_charts(x='neuron_x_mouse:O')
 
 # ### Firing rate
 
@@ -234,7 +234,7 @@ bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], gr
 bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=False)
 
 
-bw.plot_posteriors_slopes(x='neuron_x_mouse:O').display()
+bw.regression_charts(x='neuron_x_mouse:O').display()
 #bw.facet(column='mouse').display()
 "Proper faceting will work when data addition is implemented in fit_lme()"
 
@@ -242,7 +242,7 @@ bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], gr
 bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True)
 
 
-bw.plot_posteriors_slopes(x='neuron_x_mouse:O').display()
+bw.regression_charts(x='neuron_x_mouse:O').display()
 
 
 # Need nested design, but get singular matrix:

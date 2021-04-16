@@ -196,7 +196,8 @@ class BayesWindow:
                                                          self.treatment)
         if add_data:
             self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-                                                            self.condition[0], self.data, self.y, self.levels, self.treatment)
+                                                            self.condition[0], self.data, self.y, self.levels,
+                                                            self.treatment)
         return self
 
     def fit_conditions(self, model=models.model_single, add_data=True, **kwargs):
@@ -226,8 +227,8 @@ class BayesWindow:
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
                    do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
-        # if do_make_change not in ['subtract', 'divide']:
-        #     raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
+        if do_make_change not in ['subtract', 'divide', False]:
+            raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
         if not add_condition_slope:
             warnings.warn(f'add_condition_slope is not requested. Slopes will be the same across {self.condition}')
         if self.b_name is not None:
@@ -235,9 +236,7 @@ class BayesWindow:
                               "Please create a new one by calling BayesWindow(...) again")
         self.do_make_change = do_make_change
         self.model = model
-        # TODO handle no-group case
         if fold_change_index_cols is None:
-            # TODO case with no plot_index_cols should include any multiindex?
             fold_change_index_cols = self.levels
         fold_change_index_cols = list(fold_change_index_cols)
         if self.detail and (self.detail in self.data.columns) and (self.detail not in fold_change_index_cols):
@@ -281,11 +280,11 @@ class BayesWindow:
 
         # HDI and MAP:
         self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
-                                            prefix=f'{var} ' if( var != self.b_name) and (var!='slope_per_condition') else '')
+                                            prefix=f'{var} ' if (var != self.b_name) and (
+                                                    var != 'slope_per_condition') else '')
                           for var in self.trace.posterior.data_vars]
 
         # Fill posterior into data
-        # TODO potentially, only one row (eg first) of the match can be filled in
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=self.data.copy(),
                                                                    group=self.group)
@@ -293,17 +292,17 @@ class BayesWindow:
         try:
             # facet_kwargs=visualization.auto_facet(self.group,self,condition)
             if self.condition[0] and len(self.condition) > 1:
-                self.make_regression_charts(x=self.condition[0], column=self.group,
-                                            row=self.condition[1])
+                self.regression_charts(x=self.condition[0], column=self.group,
+                                       row=self.condition[1])
             elif self.condition[0]:
-                self.make_regression_charts(x=self.condition[0], column=self.group)
+                self.regression_charts(x=self.condition[0], column=self.group)
             else:
-                self.make_regression_charts(x=self.condition[0], column=self.group)
+                self.regression_charts(x=self.condition[0], column=self.group)
         except Exception as e:  # In case I haven't thought of something
             print(f'Please use window.create_regression_charts(): {e}')
         return self
 
-    def make_regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
+    def regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
         x = x or self.levels[-1]
         color = color or self.levels[0]
@@ -386,74 +385,6 @@ class BayesWindow:
         # self.plot_slopes_shading()
         return self.chart_posterior
 
-    def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
-                               independent_axes=False,
-                               add_posterior_density=True,
-                               **kwargs):
-        # TODO deprecate
-        warnings.warn('plot_posteriors_slopes() is deprecated. Use `chart_posterior` attribute,'
-                      ' customizable via `create_regression_charts`')
-        # Set some options
-        self.independent_axes = independent_axes
-        x = x or self.levels[-1]
-        if x[-2] != ':':
-            x += ':O'
-        color = color or self.levels[0]
-        posterior = self.posterior if self.data_and_posterior is None else self.data_and_posterior
-
-        # Plot posterior
-        if posterior is not None:
-            add_data = add_data and add_box
-            base_chart = alt.Chart(posterior)
-            chart_p = alt.layer(*plot_posterior(title=f'{self.y}',
-                                                x=x,
-                                                base_chart=base_chart,
-                                                do_make_change=self.do_make_change))
-        else:
-            base_chart = alt.Chart(self.data)
-            add_data = True  # Otherwise nothing to do
-            chart_p = None
-        if add_data and f'{self.y} diff' not in self.data_and_posterior.columns:
-            warnings.warn(f'change in data was not added, but add_data requested:'
-                          f'{self.y} diff is not in {self.data_and_posterior.columns}')
-            add_data = False
-
-        if add_data:
-            assert self.data_and_posterior is not None
-            y = f'{self.y} diff'
-            if (detail != ':N') and (detail != ':O'):
-                assert detail in self.data
-
-            chart_d, y_scale = visualization.plot_data(x=x, y=y, color=color, add_box=add_box,
-                                                       detail=detail,
-                                                       base_chart=base_chart)
-            self.chart = chart_d + chart_p
-        else:
-            y = self.y
-            y_scale = None
-            self.chart = chart_p
-
-        if np.unique(self.data['combined_condition']).size > 1:
-            add_posterior_density = False
-        if x != ':O':
-            if (len(self.data[x[:-2]].unique()) > 1):
-                # That would be too dense. Override add_posterior_density
-                add_posterior_density = False
-
-        if posterior is not None and add_posterior_density and (self.b_name != 'lme'):
-            chart_kde = visualization.plot_posterior_density(base_chart, y, y_scale, self.trace, posterior,
-                                                             self.b_name, do_make_change=self.do_make_change)
-
-            # Add kde to charts:
-            if add_box and add_data:
-                self.chart |= chart_kde
-            else:
-                self.chart += chart_kde
-                independent_axes = False
-        if independent_axes:
-            self.chart = self.chart.resolve_scale(y='independent')
-        return self.chart
-
     def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
         # TODO this method is WIP
         assert self.data_and_posterior is not None
@@ -469,11 +400,10 @@ class BayesWindow:
         chart = (posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
         if ('column' in kwargs) or ('row' in kwargs):
             return visualization.facet(chart, **kwargs)
-        else: # Auto facet
+        else:  # Auto facet
             return visualization.facet(chart, **visualization.auto_facet(self.group, self.condition))
 
-
-    def plot_slopes_shading(self):
+    def plot_slopes_shading(self):  # TODO this method is WIP
         # 0. Use
         pd.concat([utils.get_hdi_map(self.trace.posterior[var], prefix=f'{var} ')
                    for var in self.trace.posterior.data_vars], axis=1)
@@ -544,9 +474,9 @@ class BayesWindow:
             if 'add_data' in kwargs.keys():
                 warnings.warn('add_data keyword is not implemented for LME')
                 kwargs.pop('add_data')
-            return BayesWindow.plot_posteriors_slopes(self, add_data=False, **kwargs)
+            return BayesWindow.regression_charts(self, add_data=False, **kwargs)
         elif 'slope' in self.b_name:
-            return BayesWindow.plot_posteriors_slopes(self, **kwargs)
+            return BayesWindow.regression_charts(self, **kwargs)
         elif self.b_name == 'mu_per_condition':
             return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
