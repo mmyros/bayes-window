@@ -38,7 +38,7 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                 dur=7, )
 
 
-df['log_isi'] = np.log10(df['isi'])
+# df['log_isi'] = np.log10(df['isi'])
 
 from bayes_window import visualization, utils
 from importlib import reload
@@ -46,14 +46,13 @@ from importlib import reload
 reload(visualization)
 reload(utils)
 y = 'isi'
-df['neuron'] = df['neuron'].astype(int)
 ddf, dy = utils.make_fold_change(df,
                                  y=y,
-                                 index_cols=('stim', 'mouse_code', 'neuron'),
+                                 index_cols=('stim', 'mouse', 'neuron'),
                                  treatment_name='stim',
                                  do_take_mean=True)
 
-visualization.plot_data(x='neuron', y=dy, color='mouse_code',  df=ddf)[0]
+visualization.plot_data(x='neuron', y=dy, color='mouse',  df=ddf)[0]
 # -
 
 # TODO leave axis labels here somehow
