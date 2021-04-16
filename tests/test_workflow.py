@@ -544,7 +544,9 @@ def test_data_replacement1():
                                                                     mouse_response_slope=16)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
                               detail='i_trial')
-    window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',)
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+                      add_condition_slope=True,
+                      add_group_slope=True)
     assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])['mouse'].unique().size==4
 
 

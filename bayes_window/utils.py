@@ -35,20 +35,6 @@ def parse_levels(treatment, condition, group):
 def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=None, treatment_name='Event',
                           treatments=None, b_name='slope_per_condition', posterior_index_name='',
                           do_make_change='subtract', do_mean_over_trials=True, group_name='subject'):
-    # group_name should be conditions
-    if type(fold_change_index_cols) == str:
-        fold_change_index_cols = [fold_change_index_cols]
-    fold_change_index_cols = list(fold_change_index_cols)
-    treatments = treatments or df_data[treatment_name].drop_duplicates().sort_values().values
-
-    assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
-    assert do_make_change in [False, 'subtract', 'divide']
-    if not (treatment_name in fold_change_index_cols):
-        fold_change_index_cols.append(treatment_name)
-    if not ('combined_condition' in fold_change_index_cols) and ('combined_condition' in df_data.columns):
-        fold_change_index_cols.append('combined_condition')
-    # if not (group_name in index_cols):
-    #     index_cols.append(group_name)
     if do_mean_over_trials:
         df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
     if do_make_change:
@@ -69,6 +55,53 @@ def add_data_to_posterior(df_data, posterior, y=None, fold_change_index_cols=Non
     return df_bayes, posterior
 
 
+def fill_conditions(original_data: pd.DataFrame, data: pd.DataFrame, df_result: pd.DataFrame, group: str):
+    # Back to human-readable labels
+    if ('combined_condition' not in original_data.columns) or ('combined_condition' not in df_result.columns):
+        warnings.warn('No condition found. Returning posterior unchanged')
+        return df_result
+
+    levels_to_replace = ['combined_condition', group]
+    # Replace index code  values with true data values we saved in self.original_data
+    for level_values, data_subset in original_data[levels_to_replace].groupby(levels_to_replace):
+        print(level_values, data_subset)
+        if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
+            level_values = [level_values]
+        recoded_data_subset = data.loc[data_subset.index, levels_to_replace]
+
+        # Sanity check:
+        for col in recoded_data_subset.columns:
+            if recoded_data_subset[col].unique().size > 1:
+                raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
+                                 f'but data_subset[{col}] = {data_subset[col].unique()}')
+        index = \
+            ((df_result[levels_to_replace[0]] == data_subset[levels_to_replace[0]].iloc[0]) | (
+                df_result[levels_to_replace[0]] == recoded_data_subset[levels_to_replace[0]].iloc[0])) & \
+            ((df_result[levels_to_replace[1]] == data_subset[levels_to_replace[1]].iloc[0]) | (
+                df_result[levels_to_replace[1]] == recoded_data_subset[levels_to_replace[1]].iloc[0]))
+        # Strict check only if conditions and intercepts are requested:
+        # assert sum(index) > 0, ('all_zero index', levels_to_replace, index)
+        # Set rows we found to to level values. If not found, nothing is modified
+        df_result.loc[index, levels_to_replace] = level_values
+    # sanity check 1:
+    if 'mu_intercept_per_group center interval' in df_result.columns:
+        assert (df_result.dropna(subset=['mu_intercept_per_group center interval'])[group].unique().size ==
+                data[group].unique().size)
+    return df_result
+    # sanity check 2, for when we have data:
+    # if df_result.shape[0] * 2 != data.shape[0]:
+    #     warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
+    #                   f'may suffer. Did was there another index column (like i_trial) '
+    #                   f'other than {levels_to_replace}?')
+    # General version if we have more than two indices:
+    # Preallocate
+    # index = np.ones_like(df_result['combined_condition'])
+    # for level_value, level_name in zip(level_values, levels_to_replace):
+    #     this_index = (df_result[level_name] == data_subset[level_name].iloc[0]) | \
+    #                  (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
+    #     index = index & this_index
+
+
 def fill_row(condition_val, data_rows, df_bayes, condition_name):
     """
 
@@ -84,7 +117,7 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
 
     """
     # Look up where posterior has the same condition value as in data
-    #TODO extend to group and
+    # TODO extend to group and
     # index = np.ones(df_bayes.shape[0])
     # for cond,val in df_bayes.groupby(condition_name):
     #     index=index&(df_bayes[cond] == val)
@@ -148,12 +181,32 @@ def get_hdi_map(posterior, circular=False, prefix=''):
     return hdi
 
 
-def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name='combined_condition',
-             group_name='subject'):
-    """
-    # Convert to dataframe and fill in original conditions
-    group name is whatever was used to index posterior
-    """
+def insert_posterior_into_data(posteriors, data, group):
+    for posterior in posteriors:
+        # Remove underscore from get_hdi_map():
+        posterior.rename({f'{group}_': group}, axis=1, inplace=True)
+        # Sanity check
+        posterior_index_cols = list(posterior.columns[~posterior.columns.str.contains('interval')])
+        posterior_value_cols = list(posterior.columns[posterior.columns.str.contains('interval')])
+        assert len(posterior_index_cols) <= 2, f'Should be [combined condition, {group}]. was {posterior_index_cols}'
+        if len(posterior_index_cols) == 0:  # No indices, unidimensional
+            for posterior_value_col in posterior_value_cols:
+                data.loc[data.index[0], posterior_value_col] = posterior.iloc[0][posterior_value_col]
+                # print(data.loc[data.index[0], posterior_value_col])
+            continue
+        # Fill in:
+        for index, subset_posterior in posterior.groupby(posterior_index_cols):
+            assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
+            subset_posterior = subset_posterior.iloc[0]
+            data_index = (data[posterior_index_cols] == index).squeeze()
+            # self.data.drop(posterior_value_col,axis=1,inplace=True)
+            for posterior_value_col in posterior_value_cols:
+                data.loc[data_index, posterior_value_col] = subset_posterior[posterior_value_col]
+            # print(data.loc[data_index, posterior_value_cols])
+    return data
+
+
+def rename_posterior(trace, b_name, posterior_index_name, group_name):
     # Rename axis names to what they actually represent:
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
@@ -161,6 +214,16 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
+    return trace
+
+
+def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name='combined_condition',
+             group_name='subject'):
+    """
+    # Convert to dataframe and fill in original conditions
+    group name is whatever was used to index posterior
+    """
+    trace = rename_posterior(trace, b_name, posterior_index_name, group_name)
     if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
         warnings.warn(f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
         df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
@@ -174,12 +237,27 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
-            # hdi2df_many_conditions(df_bayes, [posterior_index_name,'mouse'], df_data), trace
-    #TODO need group in posterior_index_name for groupby in hdi2df
+        # hdi2df_many_conditions(df_bayes, [posterior_index_name,'mouse'], df_data), trace
+    # TODO need group in posterior_index_name for groupby in hdi2df
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
                      treatment_name='stim', treatments=(0, 1), do_take_mean=False, fold_change_method='divide'):
+    # group_name should be conditions
+    if type(index_cols) == str:
+        index_cols = [index_cols]
+    fold_change_index_cols = list(index_cols)
+    treatments = treatments or df[treatment_name].drop_duplicates().sort_values().values
+
+    assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
+    assert fold_change_method in [False, 'subtract', 'divide']
+    if not (treatment_name in fold_change_index_cols):
+        fold_change_index_cols.append(treatment_name)
+    if not ('combined_condition' in fold_change_index_cols) and ('combined_condition' in df.columns):
+        fold_change_index_cols.append('combined_condition')
+    # if not (group_name in index_cols):
+    #     index_cols.append(group_name)
+
     for treatment in treatments:
         assert treatment in df[treatment_name].unique(), f'{treatment} not in {df[treatment_name].unique()}'
     if y not in df.columns:

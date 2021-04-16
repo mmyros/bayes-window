@@ -83,23 +83,26 @@ class BayesWindow:
     def data_box_detail(self, data=None, color=None, autofacet=True):
         if data is None:
             data = self.data
+        y_domain = list(np.quantile(data[self.y], [.05, .95]))
         self.chart_data_box_for_detail = visualization.plot_data(
-            df=data, x=self.treatment, y=self.y)[0].properties(width=60)
+            df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0].properties(width=60)
         if (self.detail in self.data.columns) and (len(self.condition) > 1):
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=self.condition[1],
-                                                                          detail=self.detail)
+                                                                          detail=self.detail,
+                                                                          y_domain=y_domain, )
         if self.detail in self.data.columns:
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=color,
-                                                                          detail=self.detail)
-        else:
-            self.chart_data_detail = alt.Chart(data).mark_rule().encode()  # Empty chart
+                                                                          detail=self.detail,
+                                                                          y_domain=y_domain,
+                                                                          )
+        else:  # Empty chart; potentially override with new data
+            self.chart_data_detail = alt.Chart(data).mark_rule().encode()
         self.chart_data_box_detail = alt.layer(self.chart_data_box_for_detail, self.chart_data_detail)
         if autofacet:
-            self.chart_data_box_detail = visualization.auto_facet(self.chart_data_box_detail,
-                                                                  self.group,
-                                                                  self.condition)
+            self.chart_data_box_detail = self.chart_data_box_detail.facet(**visualization.auto_facet(self.group,
+                                                                                                     self.condition))
         return self.chart_data_box_detail
 
     def fit_anova(self, formula=None, **kwargs):
@@ -253,71 +256,54 @@ class BayesWindow:
                                 model=model,
                                 add_condition_slope=add_condition_slope,
                                 **kwargs)
-        # Add data back
-        df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=self.data.copy(),
-                                                                      posterior=self.trace.posterior, y=self.y,
-                                                                      fold_change_index_cols=fold_change_index_cols,
-                                                                      treatment_name=self.treatment,
-                                                                      b_name=self.b_name,
-                                                                      posterior_index_name='combined_condition',
-                                                                      do_make_change=do_make_change,
-                                                                      do_mean_over_trials=do_mean_over_trials,
-                                                                      group_name=self.group)
-        #TODO try to do without trace2df.Use this instead
-        # Back to human-readable labels
-        if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
-            levels_to_replace = list(set(self.levels) - {self.treatment})
-            # levels_to_replace += ['combined_condition']
-            # if not self.group in df_result:
-            #     levels_to_replace = list(set(levels_to_replace)-{self.group})
-            for level_values, data_subset in self.original_data[levels_to_replace].groupby(levels_to_replace):
-                if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
-                    level_values = [level_values]
-                # from itertools import product
-                # for level_value in product(level_values):
+        df_data = self.data.copy()
+        if do_mean_over_trials:
+            df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
+        if do_make_change:
+            # Make (fold) change
+            try:
+                df_data, _ = utils.make_fold_change(df_data,
+                                                    y=self.y,
+                                                    index_cols=fold_change_index_cols,
+                                                    treatment_name=self.treatment,
+                                                    # treatments=treatments,
+                                                    fold_change_method=do_make_change,
+                                                    do_take_mean=False)
+            except Exception as e:
+                print(e)
 
-                # recoded_level_value = self.data.loc[data_subset.index][level_name]
-                # assert recoded_level_value.unique().size == 1
-                # index = ((df_result['combined_condition'] == data_subset['combined_condition'].iloc[0])
-                #          & (df_result[level_name] == recoded_level_value.iloc[0])
-                #          )
+        self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
+                                                      posterior_index_name='combined_condition',
+                                                      group_name=self.group)
+        # if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
+        #     warnings.warn(
+        #         f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
+        #     df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
-                # np.logical_and(level_values)
-                # reduce(np.logical_and, level_values)
+        # HDI and MAP:
+        # df_bayes = get_hdi_map(trace[b_name])
+        self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
+                                            prefix=f'{var} ' if var != self.b_name else '')
+                          for var in self.trace.posterior.data_vars]
+        # Fill posterior into data
+        # TODO potentially, only one row (eg first) of the match can be filled in
+        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                   data=self.data.copy(),
+                                                                   group=self.group)
+        # self.data_and_posterior['slope_per_group lower interval'].dropna()
 
-                recoded_data_subset = self.data.loc[data_subset.index, levels_to_replace]
+        # Replace with original conditions by looking up original_data
+        # self.posterior = utils.fill_conditions(self.original_data, self.data, df_result, self.group)
 
-                # Sanity check:
-                for col in recoded_data_subset.columns:
-                    if recoded_data_subset[col].unique().size > 1:
-                        raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
-                                         f'but data_subset[{col}] = {data_subset[col].unique()}')
-
-                # Replace index code  values with true data values we saved in self.original_data
-                # Preallocate
-                index = np.ones_like(df_result['combined_condition'])
-                for level_value, level_name in zip(level_values, levels_to_replace):
-                    assert recoded_data_subset[level_name].unique().size == 1
-                    assert recoded_data_subset[level_name].unique()[0] in df_result[level_name]
-                    this_index = (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
-                    assert sum(this_index) > 0, ('all_zero index', level_name, level_value)
-                    index = index & this_index
-                    assert sum(index) > 0, ('all_zero index', level_name, level_value)
-                    assert df_result.loc[index, level_name].unique().size == 1, df_result.loc[
-                        index, level_name].unique()
-                # Set rows we found to to level values
-                df_result.loc[index, levels_to_replace] = level_values
-            # sanity check 1:
-            # assert df_result.dropna(subset=['mu_intercept_per_group center interval'])[self.group].unique().size == 4
-            # sanity check 2:
-            if df_result.shape[0] * 2 != self.data.shape[0]:
-                warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
-                              f'may suffer. Did was there another index column (like i_trial) '
-                              f'other than {levels_to_replace}?')
-
-        self.data_and_posterior = df_result
-
-        # self.fold_change_index_cols = fold_change_index_cols
+        # df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=df_data,
+        #                                                               posterior=self.trace.posterior, y=self.y,
+        #                                                               fold_change_index_cols=fold_change_index_cols,
+        #                                                               treatment_name=self.treatment,
+        #                                                               b_name=self.b_name,
+        #                                                               posterior_index_name='combined_condition',
+        #                                                               do_make_change=do_make_change,
+        #                                                               do_mean_over_trials=do_mean_over_trials,
+        #                                                               group_name=self.group)
 
         # Default plots:
         try:

@@ -5,7 +5,6 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
-
 def facet(base_chart,
           column=None,
           row=None,
@@ -61,18 +60,22 @@ def facet(base_chart,
     return chart
 
 
-def auto_facet(chart, group, condition):
+def auto_facet(group, condition):
     if group and condition[0]:
-        chart = chart.facet(column=group, row=condition[0])
+        kwargs = {'column': group, 'row': condition[0]}
+        # chart = chart.facet(column=group, row=condition[0])
     elif group:
-        chart = chart.facet(column=group)
+        kwargs = {'column': group}
+        # chart = chart.facet(column=group)
     elif condition[0]:
-        chart = chart.facet(column=condition[0])
-    return chart
+        kwargs = {'column': condition[0]}
+        # chart = chart.facet(column=condition[0])
+    return kwargs
 
 
-def line_with_highlight(base, x, y, color, detail, highlight=True):
+def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None):
     # Highlight doesnt work with overlays, but at least we get visible dots in legend
+    y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
     if highlight:
         highlight = alt.selection(type='single', on='mouseover', fields=[color], nearest=True)
         size = alt.condition(~highlight, alt.value(1), alt.value(3))
@@ -86,8 +89,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
         y=alt.Y(f'mean({y})',
                 title=y,
                 axis=alt.Axis(orient='right'),
-                scale=alt.Scale(zero=False,
-                                domain=list(np.quantile(base.data[y], [.05, .95])))),
+                scale=alt.Scale(zero=False, domain=y_domain)),
         detail=detail
     )
     points = base.mark_circle(clip=True, opacity=0, filled=True).encode(
@@ -96,8 +98,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
         color=f'{color}',
         y=alt.Y(f'mean({y})',
                 axis=alt.Axis(title='', orient='right'),
-                scale=alt.Scale(zero=False,
-                                domain=list(np.quantile(base.data[y], [.05, .95])))),
+                scale=alt.Scale(zero=False, domain=y_domain)),
         detail=detail
     )
     if highlight:
@@ -108,7 +109,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True):
 
 
 def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
-              **kwargs):
+              y_domain=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
         x = f'{x}:O'
@@ -120,9 +121,10 @@ def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, 
 
     # Plot data:
     base = base_chart or alt.Chart(df)
-    y_domain = list(np.quantile(base.data[y], [.05, .95]))
+    y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
+
     if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
-        charts.extend(line_with_highlight(base, x, y, color, detail, highlight=highlight))
+        charts.extend(line_with_highlight(base, x, y, color, detail, highlight=highlight, y_domain=y_domain))
         # charts.append(base.mark_line(clip=True, fill=None, opacity=.6, size=.5).encode(
         #     x=x,
         #     color=f'{color}',
@@ -237,19 +239,20 @@ def plot_data_slope_trials(x,
                            color=None,
                            base_chart=None,
                            df=None,
+                           y_domain=None,
                            **kwargs):
     assert (df is not None) or (base_chart is not None)
     color = color or ':N'
     if x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     base_chart = base_chart or alt.Chart(df)
-
+    y_domain = y_domain or list(np.quantile(base_chart.data[y], [.05, .95]))
     # mean firing rate per trial per mouse
     fig_trials = base_chart.mark_line(fill=None).encode(
         x=alt.X(x),
         y=alt.Y(y, scale=alt.Scale(zero=False,
                                    # domain=[df[y].min(), df[y].max()])),
-                                   domain=list(np.quantile(base_chart.data[y], [.05, .95])),
+                                   domain=y_domain,
                                    clamp=True)),
         color=color,
         detail=detail,
