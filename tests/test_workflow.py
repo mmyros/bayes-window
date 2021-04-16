@@ -73,7 +73,7 @@ def test_fit_lme_w_condition():
         window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
         assert window.fit_lme().data_and_posterior is not None
         window.regression_charts().display()
-        window.plot(x='neuron')
+        window.plot(x='neuron_x_mouse').display()
         window.facet(column='neuron_x_mouse', width=300).display()
     except LinAlgError as e:
         print(e)

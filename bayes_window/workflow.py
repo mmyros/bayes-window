@@ -386,12 +386,14 @@ class BayesWindow:
         # self.plot_slopes_shading()
         return self.chart
 
-    def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
+    def plot_slopes_intercepts(self, x=':O', y='mu_intercept_per_group center interval', **kwargs):
         # TODO this method is WIP
         assert self.data_and_posterior is not None
         self.posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
-            y=alt.Y(y,
-                    scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])),
+            x=x,
+            y=alt.Y(
+                y,
+                scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])),
             color=alt.Color(self.group)
         )
         # Redo boxplot (no need to show):
