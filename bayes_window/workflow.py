@@ -345,11 +345,14 @@ class BayesWindow:
                                                            base_chart=base_chart,
                                                            do_make_change=self.do_make_change)
             # No-data plot
-            self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=posterior[-1],
-                                                                         title=f'{self.y}',
-                                                                         x=x,
-                                                                         base_chart=None,
-                                                                         do_make_change=self.do_make_change))
+            try:
+                self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=posterior[-1],
+                                                                             title=f'{self.y}',
+                                                                             x=x,
+                                                                             base_chart=None,
+                                                                             do_make_change=self.do_make_change))
+            except KeyError:
+                pass
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
