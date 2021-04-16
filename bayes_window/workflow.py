@@ -281,7 +281,7 @@ class BayesWindow:
 
         # HDI and MAP:
         self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
-                                            prefix=f'{var} ' if var != self.b_name else '')
+                                            prefix=f'{var} ' if( var != self.b_name) and (var!='slope_per_condition') else '')
                           for var in self.trace.posterior.data_vars]
 
         # Fill posterior into data
@@ -455,6 +455,7 @@ class BayesWindow:
         return self.chart
 
     def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
+        # TODO this method is WIP
         assert self.data_and_posterior is not None
 
         posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(

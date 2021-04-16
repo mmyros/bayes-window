@@ -17,7 +17,7 @@ df_radon = load_radon()
 # @mark.parametrize('add_data', [True, False])
 # @mark.parametrize('add_box', [True, False])
 @mark.parametrize('add_condition_slope', [True, False])
-@mark.parametrize('add_group_slope', [True, False])
+@mark.parametrize('add_group_slope', [False, True])
 # @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])
 def test_radon(add_posterior_density,
@@ -35,6 +35,7 @@ def test_radon(add_posterior_density,
     # window.plot().display()
     window.plot(x=':O', #add_data=add_data, add_box=add_box,
                 add_posterior_density=add_posterior_density).display()
+    window.make_regression_charts()
 
 
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
@@ -394,19 +395,19 @@ def test_facet():
 def test_single_condition_withdata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    window.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # Without data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    window.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
     # With data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    window.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
@@ -414,7 +415,7 @@ def test_single_condition_withdata():
 def test_single_condition_nodata():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-    window.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y='normal')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
@@ -423,7 +424,7 @@ def test_single_condition_nodata_dists():
     df, df_monster, index_cols, _ = generate_fake_lfp()
     for dist in ['normal', 'lognormal', 'student']:
         window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
-        window.fit_slopes(model=models.model_hier_stim_one_codition, do_make_change='divide', dist_y=dist)
+        window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
         alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
         window.plot_posteriors_slopes(add_box=True, independent_axes=True).display()
 
