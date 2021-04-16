@@ -109,7 +109,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
     return lines, points
 
 
-def plot_data(df=None, x='', y=None, color=None, add_box=True, base_chart=None, detail=':O', highlight=False,
+def plot_data(df=None, x='', y=None, color=None,  base_chart=None, detail=':O', highlight=False, add_box=True,
               y_domain=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):

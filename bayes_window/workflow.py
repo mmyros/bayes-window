@@ -280,8 +280,8 @@ class BayesWindow:
 
         # HDI and MAP:
         self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
-                                            prefix=f'{var} ' if (var != self.b_name) and (
-                                                    var != 'slope_per_condition') else '')
+                                            prefix=f'{var} '
+                                            if (var != self.b_name) and (var != 'slope_per_condition') else '')
                           for var in self.trace.posterior.data_vars]
 
         # Fill posterior into data
@@ -304,6 +304,7 @@ class BayesWindow:
 
     def regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
+        self.independent_axes = independent_axes
         x = x or self.levels[-1]
         color = color or self.levels[0]
 
@@ -376,26 +377,24 @@ class BayesWindow:
             warnings.warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
 
         # 3. Make layered chart out of posterior and data
-        self.chart_posterior = alt.layer(*self.charts_for_facet)
+        self.chart = alt.layer(*self.charts_for_facet)
         if independent_axes:
-            self.chart_posterior = self.chart_posterior.resolve_scale(y='independent')
-        self.chart_posterior = visualization.facet(self.chart_posterior, **kwargs)
+            self.chart = self.chart.resolve_scale(y='independent')
+        self.chart = visualization.facet(self.chart, **kwargs)
 
         # 4. Make overlay for data_detail_plot
         # self.plot_slopes_shading()
-        return self.chart_posterior
+        return self.chart
 
     def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
         # TODO this method is WIP
         assert self.data_and_posterior is not None
-
         posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
-
             y=alt.Y(y,
-                    scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])
-                    )
+                    scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])),
+            color=alt.Color(self.group)
         )
-        posterior_intercept.facet(column='neuron_x_mouse')  # Redo boxplot (no need to show)
+        # Redo boxplot (no need to show):
         self.data_box_detail(data=self.data_and_posterior, autofacet=False)
         chart = (posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
         if ('column' in kwargs) or ('row' in kwargs):
@@ -414,7 +413,7 @@ class BayesWindow:
         # 3. Overlay with
         self.chart_data_detail
         # 4. color by dimension of slope (condition (and group if self.group))
-        pass
+
 
     def plot_posteriors_no_slope(self,
                                  x=None,

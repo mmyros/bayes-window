@@ -32,7 +32,7 @@ def test_radon(
                       add_group_slope=add_group_slope, do_make_change=do_make_change,
                       n_draws=100, num_chains=1, num_warmup=100)
     # window.plot().display()
-    window.plot(x=':O', #add_data=add_data, add_box=add_box,
+    window.plot(x=':O', #add_data=add_data,
                 ).display()
     window.regression_charts()
 
@@ -396,19 +396,19 @@ def test_single_condition_withdata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts(add_box=True, independent_axes=True).display()
+    window.regression_charts( independent_axes=True).display()
 
     # Without data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts(add_box=True, independent_axes=True).display()
+    window.regression_charts( independent_axes=True).display()
 
     # With data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts(add_box=True, independent_axes=True).display()
+    window.regression_charts( independent_axes=True).display()
 
 
 def test_single_condition_nodata():
@@ -416,7 +416,7 @@ def test_single_condition_nodata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts(add_box=True, independent_axes=True).display()
+    window.regression_charts( independent_axes=True).display()
 
 
 def test_single_condition_nodata_dists():
@@ -425,7 +425,7 @@ def test_single_condition_nodata_dists():
         window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
         window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
         alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-        window.regression_charts(add_box=True, independent_axes=True).display()
+        window.regression_charts( independent_axes=True).display()
 
 
 # @mark.parametrize('condition', [None, 'neuron'])
@@ -509,15 +509,15 @@ def random_tests():
                                                                     dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, num_chains=1)
-    window.plot(x='neuron', color='mouse', independent_axes=True, finalize=True, add_box=False)
+    window.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
-    window.regression_charts(add_box=True, independent_axes=False, x='neuron:O', color='mouse')
+    window.regression_charts( independent_axes=False, x='neuron:O', color='mouse')
 
     window.regression_charts(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
 
     window.regression_charts(independent_axes=False, x='neuron:O', color='mouse')
 
-    chart = window.regression_charts(add_box=True, independent_axes=True, x='neuron:O', color='mouse')
+    chart = window.regression_charts( independent_axes=True, x='neuron:O', color='mouse')
 
     chart
 
