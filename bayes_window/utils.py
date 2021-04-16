@@ -75,7 +75,7 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
     Parameters
     ----------
     condition_val: Current value of condition_name to look up in df_bayes
-    data_rows: rows to fill with corresponding entries from df_bayes (will be concated later
+    data_rows: rows to fill with corresponding entries from df_bayes (will be concated later)
     df_bayes: dataframe to fill from
     condition_name: eg combined_condition
 
@@ -84,14 +84,17 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
 
     """
     # Look up where posterior has the same condition value as in data
+    #TODO extend to group and
+    # index = np.ones(df_bayes.shape[0])
+    # for cond,val in df_bayes.groupby(condition_name):
+    #     index=index&(df_bayes[cond] == val)
     this_hdi = df_bayes.loc[df_bayes[condition_name] == condition_val]
     if this_hdi.shape[0] == 0:
         raise ValueError(f"No such value {condition_val} in estimate's {condition_name}: "
                          f"it's {df_bayes[condition_name].unique()}")
     # Insert posterior into data at the corresponding location
     for col in df_bayes.columns[df_bayes.columns.str.contains('interval')]:
-        # ['lower interval', 'higher interval', 'center interval']:
-        data_rows.insert(data_rows.shape[1] - 1,  # Last column
+        data_rows.insert(data_rows.shape[1] - 1,  # Insert into the Last column
                          col,  # lower or higher or center interval
                          this_hdi[col].values.squeeze()  # The value of posterior we just looked up
                          )
@@ -100,16 +103,16 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
 
 def hdi2df_many_conditions(df_bayes, posterior_index_name, df_data):
     # Check
-    if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
-        warnings.warn('Groups were constructed differently for estimation and data. Cant add data for plots')
+    # if len(df_data[posterior_index_name].unique()) != len(df_bayes[posterior_index_name].unique()):
+    #     warnings.warn('Groups were constructed differently for estimation and data. Cant add data for plots')
     return pd.concat([fill_row(group_val, data_rows, df_bayes, posterior_index_name)
-                      for group_val, data_rows in df_data.groupby([posterior_index_name])])
+                      for group_val, data_rows in df_data.groupby(posterior_index_name)]).reset_index()
 
 
 def hdi2df_one_condition(df_bayes, df_data):
     for col in ['lower interval', 'higher interval', 'center interval']:
         df_data.insert(df_data.shape[1], col, df_bayes[col].values.squeeze())
-    return df_data
+    return df_data.reset_index()
 
 
 def get_hdi_map(posterior, circular=False, prefix=''):
@@ -171,6 +174,8 @@ def trace2df(trace, df_data, b_name='slope_per_condition', posterior_index_name=
         return hdi2df_one_condition(df_bayes, df_data), trace
     else:
         return hdi2df_many_conditions(df_bayes, posterior_index_name, df_data), trace
+            # hdi2df_many_conditions(df_bayes, [posterior_index_name,'mouse'], df_data), trace
+    #TODO need group in posterior_index_name for groupby in hdi2df
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
@@ -362,19 +367,18 @@ def load_radon():
     cty_mn["fips"] = 1000 * cty_mn.stfips + cty_mn.ctfips
 
     # Use the merge method to combine home- and county-level information in a single DataFrame.
-
     srrs_mn = srrs_mn.merge(cty_mn[["fips", "Uppm"]], on="fips")
     srrs_mn = srrs_mn.drop_duplicates(subset="idnum")
-    srrs_mn.county = srrs_mn.county.map(str.strip)
-    mn_counties = srrs_mn.county.unique()
-    counties = len(mn_counties)
-    county_lookup = dict(zip(mn_counties, range(counties)))
+    # srrs_mn.county = srrs_mn.county.map(str.strip)
+    # mn_counties = srrs_mn.county.unique()
+    # counties = len(mn_counties)
+    # county_lookup = dict(zip(mn_counties, range(counties)))
 
     # Finally, create local copies of variables.
 
-    county = srrs_mn["county_code"] = srrs_mn.county.replace(county_lookup).values
-    radon = srrs_mn.activity
-    srrs_mn["log_radon"] = np.log(radon + 0.1).values
-    floor = srrs_mn.floor.values
+    # county = srrs_mn["county_code"] = srrs_mn.county.replace(county_lookup).values
+    # radon = srrs_mn.activity
+    # srrs_mn["log_radon"] = np.log(radon + 0.1).values
+    # floor = srrs_mn.floor.values
 
-    return pd.DataFrame({'county': county, 'radon': radon, 'floor': floor})
+    return pd.DataFrame({'county': srrs_mn.county, 'radon': srrs_mn.activity, 'floor': srrs_mn.floor.values})

@@ -35,8 +35,8 @@ from bayes_window.generative_models import generate_fake_lfp
 df, df_monster, index_cols, firing_rates = generate_fake_lfp(n_trials=70,mouse_response_slope=10)
 
 
-BayesWindow(df, y='Power', treatment='stim', group='mouse', detail='i_trial').plot_data_details().display()
-BayesWindow(df, y='Log power', treatment='stim', group='mouse', detail='i_trial').plot_data_details().display()
+BayesWindow(df, y='Power', treatment='stim', group='mouse', detail='i_trial').chart_data_box_detail.display()
+BayesWindow(df, y='Log power', treatment='stim', group='mouse', detail='i_trial').chart_data_box_detail.display()
 
 
 # + [markdown] slideshow={"slide_type": "slide"}
@@ -73,7 +73,7 @@ roc.facet(column='n_trials', row='y').properties()
 
 # ## Log-transformed
 
-res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(15), 
+reslog = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(15), 
                                                              np.tile(10, 15)]),
 #                                                              np.tile(np.linspace(20, 40, 3), 15)]),
                                       n_trials=np.linspace(10, 70, 5).astype(int),
@@ -84,14 +84,14 @@ res = model_comparison.run_conditions(true_slopes=np.hstack([np.zeros(15),
 # ### Confusion matrix
 
 model_comparison.plot_confusion(
-    model_comparison.make_confusion_matrix(res, ('method', 'y', 'randomness', 'n_trials')
+    model_comparison.make_confusion_matrix(reslog, ('method', 'y', 'randomness', 'n_trials')
                                            )).properties(width=140).facet(row='method', column='n_trials')
 
 # + [markdown] slideshow={"slide_type": "slide"}
 # ### ROC curve
 
 # +
-df = model_comparison.make_roc_auc(res, binary=False, groups=('method', 'y', 'n_trials'))
+df = model_comparison.make_roc_auc(reslog, binary=False, groups=('method', 'y', 'n_trials'))
 
 bars, roc = model_comparison.plot_roc(df)
 bars.facet(column='n_trials', row='y').properties().display()

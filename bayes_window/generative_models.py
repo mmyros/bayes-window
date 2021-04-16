@@ -46,7 +46,7 @@ def generate_spikes_stim_types(mouse_response_slope=3, **kwargs):
     df1.insert(0, 'stim_strength', np.ones(df1.shape[0]))
     df2 = generate_fake_spikes(mouse_response_slope=2 * mouse_response_slope, **kwargs)[0]
     df2.insert(0, 'stim_strength', 2 * np.ones(df1.shape[0]))
-    return pd.concat([df1, df2])
+    return pd.concat([df1, df2]).reset_index(drop=True)
 
 
 def generate_fake_spikes(n_trials=6,

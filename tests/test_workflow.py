@@ -534,3 +534,17 @@ def random_tests():
 
     window.plot_posteriors_slopes()  # x='Stim phase', color='Fid')#,independent_axes=True)
     window.facet(column='neuron', row='mouse')
+
+
+def test_data_replacement1():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=40,
+                                                                    n_neurons=3,
+                                                                    n_mice=4,
+                                                                    dur=7,
+                                                                    mouse_response_slope=16)
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
+                              detail='i_trial')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',)
+    assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])['mouse'].unique().size==4
+
+

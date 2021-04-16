@@ -80,14 +80,18 @@ class BayesWindow:
         # Some charts of data that don't need fitting
         self.data_box_detail()
 
-    def data_box_detail(self, data=None, autofacet=True):
+    def data_box_detail(self, data=None, color=None, autofacet=True):
         if data is None:
             data = self.data
         self.chart_data_box_for_detail = visualization.plot_data(
             df=data, x=self.treatment, y=self.y)[0].properties(width=60)
+        if (self.detail in self.data.columns) and (len(self.condition) > 1):
+            self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
+                                                                          color=self.condition[1],
+                                                                          detail=self.detail)
         if self.detail in self.data.columns:
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
-                                                                          color=None,
+                                                                          color=color,
                                                                           detail=self.detail)
         else:
             self.chart_data_detail = alt.Chart(data).mark_rule().encode()  # Empty chart
@@ -130,8 +134,12 @@ class BayesWindow:
         self.do_make_change = do_make_change
         include_condition = False  # in all but the following cases:
         if self.condition[0]:
+            self.condition[0] = self.condition[0].replace(" ", "_")
+            if len(self.condition) > 1:
+                self.condition[1] = self.condition[1].replace(" ", "_")
             if len(self.data[self.condition[0]].unique()) > 1:
                 include_condition = True
+        condition = None  # Preallocate
 
         # Make formula
         if include_condition and not formula:
@@ -139,7 +147,6 @@ class BayesWindow:
                 raise NotImplementedError(f'conditions {self.condition}. Use combined_condition')
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
-            condition = self.condition[0].replace(" ", "_")
 
             # Make dummy variables for each level in condition:
             self.data = pd.concat((self.data,
@@ -169,16 +176,14 @@ class BayesWindow:
             #     formula += f"+ {condition} * {self.treatment}"
 
         elif self.group and not formula:
-            condition = None
             # Random intercepts and slopes (and their correlation): (Variable | Group)
             formula = f'{self.y} ~  C({self.treatment}, Treatment) + (1 | {self.group})'  # (1 | {self.group}) +
             # Random intercepts and slopes (without their correlation): (1 | Group) + (0 + Variable | Group)
             # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         elif not formula:
-            condition = None
             formula = f"{self.y} ~ C({self.treatment}, Treatment)"
         print(f'Using formula {formula}')
-        result = sm.mixedlm(_formula,
+        result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
         print(result.summary().tables[1])
@@ -258,26 +263,57 @@ class BayesWindow:
                                                                       do_make_change=do_make_change,
                                                                       do_mean_over_trials=do_mean_over_trials,
                                                                       group_name=self.group)
-
+        #TODO try to do without trace2df.Use this instead
         # Back to human-readable labels
         if ('combined_condition' in self.original_data.columns) and ('combined_condition' in df_result.columns):
-            levels_to_replace = list(set(self.levels + ['combined_condition']) - {self.treatment})
-            for level_values, data_subset in self.original_data.groupby(levels_to_replace):
-                if not hasattr(level_values, '__len__'):  # This level is a scalar
+            levels_to_replace = list(set(self.levels) - {self.treatment})
+            # levels_to_replace += ['combined_condition']
+            # if not self.group in df_result:
+            #     levels_to_replace = list(set(levels_to_replace)-{self.group})
+            for level_values, data_subset in self.original_data[levels_to_replace].groupby(levels_to_replace):
+                if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
                     level_values = [level_values]
-                from itertools import product
-                for level_name, level_value in zip(levels_to_replace, level_values):
-                    print(level_name, level_value)
-                    result_subset = df_result
-                    df_result.loc[[(df_result['combined_condition'] ==
-                                    data_subset['combined_condition'].iloc[0])
-                                   # &(df_result[])
-                                   ],
-                                  level_name] = level_value
-            # sanity check:
+                # from itertools import product
+                # for level_value in product(level_values):
+
+                # recoded_level_value = self.data.loc[data_subset.index][level_name]
+                # assert recoded_level_value.unique().size == 1
+                # index = ((df_result['combined_condition'] == data_subset['combined_condition'].iloc[0])
+                #          & (df_result[level_name] == recoded_level_value.iloc[0])
+                #          )
+
+                # np.logical_and(level_values)
+                # reduce(np.logical_and, level_values)
+
+                recoded_data_subset = self.data.loc[data_subset.index, levels_to_replace]
+
+                # Sanity check:
+                for col in recoded_data_subset.columns:
+                    if recoded_data_subset[col].unique().size > 1:
+                        raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
+                                         f'but data_subset[{col}] = {data_subset[col].unique()}')
+
+                # Replace index code  values with true data values we saved in self.original_data
+                # Preallocate
+                index = np.ones_like(df_result['combined_condition'])
+                for level_value, level_name in zip(level_values, levels_to_replace):
+                    assert recoded_data_subset[level_name].unique().size == 1
+                    assert recoded_data_subset[level_name].unique()[0] in df_result[level_name]
+                    this_index = (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
+                    assert sum(this_index) > 0, ('all_zero index', level_name, level_value)
+                    index = index & this_index
+                    assert sum(index) > 0, ('all_zero index', level_name, level_value)
+                    assert df_result.loc[index, level_name].unique().size == 1, df_result.loc[
+                        index, level_name].unique()
+                # Set rows we found to to level values
+                df_result.loc[index, levels_to_replace] = level_values
+            # sanity check 1:
+            # assert df_result.dropna(subset=['mu_intercept_per_group center interval'])[self.group].unique().size == 4
+            # sanity check 2:
             if df_result.shape[0] * 2 != self.data.shape[0]:
-                print(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
-                      f'may suffer. Did was there another index column (like i_trial) other than {levels_to_replace}?')
+                warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
+                              f'may suffer. Did was there another index column (like i_trial) '
+                              f'other than {levels_to_replace}?')
 
         self.data_and_posterior = df_result
 
