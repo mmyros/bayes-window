@@ -389,7 +389,7 @@ class BayesWindow:
     def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
         # TODO this method is WIP
         assert self.data_and_posterior is not None
-        posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
+        self.posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
             y=alt.Y(y,
                     scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])),
             color=alt.Color(self.group)

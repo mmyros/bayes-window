@@ -185,7 +185,6 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
               float(data['higher interval'].max())]
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
-    print(x)
     # error_bars
     chart_posterior_whiskers = base_chart.mark_rule(size=2, clip=True).encode(
         x=x,
