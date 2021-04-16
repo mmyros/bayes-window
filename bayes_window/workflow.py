@@ -396,7 +396,7 @@ class BayesWindow:
         )
         # Redo boxplot (no need to show):
         self.data_box_detail(data=self.data_and_posterior, autofacet=False)
-        chart = (posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
+        chart = (self.posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
         if ('column' in kwargs) or ('row' in kwargs):
             return visualization.facet(chart, **kwargs)
         else:  # Auto facet
