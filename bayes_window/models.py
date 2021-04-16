@@ -45,7 +45,7 @@ def model_single(y, condition, dist_y='normal'):
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
                        add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False,
-                       center_intercept=True, center_slope=False, robust_slopes=True):
+                       center_intercept=True, center_slope=False, robust_slopes=False):
     n_subjects = np.unique(group).shape[0]
 
     if center_intercept:
@@ -66,7 +66,7 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         slope = 0
 
     n_conditions = np.unique(condition).shape[0]
-    if (condition is not None) and n_conditions:
+    if (condition is not None) and n_conditions and add_condition_slope:
         if robust_slopes:
             # Robust slopes:
             b_per_condition = numpyro.sample('slope_per_condition',
@@ -95,7 +95,7 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
 
 
 def model_hierarchical_for_render(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
-                                  add_group_intercept=True):
+                                  add_group_intercept=True, add_condition_slope=True):
     # Hyperpriors:
     a = numpyro.sample('hyper_a', dist.Normal(0., 5))
     sigma_a = numpyro.sample('hyper_sigma_a', dist.HalfNormal(1))
@@ -149,24 +149,3 @@ def model_hierarchical_next(y, condition=None, group=None, treatment=None, dist_
         a_group = numpyro.sample('a_group', dist.Normal(a, sigma_a))
         theta = a_group[group] + b_condition[condition] * treatment
         sample_y(dist_y=dist_y, theta=theta, y=y)
-
-
-def model_hier_stim_one_codition(y, treatment=None, group=None, dist_y='normal', **kwargs):
-    n_subjects = np.unique(group).shape[0]
-    a = numpyro.sample('a', dist.Normal(0, 1))
-
-    # b_subject = numpyro.sample('b_subject', dist.Normal(jnp.tile(0, n_subjects), 1))
-    # sigma_b_subject = numpyro.sample('sigma_b_subject', dist.HalfNormal(1))
-
-    a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 100))
-    sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
-
-    b = numpyro.sample('slope', dist.Normal(0, 1))
-
-    theta = a + a_group[group] * sigma_a_group
-    slope = b
-    if treatment is not None:
-        slope = slope * treatment
-    theta += slope
-
-    sample_y(dist_y=dist_y, theta=theta, y=y)

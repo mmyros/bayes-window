@@ -210,19 +210,34 @@ class BayesWindow:
                                  # treatment=self.data[self.treatment].values,
                                  model=model,
                                  **kwargs
-                                 ).posterior
+                                 )
 
         # Add data back
-        if add_data:
-            self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data, posterior=self.trace,
-                                                                              y=self.y,
-                                                                              fold_change_index_cols=self.levels[:3],
-                                                                              treatment_name=self.levels[0],
-                                                                              b_name=self.b_name,
-                                                                              posterior_index_name='combined_condition',
-                                                                              do_make_change=False,
-                                                                              do_mean_over_trials=False,
-                                                                              group_name=self.group)
+        # if add_data:
+        self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
+                                                      posterior_index_name='combined_condition',
+                                                      group_name=self.group)
+
+        # HDI and MAP:
+        self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
+                                            prefix=f'{var} '
+                                            if (var != self.b_name) and (var != 'slope_per_condition') else '')
+                          for var in self.trace.posterior.data_vars]
+
+        # Fill posterior into data
+        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                   data=self.data.copy(),
+                                                                   group=self.group)
+
+        # self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data, posterior=self.trace,
+        #                                                                   y=self.y,
+        #                                                                   fold_change_index_cols=self.levels[:3],
+        #                                                                   treatment_name=self.levels[0],
+        #                                                                   b_name=self.b_name,
+        #                                                                   posterior_index_name='combined_condition',
+        #                                                                   do_make_change=False,
+        #                                                                   do_mean_over_trials=False,
+        #                                                                   group_name=self.group)
         return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
@@ -429,6 +444,7 @@ class BayesWindow:
         detail = detail or self.detail
         color = color or self.condition[0]
         # TODO default for detail
+        chart_p=None
         if self.data_and_posterior is not None:
             base_chart = alt.Chart(self.data_and_posterior)
             # Plot posterior

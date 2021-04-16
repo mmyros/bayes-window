@@ -33,39 +33,6 @@ def test_fake_spikes_explore():
         chart.display()
 
 
-def test_plot_data_and_posterior():
-    # Make some data
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
-
-    for y in (set(df.columns) - set(index_cols)):
-        # Estimate model
-        trace = fit_numpyro(y=df[y].values,
-                            treatment=(df['stim']).astype(int).values,
-                            condition=trans(df['neuron']),
-                            group=trans(df['mouse']),
-                            progress_bar=True,
-                            model=models.model_hierarchical,
-                            n_draws=100, num_chains=1, )
-
-        # Add data back
-        df_both, trace.posterior = add_data_to_posterior(df, posterior=trace.posterior, y=y,
-                                                         fold_change_index_cols=['neuron', 'stim', 'mouse', ],
-                                                         treatment_name='stim', treatments=(0, 1),
-                                                         b_name='slope_per_condition', posterior_index_name='neuron')
-
-        # Plot data and posterior
-        # chart = plot_data_and_posterior(df=df_both, y=f'{y} diff', x='neuron', color='mouse', title=y)
-        # assert ((type(chart) == FacetChart) |
-        #         (type(chart) == Chart) |
-        #         (type(chart) == LayerChart)), print(f'{type(chart)}')
-        trace.posterior.to_dataframe().pipe(ck.has_no_nans)
-
-        # chart.display()
-
-
 def test_plot_data_slope_trials():
     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=3,
