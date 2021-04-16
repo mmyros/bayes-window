@@ -259,8 +259,9 @@ class BayesWindow:
         df_data = self.data.copy()
         if do_mean_over_trials:
             df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
+
+        # Make (fold) change
         if do_make_change:
-            # Make (fold) change
             try:
                 df_data, _ = utils.make_fold_change(df_data,
                                                     y=self.y,
@@ -275,38 +276,20 @@ class BayesWindow:
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
                                                       posterior_index_name='combined_condition',
                                                       group_name=self.group)
-        # if posterior_index_name and (df_data[posterior_index_name].dtype != 'int'):
-        #     warnings.warn(
-        #         f"Was {posterior_index_name} a string? It's safer to recast it as integer. I'll try to do that")
-        #     df_data[posterior_index_name] = df_data[posterior_index_name].astype(int)
 
         # HDI and MAP:
-        # df_bayes = get_hdi_map(trace[b_name])
         self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
                                             prefix=f'{var} ' if var != self.b_name else '')
                           for var in self.trace.posterior.data_vars]
+
         # Fill posterior into data
         # TODO potentially, only one row (eg first) of the match can be filled in
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=self.data.copy(),
                                                                    group=self.group)
-        # self.data_and_posterior['slope_per_group lower interval'].dropna()
-
-        # Replace with original conditions by looking up original_data
-        # self.posterior = utils.fill_conditions(self.original_data, self.data, df_result, self.group)
-
-        # df_result, self.trace.posterior = utils.add_data_to_posterior(df_data=df_data,
-        #                                                               posterior=self.trace.posterior, y=self.y,
-        #                                                               fold_change_index_cols=fold_change_index_cols,
-        #                                                               treatment_name=self.treatment,
-        #                                                               b_name=self.b_name,
-        #                                                               posterior_index_name='combined_condition',
-        #                                                               do_make_change=do_make_change,
-        #                                                               do_mean_over_trials=do_mean_over_trials,
-        #                                                               group_name=self.group)
-
         # Default plots:
         try:
+            # facet_kwargs=visualization.auto_facet(self.group,self,condition)
             if self.condition[0] and len(self.condition) > 1:
                 self.create_regression_charts(x=self.condition[0], column=self.group,
                                               row=self.condition[1])
@@ -468,6 +451,24 @@ class BayesWindow:
         if independent_axes:
             self.chart = self.chart.resolve_scale(y='independent')
         return self.chart
+
+    def plot_slopes_intercepts(self, y='mu_intercept_per_group center interval', **kwargs):
+        assert self.data_and_posterior is not None
+
+        posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
+
+            y=alt.Y(y,
+                    scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])
+                    )
+        )
+        posterior_intercept.facet(column='neuron_x_mouse')  # Redo boxplot (no need to show)
+        self.data_box_detail(data=self.data_and_posterior, autofacet=False)
+        chart = (posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
+        if ('column' in kwargs) or ('row' in kwargs):
+            return visualization.facet(chart, **kwargs)
+        else: # Auto facet
+            return visualization.facet(chart, **visualization.auto_facet(self.group, self.condition))
+
 
     def plot_slopes_shading(self):
         # 0. Use

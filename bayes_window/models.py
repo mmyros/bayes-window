@@ -56,7 +56,6 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
     if (group is not None) and add_group_intercept:
         sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
         a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects),10))
-        # TODO this should be Normal, not halfnormal. Even Gamma might be ok
         intercept += (a_group[group] * sigma_a_group)
 
     if (condition is None) or (np.unique(condition).size < 2):

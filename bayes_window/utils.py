@@ -200,7 +200,10 @@ def insert_posterior_into_data(posteriors, data, group):
             subset_posterior = subset_posterior.iloc[0]
             data_index = (data[posterior_index_cols] == index).squeeze()
             # self.data.drop(posterior_value_col,axis=1,inplace=True)
+            # if sum(data_index) == 0:  # no such condition
+            #     continue
             for posterior_value_col in posterior_value_cols:
+                # first_matching_index = np.where(data_index)[0][0]
                 data.loc[data_index, posterior_value_col] = subset_posterior[posterior_value_col]
             # print(data.loc[data_index, posterior_value_cols])
     return data
