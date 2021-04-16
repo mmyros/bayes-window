@@ -77,30 +77,30 @@ trace = fit_numpyro(y=df[y].values,
 
 # + hideCode=false hidePrompt=false
 reload(utils)
-df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
-                                             fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
-                                             treatment_name='stim', b_name='slope_per_condition',
-                                             posterior_index_name='neuron', group_name='mouse')
-
-# + [markdown] hideCode=false hidePrompt=false
-# ## Plot data and posterior
-
-# + hideCode=false hidePrompt=false
-# BayesWindow.regression_charts(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
-reload(visualization)
-
-chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code', highlight=False)
-chart_d
-
-# + hideCode=false hidePrompt=false
-chart_p = visualization.plot_posterior(df=df_both, title=f'd_{y}', x='neuron', )
-chart_p
-
-# + hideCode=false hidePrompt=false
-(chart_d + chart_p).resolve_scale(y='independent')
-
-# + hideCode=false hidePrompt=false
-(chart_d + chart_p).facet(column='neuron')
+# df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
+#                                              fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
+#                                              treatment_name='stim', b_name='slope_per_condition',
+#                                              posterior_index_name='neuron', group_name='mouse')
+#
+# # + [markdown] hideCode=false hidePrompt=false
+# # ## Plot data and posterior
+#
+# # + hideCode=false hidePrompt=false
+# # BayesWindow.regression_charts(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
+# reload(visualization)
+#
+# chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code', highlight=False)
+# chart_d
+#
+# # + hideCode=false hidePrompt=false
+# chart_p = visualization.plot_posterior(df=df_both, title=f'd_{y}', x='neuron', )
+# chart_p
+#
+# # + hideCode=false hidePrompt=false
+# (chart_d + chart_p).resolve_scale(y='independent')
+#
+# # + hideCode=false hidePrompt=false
+# (chart_d + chart_p).facet(column='neuron')
 # -
 
 # ## Appendix: Elements of interactivity (WIP)

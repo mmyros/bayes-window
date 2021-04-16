@@ -1,12 +1,9 @@
-import bulwark.checks as ck
 from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
 from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import BayesWindow
-from bayes_window import models, fake_spikes_explore
-from bayes_window.fitting import fit_numpyro
+from bayes_window import fake_spikes_explore
 from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
-from bayes_window.utils import add_data_to_posterior
 from bayes_window.visualization import plot_data_slope_trials
 
 trans = LabelEncoder().fit_transform
