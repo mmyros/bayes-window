@@ -334,7 +334,7 @@ class BayesWindow:
             self.charts.append(self.chart_posterior_center)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
             if (self.b_name != 'lme') and not add_x_axis:
-                # Y Axis limits to match self.chart_posterior
+                # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
                 y_domain = [min(minmax), max(minmax)]

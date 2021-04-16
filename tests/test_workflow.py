@@ -49,7 +49,7 @@ def test_slopes(do_make_change, detail):
     # try:
     window.fit_slopes(model=models.model_hierarchical, do_make_change=do_make_change,)
                       # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse'))
-    window.chart_posterior.display()
+    window.chart.display()
     window.chart_data_box_detail.display()
 
 
