@@ -143,6 +143,29 @@ def get_hdi_map(posterior, circular=False, prefix=''):
     return hdi
 
 
+def recode_posterior(posteriors, levels, data, original_data, condition):
+    # Recode index variables to their original state
+    for p_name, posterior in posteriors.items():
+
+        for column in levels + ['combined_condition']:
+            if column not in posterior.columns:
+                continue
+
+            if column == 'combined_condition':
+                original_columns = condition  # Since we already used 'combined condition' for lookup above
+            else:
+                original_columns = [column]
+
+            for i, val in posterior[column].iteritems():
+                original_data_index = data[data[column] == val].index
+                original_vals = original_data.loc[original_data_index, original_columns]
+                for col in original_vals.columns:
+                    assert original_vals[col].unique().size < 2, 'non-unique'
+                posterior.loc[i, column] = original_vals.iloc[0].values[0]
+    posteriors[p_name] = posterior
+    return posterior
+
+
 def insert_posterior_into_data(posteriors, data, group):
     for posterior_name, posterior in posteriors.items():
 

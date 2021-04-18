@@ -238,15 +238,6 @@ class BayesWindow:
                                                                    data=self.data.copy(),
                                                                    group=self.group)
 
-        # self.data_and_posterior, self.trace = utils.add_data_to_posterior(df_data=self.data, posterior=self.trace,
-        #                                                                   y=self.y,
-        #                                                                   fold_change_index_cols=self.levels[:3],
-        #                                                                   treatment_name=self.levels[0],
-        #                                                                   b_name=self.b_name,
-        #                                                                   posterior_index_name='combined_condition',
-        #                                                                   do_make_change=False,
-        #                                                                   do_mean_over_trials=False,
-        #                                                                   group_name=self.group)
         return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
@@ -288,13 +279,8 @@ class BayesWindow:
         # Make (fold) change
         if do_make_change:
             try:
-                df_data, _ = utils.make_fold_change(df_data,
-                                                    y=self.y,
-                                                    index_cols=fold_change_index_cols,
-                                                    treatment_name=self.treatment,
-                                                    # treatments=treatments,
-                                                    fold_change_method=do_make_change,
-                                                    do_take_mean=False)
+                df_data, _ = utils.make_fold_change(df_data, y=self.y, index_cols=fold_change_index_cols,
+                                                    treatment_name=self.treatment, fold_change_method=do_make_change)
             except Exception as e:
                 print(e)
 
@@ -312,7 +298,10 @@ class BayesWindow:
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=self.data.copy(),
                                                                    group=self.group)
+
         assert 'lower interval' in self.data_and_posterior.columns
+        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data, self.condition)
+
         # Default plots:
         try:
             # facet_kwargs=visualization.auto_facet(self.group,self,condition)
@@ -327,23 +316,19 @@ class BayesWindow:
             print(f'Please use window.create_regression_charts(): {e}')
         return self
 
-    def regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
+    def regression_charts(self, x=None, color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
         self.independent_axes = independent_axes
-        x = x or self.levels[-1]
-        color = color or self.levels[0]
 
         if (x == '') or (x[-2] != ':'):
             x = f'{x}:O'
-        if color is None:
-            color = ':N'
         if color[-2] != ':':
             color = f'{color}:N'
         self.charts = []
         posterior = self.data_and_posterior
-        add_x_axis = False
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
-            add_x_axis = True
+            # add_x_axis = True
+            x = f'{self.condition[0]}:O'
 
         # 1. Plot posterior
         if posterior is not None:
@@ -356,20 +341,16 @@ class BayesWindow:
                                                            do_make_change=self.do_make_change)
             # No-data plot
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
-                main_effect= (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
-                              else self.posterior['slope_per_condition'])
-                self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(
-                    df=main_effect,
-                    title=f'{self.y}',
-                    x=x,
-                    base_chart=None,
-                    do_make_change=self.do_make_change))
+                main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
+                               else self.posterior['slope_per_condition'])
+                self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=main_effect, title=f'{self.y}', x=x,
+                                                                             do_make_change=self.do_make_change))
 
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
-            if (self.b_name != 'lme') and not add_x_axis:
+            if (self.b_name != 'lme') and not x:
                 # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
@@ -391,7 +372,7 @@ class BayesWindow:
 
             # Plot data:
             y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
-            if add_x_axis:
+            if x:
                 self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail,
                                                                          highlight=False)
                 self.charts.extend(self.chart_data_line)

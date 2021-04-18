@@ -35,8 +35,10 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 TODO
 ----
+- Replace dummified `self.posterior` axes with original without filling in data
 - Fit checks for LME under plot_diagnostics()
-- Refactor workflow.py
+- Posterior predictive to mimic data plot
+- Shade slope HDI
 - Less haphazard testing
 - Shrinkage layer: Should be as easy as alt.layer with unpooled model
    - Make sure + works well with facet
