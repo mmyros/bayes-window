@@ -142,7 +142,7 @@ class BayesWindow:
                 self.condition[1] = self.condition[1].replace(" ", "_")
             if len(self.data[self.condition[0]].unique()) > 1:
                 include_condition = True
-        condition = None  # Preallocate
+        # condition = None  # Preallocate
 
         # Make formula
         if include_condition and not formula:
@@ -153,11 +153,12 @@ class BayesWindow:
 
             # Make dummy variables for each level in condition:
             self.data = pd.concat((self.data,
-                                   pd.get_dummies(self.data[condition],
-                                                  prefix=condition,
+                                   pd.get_dummies(self.data[self.condition[0]],
+                                                  prefix=self.condition[0],
                                                   prefix_sep='__',
                                                   drop_first=False)), axis=1)
-            dummy_conditions = [cond for cond in self.data.columns if cond[:len(condition) + 2] == f'{condition}__']
+            dummy_conditions = [cond for cond in self.data.columns
+                                if cond[:len(self.condition[0]) + 2] == f'{self.condition[0]}__']
             if add_group_intercept and not add_group_slope and not add_nested_group:
                 formula = f"{self.y} ~ (1|{self.group}) + {self.treatment}| {dummy_conditions[0]}"
                 # eg 'firing_rate ~ stim|neuron_x_mouse__0 +stim|neuron_x_mouse__1 ... + ( 1 |mouse )'
@@ -185,16 +186,17 @@ class BayesWindow:
             # formula += f' + (1 | {self.group}) + (0 + {self.treatment} | {self.group})'
         elif not formula:
             formula = f"{self.y} ~ C({self.treatment}, Treatment)"
+
         print(f'Using formula {formula}')
         result = sm.mixedlm(formula,
                             self.data,
                             groups=self.data[self.group]).fit()
         print(result.summary().tables[1])
-        self.data_and_posterior = utils.scrub_lme_result(result, include_condition, condition, self.data,
+        self.data_and_posterior = utils.scrub_lme_result(result, include_condition, self.condition[0], self.data,
                                                          self.treatment)
         if add_data:
             self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-                                                            condition, self.data, self.y, self.levels, self.treatment)
+                                                            self.condition[0], self.data, self.y, self.levels, self.treatment)
         return self
 
     def fit_conditions(self, model=models.model_single, add_data=True, **kwargs):
@@ -291,21 +293,19 @@ class BayesWindow:
         try:
             # facet_kwargs=visualization.auto_facet(self.group,self,condition)
             if self.condition[0] and len(self.condition) > 1:
-                self.create_regression_charts(x=self.condition[0], column=self.group,
-                                              row=self.condition[1])
+                self.make_regression_charts(x=self.condition[0], column=self.group,
+                                            row=self.condition[1])
             elif self.condition[0]:
-                self.create_regression_charts(x=self.condition[0], column=self.group)
+                self.make_regression_charts(x=self.condition[0], column=self.group)
             else:
-                self.create_regression_charts(x=self.condition[0], column=self.group)
+                self.make_regression_charts(x=self.condition[0], column=self.group)
         except Exception as e:  # In case I haven't thought of something
             print(f'Please use window.create_regression_charts(): {e}')
         return self
 
-    def create_regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
+    def make_regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
         x = x or self.levels[-1]
-        if x[-2] != ':':
-            x += ':O'
         color = color or self.levels[0]
 
         if (x == '') or (x[-2] != ':'):
@@ -314,7 +314,7 @@ class BayesWindow:
             color = ':N'
         if color[-2] != ':':
             color = f'{color}:N'
-
+        self.charts = []
         posterior = self.posterior if self.data_and_posterior is None else self.data_and_posterior
         add_x_axis = False
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
@@ -344,6 +344,8 @@ class BayesWindow:
                                                                                 self.b_name,
                                                                                 do_make_change=self.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
+        else:
+            base_chart = alt.Chart(self.data)
 
         # 2. Plot data
         y = f'{self.y} diff'
@@ -382,7 +384,7 @@ class BayesWindow:
 
         # 4. Make overlay for data_detail_plot
         # self.plot_slopes_shading()
-        return self
+        return self.chart_posterior
 
     def plot_posteriors_slopes(self, x=':O', color=':N', detail=':N', add_box=True, add_data=True,
                                independent_axes=False,

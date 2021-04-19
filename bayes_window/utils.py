@@ -213,10 +213,16 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name):
     # Rename axis names to what they actually represent:
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
+    if f'{b_name}_per_condition_dim_0' in trace:
+        trace = trace.rename({f'{b_name}_per_condition_dim_0': posterior_index_name})
     if f'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
+    # Check
+    var_names=trace.to_dataframe().reset_index().columns
+    if var_names.str.contains('_dim_0').any():
+        raise NameError(f'Unhandled dimension {var_names[var_names.str.contains("_dim_0")]}')
     return trace
 
 

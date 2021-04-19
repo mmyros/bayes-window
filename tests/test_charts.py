@@ -19,7 +19,7 @@ def test_radon(do_make_change, column):
     window = BayesWindow(df_radon, y='radon', treatment='floor', condition=['county'])
     window.fit_slopes(do_make_change=do_make_change,
                       n_draws=100, num_chains=1, num_warmup=100)
-    window.create_regression_charts(column=column)
+    window.make_regression_charts(column=column)
 
 
 def test_slopes():
@@ -31,7 +31,7 @@ def test_slopes():
     bw = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     bw.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
                   fold_change_index_cols=('stim', 'mouse', 'neuron'))
-    bw.create_regression_charts()
+    bw.make_regression_charts()
 
 
 def test_fit_lme():
@@ -39,4 +39,4 @@ def test_fit_lme():
     bw = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     bw.fit_lme()
 
-    bw.create_regression_charts()
+    bw.make_regression_charts()
