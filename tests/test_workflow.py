@@ -15,7 +15,7 @@ df_radon = load_radon()
 
 # @mark.parametrize('add_data', [True, False])
 # @mark.parametrize('add_box', [True, False])
-@mark.parametrize('add_condition_slope', [True, False])
+@mark.parametrize('add_condition_slope', [False, True])
 @mark.parametrize('add_group_slope', [False, True])
 # @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])

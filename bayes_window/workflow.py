@@ -1,11 +1,13 @@
 import warnings
 from importlib import reload
+from typing import List, Any
 
 import altair as alt
 import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
+from altair import LayerChart, Chart
 from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import models
@@ -19,8 +21,16 @@ reload(visualization)
 reload(utils)
 
 
-# noinspection PyMethodFirstArgAssignment
 class BayesWindow:
+    posterior_intercept: Chart
+    chart: Chart
+    chart_data_boxplot: Chart
+    chart_posterior_whiskers: Chart
+    chart_posterior_center: Chart
+    chart_base_posterior: Chart
+    charts_for_facet: List[Any]
+    chart_posterior_hdi_no_data: LayerChart
+
     def __init__(self,
                  df: pd.DataFrame,
                  y: str,
@@ -213,16 +223,15 @@ class BayesWindow:
                                  )
 
         # Add data back
-        # if add_data:
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
                                                       posterior_index_name='combined_condition',
                                                       group_name=self.group)
 
         # HDI and MAP:
-        self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
-                                            prefix=f'{var} '
-                                            if (var != self.b_name) and (var != 'slope_per_condition') else '')
-                          for var in self.trace.posterior.data_vars]
+        self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
+                                                 prefix=f'{var} '
+                                                 if (var != self.b_name) and (var != 'slope_per_condition') else '')
+                          for var in self.trace.posterior.data_vars}
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
@@ -294,15 +303,16 @@ class BayesWindow:
                                                       group_name=self.group)
 
         # HDI and MAP:
-        self.posterior = [utils.get_hdi_map(self.trace.posterior[var],
-                                            prefix=f'{var} '
-                                            if (var != self.b_name) and (var != 'slope_per_condition') else '')
-                          for var in self.trace.posterior.data_vars]
+        self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
+                                                 prefix=f'{var} '
+                                                 if (var != self.b_name) and (var != 'slope_per_condition') else '')
+                          for var in self.trace.posterior.data_vars}
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=self.data.copy(),
                                                                    group=self.group)
+        assert 'lower interval' in self.data_and_posterior.columns
         # Default plots:
         try:
             # facet_kwargs=visualization.auto_facet(self.group,self,condition)
@@ -345,15 +355,16 @@ class BayesWindow:
                                                            base_chart=base_chart,
                                                            do_make_change=self.do_make_change)
             # No-data plot
-            try:
-                self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=posterior[-1],
-                                                                             title=f'{self.y}',
-                                                                             x=x,
-                                                                             base_chart=None,
-                                                                             do_make_change=self.do_make_change))
-            except KeyError as e:
-                print(e)
-                pass
+            if (self.b_name != 'lme') and (type(self.posterior) == dict):
+                main_effect= (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
+                              else self.posterior['slope_per_condition'])
+                self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(
+                    df=main_effect,
+                    title=f'{self.y}',
+                    x=x,
+                    base_chart=None,
+                    do_make_change=self.do_make_change))
+
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
@@ -512,10 +523,10 @@ class BayesWindow:
             # TODO let's not force users to plot. have a sensible default
             raise RuntimeError('Plot first, then you can use facet')
         if self.independent_axes:
-            self.facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
+            facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         else:
-            self.facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
-        return self.facetchart
+            facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
+        return facetchart
 
     def plot_model_quality(self, var_names=None, **kwargs):
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'

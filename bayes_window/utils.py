@@ -144,9 +144,11 @@ def get_hdi_map(posterior, circular=False, prefix=''):
 
 
 def insert_posterior_into_data(posteriors, data, group):
-    for posterior in posteriors:
+    for posterior_name, posterior in posteriors.items():
+
         # Remove underscore from get_hdi_map():
         posterior.rename({f'{group}_': group}, axis=1, inplace=True)
+
         # Sanity check
         posterior_index_cols = list(posterior.columns[~posterior.columns.str.contains('interval')])
         posterior_value_cols = list(posterior.columns[posterior.columns.str.contains('interval')])
@@ -156,18 +158,14 @@ def insert_posterior_into_data(posteriors, data, group):
                 data.loc[data.index[0], posterior_value_col] = posterior.iloc[0][posterior_value_col]
                 # print(data.loc[data.index[0], posterior_value_col])
             continue
+
         # Fill in:
         for index, subset_posterior in posterior.groupby(posterior_index_cols):
             assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
             subset_posterior = subset_posterior.iloc[0]
             data_index = (data[posterior_index_cols] == index).squeeze()
-            # self.data.drop(posterior_value_col,axis=1,inplace=True)
-            # if sum(data_index) == 0:  # no such condition
-            #     continue
             for posterior_value_col in posterior_value_cols:
-                # first_matching_index = np.where(data_index)[0][0]
                 data.loc[data_index, posterior_value_col] = subset_posterior[posterior_value_col]
-            # print(data.loc[data_index, posterior_value_cols])
     return data
 
 

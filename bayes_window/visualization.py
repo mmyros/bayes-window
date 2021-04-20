@@ -5,13 +5,19 @@ from sklearn.preprocessing import LabelEncoder
 trans = LabelEncoder().fit_transform
 
 
-def facet(base_chart,
-          column=None,
-          row=None,
-          width=80,
-          height=150,
-          finalize=False
-          ):
+def facet(base_chart: alt.LayerChart,
+          column: str = None,
+          row: str = None,
+          width: int = 80,
+          height: int = 150,
+          finalize: bool = False
+          ) -> alt.Chart:
+    """
+
+    Returns
+    -------
+    object
+    """
     if column is None and row is None:
         return base_chart  # Nothing to do
     assert base_chart.data is not None
