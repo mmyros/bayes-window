@@ -13,6 +13,8 @@
 #     name: pycharm-d5912792
 # ---
 
+
+
 # + [markdown] hideCode=false hidePrompt=false
 # # Neurons example via low-level, flexible interface
 # ## Prepare
@@ -72,10 +74,10 @@ trace = fit_numpyro(y=df[y].values,
                     n_draws=100, num_chains=1, )
 
 # + [markdown] hideCode=false hidePrompt=false
-# ## Add data back
+# ## Add data back 
 
 # + hideCode=false hidePrompt=false
-reload(utils)
+# reload(utils)
 # df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
 #                                              fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
 #                                              treatment_name='stim', b_name='slope_per_condition',
