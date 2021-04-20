@@ -38,7 +38,7 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                 dur=7, )
 
 
-df['log_isi'] = np.log10(df['isi'])
+# df['log_isi'] = np.log10(df['isi'])
 
 from bayes_window import visualization, utils
 from importlib import reload
@@ -46,14 +46,13 @@ from importlib import reload
 reload(visualization)
 reload(utils)
 y = 'isi'
-df['neuron'] = df['neuron'].astype(int)
 ddf, dy = utils.make_fold_change(df,
                                  y=y,
-                                 index_cols=('stim', 'mouse_code', 'neuron'),
+                                 index_cols=('stim', 'mouse', 'neuron'),
                                  treatment_name='stim',
                                  do_take_mean=True)
 
-visualization.plot_data(x='neuron', y=dy, color='mouse_code',  df=ddf)[0]
+visualization.plot_data(x='neuron', y=dy, color='mouse',  df=ddf)[0]
 # -
 
 # TODO leave axis labels here somehow
@@ -78,7 +77,7 @@ trace = fit_numpyro(y=df[y].values,
 # + hideCode=false hidePrompt=false
 reload(utils)
 df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
-                                             fold_change_index_cols=['neuron', 'stim', 'mouse_code', ],
+                                             fold_change_index_cols=['neuron', 'stim', 'mouse', ],
                                              treatment_name='stim', b_name='slope_per_condition',
                                              posterior_index_name='neuron', group_name='mouse')
 
@@ -89,18 +88,18 @@ df_both, trace = utils.add_data_to_posterior(df, posterior=trace.posterior, y=y,
 # BayesWindow.regression_charts(df_both, y=f'{y} diff', x='neuron',color='mouse_code',title=y,hold_for_facet=False,add_box=False)
 reload(visualization)
 
-chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse_code', highlight=False)
+chart_d, _ = visualization.plot_data(df=df_both, x='neuron', y=f'{y} diff', color='mouse')
 chart_d
 
 # + hideCode=false hidePrompt=false
 chart_p = visualization.plot_posterior(df=df_both, title=f'd_{y}', x='neuron', )
-chart_p
+chart_p[0] + chart_p[1]
 
 # + hideCode=false hidePrompt=false
-(chart_d + chart_p).resolve_scale(y='independent')
+(chart_d + chart_p[0] + chart_p[1]).resolve_scale(y='independent')
 
 # + hideCode=false hidePrompt=false
-(chart_d + chart_p).facet(column='neuron')
+(chart_d + chart_p[0] + chart_p[1]).facet(column='mouse')
 # -
 
 # ## Appendix: Elements of interactivity (WIP)
