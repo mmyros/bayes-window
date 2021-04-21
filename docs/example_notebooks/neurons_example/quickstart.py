@@ -23,7 +23,10 @@ from bayes_window.generative_models import generate_fake_spikes
 from importlib import reload
 import numpy as np
 import altair as alt
-alt.renderers.enable('altair_saver', fmts=['png']);
+try:
+    alt.renderers.enable('altair_saver', fmts=['png'])
+except Exception:
+    pass
 
 # + slideshow={"slide_type": "skip"} hideCode=false hidePrompt=false
 
