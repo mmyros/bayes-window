@@ -20,19 +20,19 @@ df_radon = load_radon()
 # @mark.parametrize('do_mean_over_trials', [True, False])
 @mark.parametrize('do_make_change', ['subtract', 'divide', False])
 def test_radon(
-               # add_data, add_box,
-               add_condition_slope,
-               add_group_slope,
-               # do_mean_over_trials,
-               do_make_change
-               ):
+    # add_data, add_box,
+    add_condition_slope,
+    add_group_slope,
+    # do_mean_over_trials,
+    do_make_change
+):
     window = BayesWindow(df_radon, y='radon', treatment='floor', condition=['county'])
     # window.plot(x='county').facet(row='floor').display()
-    window.fit_slopes(add_condition_slope=add_condition_slope, #do_mean_over_trials=do_mean_over_trials,
+    window.fit_slopes(add_condition_slope=add_condition_slope,  # do_mean_over_trials=do_mean_over_trials,
                       add_group_slope=add_group_slope, do_make_change=do_make_change,
                       n_draws=100, num_chains=1, num_warmup=100)
     # window.plot().display()
-    window.plot(x=':O', #add_data=add_data,
+    window.plot(x=':O',  # add_data=add_data,
                 ).display()
     window.regression_charts()
 
@@ -47,8 +47,8 @@ def test_slopes(do_make_change, detail):
                                                                     mouse_response_slope=16)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', detail=detail)
     # try:
-    window.fit_slopes(model=models.model_hierarchical, do_make_change=do_make_change,)
-                      # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse'))
+    window.fit_slopes(model=models.model_hierarchical, do_make_change=do_make_change, )
+    # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse'))
     window.chart.display()
     window.chart_data_box_detail.display()
 
@@ -103,12 +103,12 @@ def test_estimate_posteriors():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
-    window.fit_conditions(model=models.model_single, add_data=False)
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse', 'i_trial', ], group='mouse', )
+    window.fit_conditions(model=models.model_single)
 
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )
     chart.display()
-    chart = window.plot(x='stim:O', column='neuron_code', row='mouse_code', )
+    chart = window.plot(x='stim:O', column='neuron', row='mouse_code', )
     chart.display()
 
 
@@ -117,10 +117,10 @@ def test_estimate_posteriors_data_overlay():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    window.fit_conditions(model=models.model_single, add_data=False)
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit_conditions(model=models.model_single, )
     chart = window.plot(x='stim:O', independent_axes=False,
-                        column='neuron_code', row='mouse_code')
+                        column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -129,11 +129,11 @@ def test_estimate_posteriors_data_overlay_indep_axes():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
-    window.fit_conditions(model=models.model_single, add_data=True, )
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit_conditions(model=models.model_single, )
 
     chart = window.plot(x='stim:O', independent_axes=True,
-                        column='neuron_code', row='mouse_code')
+                        column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -153,12 +153,12 @@ def test_estimate_posteriors_slope():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
     window.fit_slopes(models.model_hierarchical)
 
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -171,12 +171,12 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
     df = df.drop(df[(df['i_trial'] == 0) &
                     # (df['neuron_x_mouse'] == '0m0bayes') &
                     (df['stim'] == 0)].index)
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(models.model_hierarchical, do_make_change='divide')
 
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -185,12 +185,12 @@ def test_estimate_posteriors_slope_groupslope():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
     window.fit_slopes(models.model_hierarchical, add_group_slope=True, add_group_intercept=True)
 
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -201,53 +201,30 @@ def test_estimate_posteriors_slope_groupslope():
 #                                     n_mice=4,
 #                                     dur=2, )
 #
-#     window1 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+#     window1 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
 #     window1.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, add_data=False)
 #
-#     window2 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+#     window2 = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
 #     window2.fit_slopes(model=models.model_hierarchical, do_mean_over_trials=False, add_data=True)
 #
-#     assert (window1.data_and_posterior['neuron_code'] == window2.data_and_posterior['neuron_code']).all()
+#     assert (window1.data_and_posterior['neuron'] == window2.data_and_posterior['neuron']).all()
 #     assert (window1.data_and_posterior['stim_strength'] == window2.data_and_posterior['stim_strength']).all()
 
 
-from pytest import mark
-
-
-@mark.parametrize('add_data', [False, True])
-def test_estimate_posteriors_two_conditions_no_add_data(add_data):
+def test_estimate_posteriors_two_conditions():
     df = generate_spikes_stim_types(mouse_response_slope=3,
                                     n_trials=2,
                                     n_neurons=3,
                                     n_mice=4,
                                     dur=2, )
 
-    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
     window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False)
     for condition_name in window.condition:
         assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse_code')
-    chart.display()
-
-
-def test_estimate_posteriors_two_conditions_add_data():
-    df = generate_spikes_stim_types(mouse_response_slope=3,
-                                    n_trials=2,
-                                    n_neurons=3,
-                                    n_mice=4,
-                                    dur=2, )
-
-    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_code', 'stim_strength'], group='mouse', )
-    window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False,
-                      num_chains=1,
-                      num_warmup=100, n_draws=100)
-    for condition_name in window.condition:
-        assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse')
-    chart.display()
-    chart = window.plot(x='neuron_code', column='neuron_code', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -256,11 +233,11 @@ def test_estimate_posteriors_data_overlay_slope():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     chart = window.regression_charts(independent_axes=False)
     chart.display()
-    window.facet(column='neuron_code', row='mouse_code')
+    window.facet(column='neuron', row='mouse_code')
     chart.display()
 
 
@@ -269,11 +246,11 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope():
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=2, )
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_code', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     chart = window.plot_posteriors_no_slope(independent_axes=True)
     chart.display()
-    chart = window.facet(column='neuron_code', row='mouse')
+    chart = window.facet(column='neuron', row='mouse')
     chart.display()
 
 
@@ -308,7 +285,7 @@ def test_fit_conditions():
                                                                     dur=2, )
     # TODO combined condition here somehow
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit_conditions(add_data=True)
+    window.fit_conditions()
 
 
 def test_fit_slopes():
@@ -397,19 +374,19 @@ def test_single_condition_withdata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts( independent_axes=True).display()
+    window.regression_charts(independent_axes=True).display()
 
     # Without data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts( independent_axes=True).display()
+    window.regression_charts(independent_axes=True).display()
 
     # With data again
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts( independent_axes=True).display()
+    window.regression_charts(independent_axes=True).display()
 
 
 def test_single_condition_nodata():
@@ -417,7 +394,7 @@ def test_single_condition_nodata():
     window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-    window.regression_charts( independent_axes=True).display()
+    window.regression_charts(independent_axes=True).display()
 
 
 def test_single_condition_nodata_dists():
@@ -426,7 +403,7 @@ def test_single_condition_nodata_dists():
         window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
         window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
         alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
-        window.regression_charts( independent_axes=True).display()
+        window.regression_charts(independent_axes=True).display()
 
 
 # @mark.parametrize('condition', [None, 'neuron'])
@@ -459,8 +436,6 @@ def test_chirp_data():
                                                                                'Fid', 'Subject', 'Inversion'],
                       do_mean_over_trials=True, num_chains=1, n_draws=100, num_warmup=100)
     window.regression_charts(x='Stim phase', color='Fid', independent_axes=True)
-
-    window.data_and_posterior
 
 
 def test_chirp_data1():
@@ -512,13 +487,13 @@ def random_tests():
     window.fit_slopes(model=models.model_hierarchical, num_chains=1)
     window.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
 
-    window.regression_charts( independent_axes=False, x='neuron:O', color='mouse')
+    window.regression_charts(independent_axes=False, x='neuron:O', color='mouse')
 
     window.regression_charts(add_box=False, independent_axes=True, x='neuron:O', color='mouse')
 
     window.regression_charts(independent_axes=False, x='neuron:O', color='mouse')
 
-    chart = window.regression_charts( independent_axes=True, x='neuron:O', color='mouse')
+    chart = window.regression_charts(independent_axes=True, x='neuron:O', color='mouse')
 
     chart
 
@@ -538,16 +513,31 @@ def random_tests():
 
 
 def test_data_replacement1():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=40,
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=4,
                                                                     n_neurons=3,
                                                                     n_mice=4,
                                                                     dur=7,
                                                                     mouse_response_slope=16)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
-                              detail='i_trial')
+                         detail='i_trial')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
                       add_condition_slope=True,
                       add_group_slope=True)
-    assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])['mouse'].unique().size==4
+    assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
+               'mouse'].unique().size == 4
 
 
+def test_fit_twostep():
+
+    df = generate_spikes_stim_types(mouse_response_slope=3,
+                                    n_trials=2,
+                                    n_neurons=3,
+                                    n_mice=4,
+                                    dur=2, )
+
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
+    window.fit_twostep()
+    for condition_name in window.condition:
+        assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
+    chart.display()

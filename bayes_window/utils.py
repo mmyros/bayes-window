@@ -162,7 +162,7 @@ def recode_posterior(posteriors, levels, data, original_data, condition):
                 original_vals = original_data.loc[original_data_index, original_columns]
                 for col in original_vals.columns:
                     assert original_vals[col].unique().size < 2, 'non-unique'
-                posterior.loc[i, original_columns] = original_vals.iloc[0].values[0]
+                posterior.loc[i, original_columns] = original_vals.iloc[0].values
         recoded_posteriors[p_name] = posterior
     return recoded_posteriors
 

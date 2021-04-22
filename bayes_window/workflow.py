@@ -52,7 +52,7 @@ class BayesWindow:
         self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
-            assert self.condition[0] in df.columns
+            assert self.condition[0] in df.columns, f'{self.condition[0]} is not in {df.columns}'
         self.levels = utils.parse_levels(self.treatment, self.condition, self.group)
 
         # Combined condition
@@ -130,6 +130,25 @@ class BayesWindow:
         lm = sm.ols(formula, data=data).fit()
         print(f'{formula}\n {anova_lm(lm, typ=2, **kwargs).round(2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
+
+    def fit_twostep(self):
+        # bw1 = BayesWindow(df_monster, y='isi', condition=['neuron_x_mouse', 'i_trial', 'stim', 'mouse'], group='mouse')
+        window_step_one = self.fit_conditions(dist_y='gamma')
+        self = BayesWindow(window_step_one.posterior['mu_per_condition'],
+                           y='center interval', treatment=self.treatment,
+                           condition=list(set(self.condition) - {self.treatment} - {self.group}),
+                           group=self.group)
+        self.window_step_one = window_step_one
+        self.fit_slopes(model=models.model_hierarchical,
+                        do_make_change='subtract',
+                        dist_y='student',
+                        robust_slopes=False,
+                        add_group_intercept=False,
+                        add_group_slope=False,
+                        # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
+                        )
+
+        return self
 
     def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
@@ -210,10 +229,19 @@ class BayesWindow:
                                                             self.treatment)
         return self
 
-    def fit_conditions(self, model=models.model_single, add_data=True, **kwargs):
+    def fit_conditions(self, model=models.model_single, **kwargs):
 
         self.model = model
         self.b_name = 'mu_per_condition'
+
+        # add all levels into condition
+        if self.group not in self.condition:
+            self.condition += [self.group]
+        if self.treatment not in self.condition:
+            self.condition += [self.treatment]
+
+        # Recode dummy condition taking into account all levels
+        self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
         # Estimate model
         self.trace = fit_numpyro(y=self.data[self.y].values,
                                  condition=self.data['combined_condition'].values,
@@ -339,10 +367,10 @@ class BayesWindow:
             base_chart = alt.Chart(posterior)
             self.chart_base_posterior = base_chart
             (self.chart_posterior_whiskers,
-             self.chart_posterior_center) = plot_posterior(title=f'{self.y}',
-                                                           x=x,
-                                                           base_chart=base_chart,
-                                                           do_make_change=self.do_make_change)
+             self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.y}',
+                                                                            x=x,
+                                                                            base_chart=base_chart,
+                                                                            do_make_change=self.do_make_change)
             # No-data plot
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
                 main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
@@ -353,6 +381,7 @@ class BayesWindow:
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
+            self.charts.append(self.chart_zero)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
             if (self.b_name != 'lme') and (x != ':O'):
                 # Y Axis limits to match self.chart

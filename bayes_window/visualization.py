@@ -115,7 +115,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
     return lines, points
 
 
-def plot_data(df=None, x='', y=None, color=None,  base_chart=None, detail=':O', highlight=False, add_box=True,
+def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', highlight=False, add_box=True,
               y_domain=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
@@ -203,16 +203,16 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Make the zero line
-    # if add_zero_line:
-    #     title = f'Δ {title}'
-    #     base_chart.data['zero'] = 0
-    #     charts.append(base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
-    #         y=alt.Y(
-    #             'zero',
-    #             scale=scale,
-    #             axis=alt.Axis(title='', orient='left')
-    #         )
-    #     ))
+    if add_zero_line:
+        title = f'Δ {title}'
+        base_chart.data['zero'] = 0
+        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+            y=alt.Y(
+                'zero',
+                scale=scale,
+                axis=alt.Axis(title='', orient='left')
+            )
+        )
 
     # line or bar for center interval (left axis)
     if (x == ':O') or (x == ':N'):
@@ -236,7 +236,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
         )
 
-    return chart_posterior_whiskers, chart_posterior_center
+    return chart_posterior_whiskers, chart_posterior_center, chart_zero
 
 
 def plot_data_slope_trials(x,
