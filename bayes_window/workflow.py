@@ -238,6 +238,9 @@ class BayesWindow:
                                                                    data=self.data.copy(),
                                                                    group=self.group)
 
+        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
+                                                self.condition)
+
         return self
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
@@ -300,7 +303,8 @@ class BayesWindow:
                                                                    group=self.group)
 
         assert 'lower interval' in self.data_and_posterior.columns
-        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data, self.condition)
+        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
+                                                self.condition)
 
         # Default plots:
         try:
@@ -316,7 +320,7 @@ class BayesWindow:
             print(f'Please use window.create_regression_charts(): {e}')
         return self
 
-    def regression_charts(self, x=None, color=':N', detail=':N', independent_axes=True, **kwargs):
+    def regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
         # Set some options
         self.independent_axes = independent_axes
 
@@ -350,7 +354,7 @@ class BayesWindow:
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
-            if (self.b_name != 'lme') and not x:
+            if (self.b_name != 'lme') and (x != ':O'):
                 # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
@@ -372,7 +376,7 @@ class BayesWindow:
 
             # Plot data:
             y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
-            if x:
+            if x != ':O':
                 self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail,
                                                                          highlight=False)
                 self.charts.extend(self.chart_data_line)

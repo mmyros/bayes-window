@@ -23,6 +23,7 @@ from bayes_window.generative_models import generate_fake_spikes
 from importlib import reload
 import numpy as np
 import altair as alt
+alt.data_transformers.disable_max_rows()
 try:
     alt.renderers.enable('altair_saver', fmts=['png'])
 except Exception:
@@ -59,7 +60,6 @@ charts=fake_spikes_explore(df,df_monster,index_cols)
 
 df['log_isi']=np.log10(df['isi'])
 
-alt.data_transformers.disable_max_rows()
 bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
 bw.plot(x='neuron',color='stim',detail='i_trial',add_box=False).facet(column='mouse',)
 
