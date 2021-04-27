@@ -36,7 +36,8 @@ def test_radon(
                 ).display()
     window.regression_charts()
     window.chart_posterior_kde.display()
-    assert len(window.charts_for_facet)>3 # Should include kde
+    # window.chart_data_boxplot.display() # Fold change won't work, bc uneven number of entries
+    assert len(window.charts) > 3  # Should include kde
 
 
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
@@ -110,7 +111,7 @@ def test_estimate_posteriors():
 
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )
     chart.display()
-    chart = window.plot(x='stim:O', column='neuron', row='mouse_code', )
+    chart = window.plot(x='stim:O', column='neuron', row='mouse', )
     chart.display()
 
 
@@ -122,7 +123,7 @@ def test_estimate_posteriors_data_overlay():
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions(model=models.model_single, )
     chart = window.plot(x='stim:O', independent_axes=False,
-                        column='neuron', row='mouse_code')
+                        column='neuron', row='mouse')
     chart.display()
 
 
@@ -135,7 +136,7 @@ def test_estimate_posteriors_data_overlay_indep_axes():
     window.fit_conditions(model=models.model_single, )
 
     chart = window.plot(x='stim:O', independent_axes=True,
-                        column='neuron', row='mouse_code')
+                        column='neuron', row='mouse')
     chart.display()
 
 
@@ -160,7 +161,7 @@ def test_estimate_posteriors_slope():
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
 
 
@@ -178,7 +179,7 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
 
 
@@ -192,7 +193,7 @@ def test_estimate_posteriors_slope_groupslope():
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
 
 
@@ -226,7 +227,7 @@ def test_estimate_posteriors_two_conditions():
         assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron', column='neuron', row='mouse_code')
+    chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
 
 
@@ -239,7 +240,7 @@ def test_estimate_posteriors_data_overlay_slope():
     window.fit_slopes(model=models.model_hierarchical)
     chart = window.regression_charts(independent_axes=False)
     chart.display()
-    window.facet(column='neuron', row='mouse_code')
+    window.facet(column='neuron', row='mouse')
     chart.display()
 
 
@@ -530,21 +531,7 @@ def test_data_replacement1():
 
 
 def test_fit_twostep():
-
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
-                                                                    n_neurons=3,
-                                                                    n_mice=2,
-                                                                    dur=3,
-                                                                    mouse_response_slope=16)
-
-    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
-                     detail='i_trial')
-    bw= bw.fit_twostep(dist_y_step_one='gamma', dist_y='student')
-    bw.chart.display()
-
-def test_fit_twostep_by_group():
-
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                     n_neurons=2,
                                                                     n_mice=2,
                                                                     dur=3,
@@ -552,5 +539,18 @@ def test_fit_twostep_by_group():
 
     bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
                      detail='i_trial')
-    bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', dist_y='student')
+    bw = bw.fit_twostep(dist_y_step_one='gamma', dist_y='student')
+    bw.chart.display()
+
+
+def test_fit_twostep_by_group():
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                    n_neurons=2,
+                                                                    n_mice=2,
+                                                                    dur=3,
+                                                                    mouse_response_slope=16)
+
+    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+                     detail='i_trial')
+    bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', parallel=False, dist_y='student')
     bw.chart.display()

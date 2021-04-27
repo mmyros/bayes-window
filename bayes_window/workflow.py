@@ -149,7 +149,7 @@ class BayesWindow:
 
         return window_step_two
 
-    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', **kwargs):
+    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
         from joblib import Parallel, delayed
         assert self.detail is not None
 
@@ -162,10 +162,12 @@ class BayesWindow:
             return posterior
 
         groupby = groupby or self.condition[0]
-        # from tqdm import tqdm
-        # step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
-        step1_res = Parallel(n_jobs=-1, verbose=1)(delayed(fit_subset)(df_m_n, i)
-                                                   for i, df_m_n in self.data.groupby(groupby))
+        if parallel:
+            step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
+                                                       for i, df_m_n in self.data.groupby(groupby))
+        else:
+            from tqdm import tqdm
+            step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
 
         window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
                                       y=self.y, treatment=self.treatment,
@@ -319,6 +321,7 @@ class BayesWindow:
             fold_change_index_cols += [self.detail]
         if add_condition_slope:
             add_condition_slope = self.condition[0] and (np.unique(self.data['combined_condition']).size > 1)
+            fold_change_index_cols.append('combined_condition')
         self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
         if add_condition_slope and (not self.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.condition
@@ -357,7 +360,7 @@ class BayesWindow:
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                   data=self.data.copy(),
+                                                                   data=df_data.copy(),
                                                                    group=self.group)
 
         assert 'lower interval' in self.data_and_posterior.columns
@@ -401,12 +404,16 @@ class BayesWindow:
         # 1. Plot posterior
         if posterior is not None:
             base_chart = alt.Chart(posterior)
+            # Add zero for zero line
+            base_chart.data['zero'] = 0
+
             self.chart_base_posterior = base_chart
             (self.chart_posterior_whiskers,
              self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
                                                                             do_make_change=self.do_make_change)
+
             # No-data plot
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
                 main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
@@ -430,7 +437,7 @@ class BayesWindow:
                                                                                 self.b_name,
                                                                                 do_make_change=self.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
-                self.charts_for_facet.append(self.chart_posterior_kde)
+                # self.charts_for_facet.append(self.chart_posterior_kde) # kde cannot be faceted
         else:
             base_chart = alt.Chart(self.data)
 
@@ -463,6 +470,7 @@ class BayesWindow:
         else:  # No data overlay
             warnings.warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
 
+        alt.layer(*self.charts_for_facet).facet()  # Sanity check
         # 3. Make layered chart out of posterior and data
         self.chart = alt.layer(*self.charts_for_facet)
         if independent_axes:

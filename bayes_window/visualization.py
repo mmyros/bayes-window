@@ -187,6 +187,10 @@ def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_m
     assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
 
+
+    # Add zero for zero line
+    if 'zero' not in base_chart.data.columns:
+        base_chart.data['zero'] = 0
     # Axis limits
     minmax = [float(data['lower interval'].min()), 0,
               float(data['higher interval'].max())]
@@ -206,7 +210,6 @@ def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_m
     # Make the zero line
     if add_zero_line:
         title = f'Δ {title}'
-        base_chart.data['zero'] = 0
         chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
             y=alt.Y(
                 'zero',

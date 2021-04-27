@@ -1,8 +1,5 @@
-from pathlib import Path
-
 from bayes_window import models
 from bayes_window.generative_models import *
-from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
 
 trans = LabelEncoder().fit_transform
