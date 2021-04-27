@@ -22,6 +22,7 @@ reload(utils)
 
 
 class BayesWindow:
+    chart_zero: Chart
     posterior_intercept: Chart
     chart: Chart
     chart_data_boxplot: Chart
@@ -148,22 +149,36 @@ class BayesWindow:
 
         return window_step_two
 
-    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, **kwargs):
-        from tqdm import tqdm
-        groupby = groupby or self.condition[0]
-        step1_res = []
-        for i, df_m_n in tqdm(self.data.groupby(groupby)):
-            bw1 = BayesWindow(df_m_n, y='isi', treatment='stim', condition=['i_trial'], group='mouse')
-            bw1.fit_conditions(dist_y=dist_y_step_one)
-            posterior = bw1.posterior['mu_per_condition'].copy()
-            posterior[groupby] = i
-            step1_res.append(posterior)
+    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', **kwargs):
+        from joblib import Parallel, delayed
+        assert self.detail is not None
 
-        bw2 = BayesWindow(pd.concat(step1_res),
-                          y='center interval', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
-                          detail='i_trial')
-        bw2.fit_slopes(model=models.model_hierarchical, **kwargs)
-        return bw2
+        def fit_subset(df_m_n, i):
+            window_step_one = BayesWindow(df_m_n, y=self.y, treatment=self.treatment,
+                                          condition=[self.detail], group=self.group)
+            window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
+            posterior = window_step_one.posterior['mu_per_condition'].copy()
+            posterior[groupby] = i
+            return posterior
+
+        groupby = groupby or self.condition[0]
+        # from tqdm import tqdm
+        # step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
+        step1_res = Parallel(n_jobs=-1, verbose=1)(delayed(fit_subset)(df_m_n, i)
+                                                   for i, df_m_n in self.data.groupby(groupby))
+
+        window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
+                                      y=self.y, treatment=self.treatment,
+                                      condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+                                      group=self.group, detail=self.detail)
+        window_step_two.fit_slopes(model=models.model_hierarchical,
+                                   dist_y=dist_y,
+                                   robust_slopes=False,
+                                   add_group_intercept=False,
+                                   add_group_slope=False,
+                                   **kwargs
+                                   )
+        return window_step_two
 
     def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
@@ -415,8 +430,7 @@ class BayesWindow:
                                                                                 self.b_name,
                                                                                 do_make_change=self.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
-            else:
-                print(add_x_axis, x)
+                self.charts_for_facet.append(self.chart_posterior_kde)
         else:
             base_chart = alt.Chart(self.data)
 

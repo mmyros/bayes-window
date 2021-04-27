@@ -35,6 +35,8 @@ def test_radon(
     window.plot(x=':O',  # add_data=add_data,
                 ).display()
     window.regression_charts()
+    window.chart_posterior_kde.display()
+    assert len(window.charts_for_facet)>3 # Should include kde
 
 
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
@@ -495,7 +497,7 @@ def random_tests():
 
     chart = window.regression_charts(independent_axes=True, x='neuron:O', color='mouse')
 
-    chart
+    chart.display()
 
     chart.resolve_scale(y='independent')
 
@@ -529,15 +531,26 @@ def test_data_replacement1():
 
 def test_fit_twostep():
 
-    df = generate_spikes_stim_types(mouse_response_slope=3,
-                                    n_trials=2,
-                                    n_neurons=3,
-                                    n_mice=4,
-                                    dur=2, )
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
+                                                                    n_neurons=3,
+                                                                    n_mice=2,
+                                                                    dur=3,
+                                                                    mouse_response_slope=16)
 
-    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
-    window.fit_twostep()
-    for condition_name in window.condition:
-        assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
-    chart = window.plot(x='neuron', column='neuron', row='mouse')
-    chart.display()
+    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+                     detail='i_trial')
+    bw= bw.fit_twostep(dist_y_step_one='gamma', dist_y='student')
+    bw.chart.display()
+
+def test_fit_twostep_by_group():
+
+    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
+                                                                    n_neurons=2,
+                                                                    n_mice=2,
+                                                                    dur=3,
+                                                                    mouse_response_slope=16)
+
+    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+                     detail='i_trial')
+    bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', dist_y='student')
+    bw.chart.display()

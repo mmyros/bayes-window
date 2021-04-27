@@ -41,7 +41,7 @@ def fill_conditions(original_data: pd.DataFrame, data: pd.DataFrame, df_result: 
     levels_to_replace = ['combined_condition', group]
     # Replace index code  values with true data values we saved in self.original_data
     for level_values, data_subset in original_data[levels_to_replace].groupby(levels_to_replace):
-        print(level_values, data_subset)
+        # print(level_values, data_subset)
         if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
             level_values = [level_values]
         recoded_data_subset = data.loc[data_subset.index, levels_to_replace]

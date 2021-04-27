@@ -31,13 +31,13 @@ def select_device(use_gpu, num_chains):
 
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
-                n_draws=1000, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
+                n_draws=200, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
                 **kwargs):
     select_device(use_gpu, num_chains)
     model = model or models.model_hierarchical
     mcmc = MCMC(sampler(model=model,
-                        # find_heuristic_step_size=True
-                        # target_accept_prob=0.99,
+                        find_heuristic_step_size=True,
+                        target_accept_prob=0.99,
                         # init_strategy=numpyro.infer.init_to_uniform
                         ),
                 num_warmup=num_warmup, num_samples=n_draws, num_chains=num_chains, progress_bar=progress_bar,
