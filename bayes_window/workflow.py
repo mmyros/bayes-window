@@ -131,24 +131,39 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2, **kwargs).round(2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_twostep(self):
-        # bw1 = BayesWindow(df_monster, y='isi', condition=['neuron_x_mouse', 'i_trial', 'stim', 'mouse'], group='mouse')
-        window_step_one = self.fit_conditions(dist_y='gamma')
-        self = BayesWindow(window_step_one.posterior['mu_per_condition'],
-                           y='center interval', treatment=self.treatment,
-                           condition=list(set(self.condition) - {self.treatment} - {self.group}),
-                           group=self.group)
-        self.window_step_one = window_step_one
-        self.fit_slopes(model=models.model_hierarchical,
-                        do_make_change='subtract',
-                        dist_y='student',
-                        robust_slopes=False,
-                        add_group_intercept=False,
-                        add_group_slope=False,
-                        # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
-                        )
+    def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
+        if self.detail not in self.condition:
+            self.condition += [self.detail]
+        window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
 
-        return self
+        window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
+                                      y='center interval', treatment=self.treatment,
+                                      condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+                                      group=self.group, detail=self.detail)
+        window_step_two.window_step_one = window_step_one
+        window_step_two.fit_slopes(model=models.model_hierarchical,
+                                   **kwargs
+                                   # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
+                                   )
+
+        return window_step_two
+
+    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, **kwargs):
+        from tqdm import tqdm
+        groupby = groupby or self.condition[0]
+        step1_res = []
+        for i, df_m_n in tqdm(self.data.groupby(groupby)):
+            bw1 = BayesWindow(df_m_n, y='isi', treatment='stim', condition=['i_trial'], group='mouse')
+            bw1.fit_conditions(dist_y=dist_y_step_one)
+            posterior = bw1.posterior['mu_per_condition'].copy()
+            posterior[groupby] = i
+            step1_res.append(posterior)
+
+        bw2 = BayesWindow(pd.concat(step1_res),
+                          y='center interval', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+                          detail='i_trial')
+        bw2.fit_slopes(model=models.model_hierarchical, **kwargs)
+        return bw2
 
     def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
@@ -229,7 +244,7 @@ class BayesWindow:
                                                             self.treatment)
         return self
 
-    def fit_conditions(self, model=models.model_single, **kwargs):
+    def fit_conditions(self, model=models.model_single, fit_fn=fit_numpyro, **kwargs):
 
         self.model = model
         self.b_name = 'mu_per_condition'
@@ -243,12 +258,12 @@ class BayesWindow:
         # Recode dummy condition taking into account all levels
         self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
         # Estimate model
-        self.trace = fit_numpyro(y=self.data[self.y].values,
-                                 condition=self.data['combined_condition'].values,
-                                 # treatment=self.data[self.treatment].values,
-                                 model=model,
-                                 **kwargs
-                                 )
+        self.trace = fit_fn(y=self.data[self.y].values,
+                            condition=self.data['combined_condition'].values,
+                            # treatment=self.data[self.treatment].values,
+                            model=model,
+                            **kwargs
+                            )
 
         # Add data back
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
@@ -331,8 +346,11 @@ class BayesWindow:
                                                                    group=self.group)
 
         assert 'lower interval' in self.data_and_posterior.columns
-        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
-                                                self.condition)
+        try:
+            self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
+                                                    self.condition)
+        except Exception as e:
+            print(e)
 
         # Default plots:
         try:
@@ -342,10 +360,11 @@ class BayesWindow:
                                        row=self.condition[1])
             elif self.condition[0]:
                 self.regression_charts(x=self.condition[0], column=self.group)
-            else:
-                self.regression_charts(x=self.condition[0], column=self.group)
+            else:  # self.group:
+                self.regression_charts(x=self.condition[0] if self.condition[0] else ':O')
+            #    self.regression_charts(column=self.group)
         except Exception as e:  # In case I haven't thought of something
-            print(f'Please use window.create_regression_charts(): {e}')
+            print(f'Please use window.regression_charts(): {e}')
         return self
 
     def regression_charts(self, x=':O', color=':N', detail=':N', independent_axes=True, **kwargs):
@@ -359,8 +378,10 @@ class BayesWindow:
         self.charts = []
         posterior = self.data_and_posterior
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
-            # add_x_axis = True
+            add_x_axis = True
             x = f'{self.condition[0]}:O'
+        else:
+            add_x_axis = False
 
         # 1. Plot posterior
         if posterior is not None:
@@ -383,7 +404,7 @@ class BayesWindow:
             self.charts.append(self.chart_posterior_center)
             self.charts.append(self.chart_zero)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
-            if (self.b_name != 'lme') and (x != ':O'):
+            if (self.b_name != 'lme') and not add_x_axis:
                 # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
@@ -394,6 +415,8 @@ class BayesWindow:
                                                                                 self.b_name,
                                                                                 do_make_change=self.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
+            else:
+                print(add_x_axis, x)
         else:
             base_chart = alt.Chart(self.data)
 

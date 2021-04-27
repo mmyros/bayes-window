@@ -78,7 +78,8 @@ def fit_svi(model, n_draws=1000,
         **kwargs
     )
     # Experimental interface:
-    param, loss = svi.run(random.PRNGKey(0), num_steps=num_warmup, stable_update=True, progress_bar=False)
+    param, loss = svi.run(random.PRNGKey(0), num_steps=num_warmup, stable_update=True,
+                          progress_bar=False)
     post = guide.sample_posterior(random.PRNGKey(1), param, (1, n_draws))
 
     # Old interface:

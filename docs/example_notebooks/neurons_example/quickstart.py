@@ -68,8 +68,6 @@ bw.plot(x='neuron',add_box=True).facet(row='mouse',column='stim')
 
 # ## Vanilla regression
 
-bw.levels
-
 # +
 bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse', detail='i_trial')
 bw.fit_slopes(model=(models.model_hierarchical),
