@@ -195,7 +195,7 @@ def insert_posterior_into_data(posteriors, data, group):
     return data
 
 
-def rename_posterior(trace, b_name, posterior_index_name, group_name):
+def rename_posterior(trace, b_name, posterior_index_name, group_name, group2_name=None):
     # Rename axis names to what they actually represent:
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
@@ -205,6 +205,8 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name):
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
+    if f'slope_per_group2_dim_0' in trace:
+        trace = trace.rename({f'slope_per_group2_dim_0': f"{group2_name}_"})  # underscore so it doesnt conflict
     # Check
     var_names = trace.to_dataframe().reset_index().columns
     if var_names.str.contains('_dim_0').any():

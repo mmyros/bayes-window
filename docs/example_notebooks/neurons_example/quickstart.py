@@ -69,20 +69,13 @@ bw.plot(x='neuron',add_box=True).facet(row='mouse',column='stim')
 # ## Vanilla regression
 
 # +
-bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse', detail='i_trial')
+bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse', detail='i_trial')
 bw.fit_slopes(model=(models.model_hierarchical),
-              do_make_change='subtract',
+              do_make_change='divide',
               dist_y='normal',
-              robust_slopes=False,
-              add_group_slope=False,
-              add_group_intercept=True,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse', 'i_trial')
              )
 
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
-
-
-bw.facet(column='mouse',width=200,height=200).display()
+bw.chart
 # -
 
 # ## GLM
@@ -93,8 +86,6 @@ bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], g
 bw.fit_slopes(model=(models.model_hierarchical),
               do_make_change='subtract',
               dist_y='gamma',
-              robust_slopes=False,
-              add_group_slope=True,
               add_group_intercept=True,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse','i_trial'))
 
@@ -196,24 +187,6 @@ bw.fit_slopes(model=(models.model_hierarchical),
 bw.plot_model_quality()
 
 # +
-# Gamma GLM slope only
-reload(models)
-bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
-bw.fit_slopes(model=(models.model_hierarchical),
-              do_make_change='subtract',
-              dist_y='gamma',
-              robust_slopes=False,
-              add_group_intercept=False,
-              add_group_slope=True,
-              fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse'))
-
-bw.plot_model_quality()
-# -
-
-bw.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
-bw.facet(column='mouse',width=200,height=200).display()
-
-# +
 # Gamma GLM intercept only
 bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse')
 bw.fit_slopes(model=(models.model_hierarchical),
@@ -235,7 +208,7 @@ bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], gr
 bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=False)
 
 
-bw.regression_charts(x='neuron_x_mouse:O').display()
+bw.chart.display()
 #bw.facet(column='mouse').display()
 "Proper faceting will work when data addition is implemented in fit_lme()"
 
@@ -243,7 +216,7 @@ bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse'], gr
 bw.fit_lme(add_data=False,add_group_intercept=True, add_group_slope=True)
 
 
-bw.regression_charts(x='neuron_x_mouse:O').display()
+bw.chart
 
 
 # Need nested design, but get singular matrix:

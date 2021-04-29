@@ -44,8 +44,9 @@ def model_single(y, condition, dist_y='normal'):
 
 
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
-                       add_group_intercept=True, add_condition_slope=True, group2=None, add_group2_slope=False,
-                       center_intercept=True, center_slope=False, robust_slopes=False):
+                       add_group_intercept=True,
+                       add_condition_slope=True, group2=None, add_group2_slope=False,
+                       center_intercept=False, center_slope=False, robust_slopes=False):
     n_subjects = np.unique(group).shape[0]
 
     n_conditions = np.unique(condition).shape[0]

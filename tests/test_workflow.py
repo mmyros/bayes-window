@@ -75,9 +75,10 @@ def test_fit_lme_w_condition():
     try:
         window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
         assert window.fit_lme().data_and_posterior is not None
-        window.regression_charts().display()
+        window.regression_charts(x=window.condition[0]).display()
         window.plot(x='neuron_x_mouse').display()
         window.facet(column='neuron_x_mouse', width=300).display()
+        assert len(window.charts) > 0
     except LinAlgError as e:
         print(e)
 
@@ -227,8 +228,18 @@ def test_estimate_posteriors_two_conditions():
         assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
-    chart = window.plot(x='neuron', column='neuron', row='mouse')
-    chart.display()
+
+
+def test_two_groups():
+    df = generate_spikes_stim_types(mouse_response_slope=3,
+                                    n_trials=2,
+                                    n_neurons=3,
+                                    n_mice=4,
+                                    dur=2, )
+
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['stim_strength', 'neuron_x_mouse'],
+                                  group='mouse')
+    window.fit_slopes(model=models.model_hierarchical, group2='neuron_x_mouse', add_group2_slope=True)
 
 
 def test_estimate_posteriors_data_overlay_slope():
