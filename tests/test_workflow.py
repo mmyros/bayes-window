@@ -14,6 +14,11 @@ df_radon = load_radon()
 
 dfl, _, _, _ = generate_fake_lfp(n_trials=5)
 
+df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+                                                                n_neurons=3,
+                                                                n_mice=4,
+                                                                dur=2, )
+
 
 # @mark.parametrize('add_data', [True, False])
 # @mark.parametrize('add_box', [True, False])
@@ -45,11 +50,6 @@ def test_radon(
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
 @mark.parametrize('detail', [None, ':O', 'i_trial'])
 def test_slopes(do_make_change, detail):
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=7,
-                                                                    mouse_response_slope=16)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', detail=detail)
     # try:
     window.fit_slopes(model=models.model_hierarchical, do_make_change=do_make_change, )
@@ -102,10 +102,6 @@ def test_fit_lme_w_data_condition():
 
 
 def test_estimate_posteriors():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron_x_mouse', 'i_trial', ], group='mouse', )
     window.fit_conditions(model=models.model_single)
 
@@ -116,10 +112,6 @@ def test_estimate_posteriors():
 
 
 def test_estimate_posteriors_data_overlay():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions(model=models.model_single, )
     chart = window.plot(x='stim:O', independent_axes=False,
@@ -128,10 +120,6 @@ def test_estimate_posteriors_data_overlay():
 
 
 def test_estimate_posteriors_data_overlay_indep_axes():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions(model=models.model_single, )
 
@@ -143,19 +131,11 @@ def test_estimate_posteriors_data_overlay_indep_axes():
 def test_plot():
     from bayes_window.workflow import BayesWindow
 
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     chart = BayesWindow(df, y='isi', treatment='stim').plot()
     chart.display()
 
 
 def test_estimate_posteriors_slope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
     window.fit_slopes(models.model_hierarchical)
 
@@ -184,10 +164,6 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
 
 
 def test_estimate_posteriors_slope_groupslope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
     window.fit_slopes(models.model_hierarchical, add_group_slope=True, add_group_intercept=True)
 
@@ -242,23 +218,14 @@ def test_two_groups():
 
 
 def test_estimate_posteriors_data_overlay_slope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
-    chart = window.regression_charts(independent_axes=False)
+    chart = window.regression_charts(x='neuron',independent_axes=False)
     chart.display()
-    window.facet(column='neuron', row='mouse')
-    chart.display()
+    window.chart.facet(row='mouse').display()
 
 
 def test_estimate_posteriors_data_overlay_indep_axes_slope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     chart = window.plot_posteriors_no_slope(independent_axes=True)
@@ -270,10 +237,6 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope():
 def test_plot_no_slope_data_only():
     from bayes_window.workflow import BayesWindow
 
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim')
     chart = window.plot_posteriors_no_slope()
     chart.display()
@@ -282,59 +245,35 @@ def test_plot_no_slope_data_only():
 def test_plot_slope_data_only():
     from bayes_window.workflow import BayesWindow
 
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim')
     chart = window.plot_posteriors_no_slope()
     chart.display()
 
 
 def test_fit_conditions():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     # TODO combined condition here somehow
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions()
 
 
 def test_fit_slopes():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
 
 
 def test_plot_slopes():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     window.plot()
 
 
 def test_plot_slopes_2levelslope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, add_group_slope=True)
     window.plot().display()
 
 
 def test_plot_posteriors_no_slope():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     window.regression_charts()
@@ -342,10 +281,6 @@ def test_plot_posteriors_no_slope():
 
 def test_plot_generic():
     # Slopes:
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
     window.plot()
@@ -353,10 +288,6 @@ def test_plot_generic():
     window.fit_slopes(model=models.model_hierarchical)
     window.plot()
     # conditions:
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions(model=models.model_single)
     window.plot()
@@ -364,22 +295,16 @@ def test_plot_generic():
 
 def test_facet():
     # Slopes:
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical)
-    window.plot().facet('neuron', width=40)
+    window.plot(row='neuron', width=40)
+    window.plot(x='neuron').facet(column='mouse')
 
     # conditions:
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_conditions(model=models.model_single)
-    window.plot().facet('neuron', width=40)
+    window.plot(row='neuron', width=40)
+    window.plot(x='neuron').facet(column='mouse')
 
 
 def test_single_condition_withdata():
@@ -422,10 +347,6 @@ def test_single_condition_nodata_dists():
 def test_explore_models(add_group_slope):
     parallel = False
     # Slopes:
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     conditions_to_test = [None]
     if add_group_slope:
         conditions_to_test.append('neuron')
@@ -474,11 +395,6 @@ def test_chirp_data2():
 
 
 def test_conditions2():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=5,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=7,
-                                                                    mouse_response_slope=16)
     df.neuron = df.neuron.astype(int)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
 
@@ -489,10 +405,6 @@ def test_conditions2():
 
 def random_tests():
     # TODO make a notebook for this
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=2, )
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, num_chains=1)
     window.plot(x='neuron', color='mouse', independent_axes=True, finalize=True)
@@ -523,11 +435,6 @@ def random_tests():
 
 
 def test_data_replacement1():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=4,
-                                                                    n_neurons=3,
-                                                                    n_mice=4,
-                                                                    dur=7,
-                                                                    mouse_response_slope=16)
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
                          detail='i_trial')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
