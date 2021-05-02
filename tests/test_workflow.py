@@ -12,6 +12,8 @@ from pytest import mark
 
 df_radon = load_radon()
 
+dfl, _, _, _ = generate_fake_lfp(n_trials=5)
+
 
 # @mark.parametrize('add_data', [True, False])
 # @mark.parametrize('add_box', [True, False])
@@ -57,8 +59,7 @@ def test_slopes(do_make_change, detail):
 
 
 def test_fit_lme():
-    df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_lme()
     window.regression_charts()
     # window.facet(row='mouse') # currently group is coded as a random variable
@@ -84,9 +85,7 @@ def test_fit_lme_w_condition():
 
 
 def test_fit_lme_w_data():
-    df, df_monster, index_cols, _ = generate_fake_lfp(n_trials=25)
-
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_lme(do_make_change='divide')
     assert window.data_and_posterior is not None
     window.regression_charts().display()
@@ -238,7 +237,7 @@ def test_two_groups():
                                     dur=2, )
 
     window = BayesWindow(df, y='isi', treatment='stim', condition=['stim_strength', 'neuron_x_mouse'],
-                                  group='mouse')
+                         group='mouse')
     window.fit_slopes(model=models.model_hierarchical, group2='neuron_x_mouse', add_group2_slope=True)
 
 
@@ -384,37 +383,34 @@ def test_facet():
 
 
 def test_single_condition_withdata():
-    df, df_monster, index_cols, _ = generate_fake_lfp()
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.regression_charts(independent_axes=True).display()
 
     # Without data again
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.regression_charts(independent_axes=True).display()
 
     # With data again
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.regression_charts(independent_axes=True).display()
 
 
 def test_single_condition_nodata():
-    df, df_monster, index_cols, _ = generate_fake_lfp()
-    window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
     window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
     alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
     window.regression_charts(independent_axes=True).display()
 
 
 def test_single_condition_nodata_dists():
-    df, df_monster, index_cols, _ = generate_fake_lfp()
     for dist in ['normal', 'lognormal', 'student']:
-        window = BayesWindow(df, y='Log power', treatment='stim', group='mouse')
+        window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
         window.fit_slopes(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
         alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
         window.regression_charts(independent_axes=True).display()
@@ -565,3 +561,18 @@ def test_fit_twostep_by_group():
                      detail='i_trial')
     bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', parallel=False, dist_y='student')
     bw.chart.display()
+
+
+@mark.parametrize('do_make_change', [False, 'subtract'])
+def test_plot_slopes_intercepts(do_make_change):
+    window = BayesWindow(dfl, y='Power', treatment='stim', group='mouse')
+    # Fit:
+    window.fit_slopes(model=models.model_hierarchical, add_group_intercept=True,
+                      add_group_slope=False, robust_slopes=False,
+                      do_make_change=do_make_change, dist_y='gamma');
+
+    # %
+
+    window.plot_slopes_intercepts(x='mouse').display()
+    chart_intercepts = window.posterior_intercept
+    chart_intercepts.display()

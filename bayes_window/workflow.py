@@ -495,18 +495,32 @@ class BayesWindow:
         return self.chart
 
     def plot_slopes_intercepts(self, x=':O', y='mu_intercept_per_group center interval', **kwargs):
-        # TODO this method is WIP
-        assert self.data_and_posterior is not None
-        self.posterior_intercept = alt.Chart(self.data_and_posterior).mark_tick(color='red').encode(
-            x=x,
-            y=alt.Y(
-                y,
-                scale=alt.Scale(domain=[self.data_and_posterior[y].min(), self.data_and_posterior[y].max()])),
-            color=alt.Color(self.group)
-        )
+        assert self.posterior is not None
+        if self.do_make_change:
+            # combine posterior with original data instead, not diff TODO
+            # Fill posterior into data
+            data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                  data=self.original_data.copy(),
+                                                                  group=self.group)
+        else:
+            data_and_posterior = self.data_and_posterior
+
         # Redo boxplot (no need to show):
-        self.data_box_detail(data=self.data_and_posterior, autofacet=False)
-        chart = (self.posterior_intercept + self.chart_data_box_detail).resolve_scale(y='independent')
+        self.data_box_detail(data=data_and_posterior, autofacet=False)
+
+        # Make stand-alone posterior intercept chart:
+        self.posterior_intercept = visualization.posterior_intercept_chart(data_and_posterior,
+                                                                           x=x, y=y,
+                                                                           group=self.group)
+        # Redo chart_intercept with x=treatment for overlay with self.chart_data_box_detail:
+        chart_intercept = visualization.posterior_intercept_chart(data_and_posterior,
+                                                                  x=':O', y=y,
+                                                                  group=self.group)
+        chart = alt.layer(chart_intercept, self.chart_data_box_detail).resolve_scale(y='independent')
+
+        # Check
+        if len(chart.data) == 0:
+            raise IndexError('was layer chart from different sources?')
         if ('column' in kwargs) or ('row' in kwargs):
             return visualization.facet(chart, **kwargs)
         else:  # Auto facet

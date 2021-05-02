@@ -178,6 +178,8 @@ def insert_posterior_into_data(posteriors, data, group):
         # Sanity check
         posterior_index_cols = list(posterior.columns[~posterior.columns.str.contains('interval')])
         posterior_value_cols = list(posterior.columns[posterior.columns.str.contains('interval')])
+        if 'zero' in posterior_index_cols:
+            posterior_index_cols.remove('zero')
         assert len(posterior_index_cols) <= 2, f'Should be [combined condition, {group}]. was {posterior_index_cols}'
         if len(posterior_index_cols) == 0:  # No indices, unidimensional
             for posterior_value_col in posterior_value_cols:

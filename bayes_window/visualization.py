@@ -66,6 +66,18 @@ def facet(base_chart: alt.LayerChart,
     return chart
 
 
+def posterior_intercept_chart(data_and_posterior, x, y, group=':O'):
+    return alt.Chart(data_and_posterior).mark_tick(color='red').encode(
+        x=x,
+        y=alt.Y(
+            y,
+            scale=alt.Scale(domain=[data_and_posterior[y].min(), data_and_posterior[y].max()]),
+            title='Intercept estimate'
+        ),
+        color=alt.Color(group)
+    )
+
+
 def auto_facet(group, condition):
     kwargs = {}
     if group and condition[0]:
@@ -176,7 +188,8 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_make_change: object = True, base_chart: object = None, add_zero_line: object = True,
+def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_make_change: object = True,
+                   base_chart: object = None, add_zero_line: object = True,
                    **kwargs: object) -> object:
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
@@ -186,7 +199,6 @@ def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_m
     assert 'lower interval' in data.columns
     assert 'center interval' in data.columns
     base_chart = base_chart or alt.Chart(data=data)
-
 
     # Add zero for zero line
     if 'zero' not in base_chart.data.columns:
