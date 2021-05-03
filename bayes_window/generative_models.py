@@ -55,11 +55,11 @@ def generate_spikes_stim_types(mouse_response_slope=3, **kwargs):
     return pd.concat([df1, df2]).reset_index(drop=True)
 
 
-def generate_spikes_stim_strength(mouse_response_slopes=range(10), **kwargs):
+def generate_spikes_stim_strength(overall_stim_response_strengths=range(10), **kwargs):
     df = []
-    for mouse_response_slope in mouse_response_slopes:
-        df1 = generate_fake_spikes(mouse_response_slope=mouse_response_slope, **kwargs)[0]
-        df1.insert(0, 'stim_strength', df1['stim']*mouse_response_slope)
+    for overall_stim_response_strength in overall_stim_response_strengths:
+        df1 = generate_fake_spikes(overall_stim_response_strength=overall_stim_response_strength, **kwargs)[0]
+        df1.insert(0, 'stim_strength', df1['stim']*overall_stim_response_strength)
         df.append(df1)
     return pd.concat(df).reset_index(drop=True)
 
