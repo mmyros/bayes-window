@@ -14,6 +14,12 @@ from bayes_window import utils
 trans = LabelEncoder().fit_transform
 warnings.filterwarnings("ignore")
 
+alt.data_transformers.disable_max_rows()
+try:
+    alt.renderers.enable('altair_saver', fmts=['png'])
+except Exception:
+    pass
+
 
 # fake data generation
 def generate_fake_lfp(n_trials=10,
@@ -47,6 +53,15 @@ def generate_spikes_stim_types(mouse_response_slope=3, **kwargs):
     df2 = generate_fake_spikes(mouse_response_slope=2 * mouse_response_slope, **kwargs)[0]
     df2.insert(0, 'stim_strength', 2 * np.ones(df1.shape[0]))
     return pd.concat([df1, df2]).reset_index(drop=True)
+
+
+def generate_spikes_stim_strength(mouse_response_slopes=range(10), **kwargs):
+    df = []
+    for mouse_response_slope in mouse_response_slopes:
+        df1 = generate_fake_spikes(mouse_response_slope=mouse_response_slope, **kwargs)[0]
+        df1.insert(0, 'stim_strength', df1['stim']*mouse_response_slope)
+        df.append(df1)
+    return pd.concat(df).reset_index(drop=True)
 
 
 def generate_fake_spikes(n_trials=6,

@@ -84,7 +84,7 @@ bw.chart
 # +
 bw = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse', detail='i_trial')
 bw.fit_slopes(model=(models.model_hierarchical),
-              do_make_change='subtract',
+              ``do_make_change``='subtract',
               dist_y='gamma',
               add_group_intercept=True,
               fold_change_index_cols=('stim', 'mouse', 'neuron','neuron_x_mouse','i_trial'))
