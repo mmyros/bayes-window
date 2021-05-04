@@ -413,13 +413,14 @@ class BayesWindow:
             base_chart.data['zero'] = 0
 
             self.chart_base_posterior = base_chart
+            # No-data plot
             (self.chart_posterior_whiskers,
              self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
                                                                             do_make_change=self.do_make_change)
 
-            # No-data plot
+            # if no self.data_and_posterior, use self.posterior:
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
                 main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
                                else self.posterior['slope_per_condition'])

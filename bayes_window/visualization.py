@@ -1,5 +1,6 @@
 import altair as alt
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
@@ -188,7 +189,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_make_change: object = True,
+def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_make_change: bool = True,
                    base_chart: object = None, add_zero_line: object = True,
                    **kwargs: object) -> object:
     assert (df is not None) or (base_chart is not None)
@@ -220,15 +221,14 @@ def plot_posterior(df: object = None, title: object = '', x: object = ':O', do_m
     )
 
     # Make the zero line
-    if add_zero_line:
-        title = f'Δ {title}'
-        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
-            y=alt.Y(
-                'zero',
-                scale=scale,
-                axis=alt.Axis(title='', orient='left')
-            )
+    title = f'Δ {title}'
+    chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+        y=alt.Y(
+            'zero',
+            scale=scale,
+            axis=alt.Axis(title='', orient='left')
         )
+    )
 
     # line or bar for center interval (left axis)
     if (x == ':O') or (x == ':N'):

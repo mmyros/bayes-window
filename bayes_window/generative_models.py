@@ -26,6 +26,7 @@ def generate_fake_lfp(n_trials=10,
                       n_mice=10,
                       dur=7,
                       mouse_response_slope=1.,
+                      fastest_fr=38,
                       **kwargs):
     # neuron becomes mouse to provide different baselines
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=n_trials,
@@ -33,7 +34,7 @@ def generate_fake_lfp(n_trials=10,
                                                          n_mice=2,
                                                          dur=dur,
                                                          mouse_response_slope=mouse_response_slope,
-                                                         fastest_fr=38,
+                                                         fastest_fr=fastest_fr,
                                                          **kwargs)
 
     df = df[df.mouse_code == 1]
