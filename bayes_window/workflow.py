@@ -420,7 +420,7 @@ class BayesWindow:
                                                                             base_chart=base_chart,
                                                                             do_make_change=self.do_make_change)
 
-            # if no self.data_and_posterior, use self.posterior:
+            # if no self.data_and_posterior, use self.posterior to build slope per condition:
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
                 main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
                                else self.posterior['slope_per_condition'])
@@ -456,10 +456,13 @@ class BayesWindow:
             # Plot data:
             y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
             if x != ':O':
-                self.chart_data_line = visualization.line_with_highlight(base_chart, x, y, color, detail,
-                                                                         highlight=False)
-                self.charts.extend(self.chart_data_line)
-                self.charts_for_facet.extend(self.chart_data_line)
+                self.chart_data_line, self.chart_data_points = visualization.line_with_highlight(base_chart, x, y,
+                                                                                                 color, detail,
+                                                                                                 highlight=False)
+                self.charts.append(self.chart_data_line)
+                self.charts.append(self.chart_data_points)
+                self.charts_for_facet.append(self.chart_data_points)
+                self.charts_for_facet.append(self.chart_data_line)
 
             self.chart_data_boxplot = base_chart.mark_boxplot(
                 clip=True, opacity=.3, size=9, color='black',
