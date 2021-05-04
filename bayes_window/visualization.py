@@ -224,13 +224,22 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
 
     # Make the zero line
     title = f'Δ {title}'
-    chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
-        y=alt.Y(
-            'zero',
-            scale=scale,
-            axis=alt.Axis(title='', orient='left')
+    if (x == ':O') or (x == ':N'):
+        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+            y=alt.Y(
+                'zero',
+                scale=scale,
+                axis=alt.Axis(title='', orient='left')
+            )
         )
-    )
+    else:
+        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+            y=alt.Y(
+                'zero',
+                scale=scale,
+                axis=alt.Axis(title='', orient='left')
+            )
+        )
 
     # line or bar for center interval (left axis)
     if (x == ':O') or (x == ':N'):
