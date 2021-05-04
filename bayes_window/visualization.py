@@ -233,7 +233,8 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
             )
         )
     else:
-        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+        chart_zero = base_chart.mark_line(color='black', size=.5, opacity=1).encode(
+            x=x,
             y=alt.Y(
                 'zero',
                 scale=scale,
