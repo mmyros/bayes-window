@@ -75,6 +75,7 @@ class BayesWindow:
         self.trace = None
         self.model = None
         self.group2 = None
+        self.model_args = None
 
         # Preallocate charts
         base_chart = alt.Chart(self.data)
@@ -92,7 +93,7 @@ class BayesWindow:
         # Some charts of data that don't need fitting
         self.data_box_detail()
 
-    def data_box_detail(self, data=None, color=None, autofacet=True):
+    def data_box_detail(self, data=None, color=None, autofacet=False):
         if data is None:
             data = self.data
         y_domain = list(np.quantile(data[self.y], [.05, .95]))
@@ -307,6 +308,7 @@ class BayesWindow:
 
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
                    do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
+        self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
         if not add_condition_slope:
@@ -376,16 +378,16 @@ class BayesWindow:
         self.default_regression_charts()
         return self
 
-    def default_regression_charts(self):
+    def default_regression_charts(self, **kwargs):
         # Default plots:
         try:
             # facet_kwargs=visualization.auto_facet(self.group,self,condition)
             if self.condition[0] and len(self.condition) > 1:
-                self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1])
+                return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
             elif self.condition[0]:
-                self.regression_charts(x=self.condition[0], column=self.group)
+                return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
             else:  # self.group:
-                self.regression_charts(x=self.condition[0] if self.condition[0] else ':O')
+                return self.regression_charts(x=self.condition[0] if self.condition[0] else ':O', **kwargs)
             #    self.regression_charts(column=self.group)
         except Exception as e:  # In case I haven't thought of something
             print(f'Please use window.regression_charts(): {e}')
@@ -689,5 +691,50 @@ class BayesWindow:
                 extra_model_args=extra_model_args,
                 y=self.y,
                 parallel=parallel,
+                **kwargs
+            )
+
+    def explore_model_kinds(self, parallel=True, add_group_slope=True, **kwargs):
+        if self.b_name is None:
+            raise ValueError('Fit a model first')
+        elif self.b_name == 'mu_per_condition':
+            return compare_models(df=self.data,
+                                  models={
+                                      'no_condition': self.model,
+                                  },
+                                  extra_model_args=[
+                                      {'condition': None},
+                                  ],
+                                  y=self.y,
+                                  parallel=True,
+                                  **kwargs
+                                  )
+        elif 'slope' in self.b_name:
+            models = {
+                'full': self.model,
+                'no_condition': self.model,
+                'no_condition_or_treatment': self.model,
+                'no-treatment': self.model,
+                'no_group': self.model,
+            }
+            extra_model_args = [
+                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
+                {'treatment': self.treatment, 'condition': None},
+                {'treatment': None, 'condition': None},
+                {'treatment': None, 'condition': self.condition},
+                {'treatment': self.treatment, 'condition': self.condition, 'group': None},
+            ]
+            if add_group_slope and self.group is not None:
+                models['with_group_slope'] = self.model
+                # add_group_slope is False by default in model_hierarchical
+                extra_model_args.extend([{'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
+                                          'add_group_slope': True}])
+            return compare_models(
+                df=self.data,
+                models=models,
+                extra_model_args=extra_model_args,
+                y=self.y,
+                parallel=parallel,
+                dist_y=self.model_args['dist_y'] if self.model_args else None,
                 **kwargs
             )
