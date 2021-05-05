@@ -83,13 +83,10 @@ def auto_facet(group, condition):
     kwargs = {}
     if group and condition[0]:
         kwargs = {'column': group, 'row': condition[0]}
-        # chart = chart.facet(column=group, row=condition[0])
     elif group:
         kwargs = {'column': group}
-        # chart = chart.facet(column=group)
     elif condition[0]:
         kwargs = {'column': condition[0]}
-        # chart = chart.facet(column=condition[0])
     return kwargs
 
 
@@ -101,6 +98,12 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
         size = alt.condition(~highlight, alt.value(1), alt.value(3))
     else:
         size = alt.value(1.)
+
+    if (x != ':O') and (x != ':N') and len(base.data[x[:-2]].unique()) < 10:
+        long_x_axis = False
+    else:
+        long_x_axis = True
+        x = f'{x[:-1]}Q'  # Change to nominal encoding
 
     lines = base.mark_line(clip=True, fill=None, opacity=.6).encode(
         size=size,
@@ -137,8 +140,11 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
         color = ':N'
     if color[-2] != ':':
         color = f'{color}:N'
-    charts = []
 
+    if not ((x != ':O') and (x != ':N') and len(df[x[:-2]].unique()) < 10):
+        x = f'{x[:-1]}Q'  # Change to quantitative encoding
+
+    charts = []
     # Plot data:
     base = base_chart or alt.Chart(df)
     y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
@@ -211,21 +217,32 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
               float(data['higher interval'].max())]
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
+    if (x != ':O') and (x != ':N') and len(data[x[:-2]].unique()) < 10:
+        long_x_axis = False
+    else:
+        long_x_axis = True
+        x = f'{x[:-1]}Q'  # Change to nominal encoding
+
     # error_bars
-    chart_posterior_whiskers = base_chart.mark_rule(size=2, clip=True).encode(
+    chart_posterior_whiskers = base_chart.mark_rule(
+        size=2 if not long_x_axis else .8,
+        opacity=.7 if not long_x_axis else .4,
+        clip=True).encode(
         x=x,
-        y=alt.Y('lower interval:Q',
+        y=alt.Y('mean(lower interval):Q',
                 scale=scale,
                 # axis=alt.Axis(labels=False, tickCount=1, title='')
                 axis=alt.Axis(orient='left', title='')
                 ),
-        y2='higher interval:Q',
+        y2='mean(higher interval):Q',
     )
 
     # Make the zero line
     title = f'Δ {title}'
     if (x == ':O') or (x == ':N'):
-        chart_zero = base_chart.mark_rule(color='black', size=.5, opacity=1).encode(
+        chart_zero = base_chart.mark_rule(
+            color='black',
+        ).encode(
             y=alt.Y(
                 'zero',
                 scale=scale,
@@ -243,7 +260,7 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
         )
 
     # line or bar for center interval (left axis)
-    if (x == ':O') or (x == ':N'):
+    if (x == ':O') or (x == ':N'):  # Bar
         chart_posterior_center = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
                     title=title,
@@ -253,9 +270,13 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
                     ),
             x=x,
         )
-    else:
-        chart_posterior_center = base_chart.mark_line(clip=True, point=True, color='black', fill=None).encode(
-            y=alt.Y('center interval:Q',
+    else:  # Line
+        chart_posterior_center = base_chart.mark_line(
+            clip=True, point=False, color='black', fill=None,
+            size=2 if not long_x_axis else 1,
+            # opacity=.7 if not long_x_axis else .5,
+        ).encode(
+            y=alt.Y('mean(center interval):Q',
                     title=title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
@@ -327,3 +348,21 @@ def plot_posterior_density(base_chart, y, y_domain, trace, posterior, b_name, do
                 axis=alt.Axis(labels=False, tickCount=0, title='', values=[0])
                 ),
     ).properties(width=30)
+
+
+def auto_layer_and_facet(charts, charts_for_facet=None, independent_axes=True, **kwargs):
+    facet_requested = ('column' in kwargs.keys()) or ('row' in kwargs.keys())
+
+    # 3. Make layered chart out of posterior and data
+    if facet_requested and charts_for_facet is not None:
+        _ = alt.layer(*charts_for_facet).facet()  # Sanity check
+        chart = alt.layer(*charts_for_facet)
+    else:
+        chart = alt.layer(*charts)
+
+    if independent_axes:
+        chart = chart.resolve_scale(y='independent')
+
+    if facet_requested:
+        chart = facet(chart, **kwargs)
+    return chart

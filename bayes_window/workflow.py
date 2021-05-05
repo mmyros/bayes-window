@@ -87,7 +87,6 @@ class BayesWindow:
         self.chart_posterior_kde = empty_chart
         self.chart_data_box_detail = empty_chart
         self.chart_data_detail = empty_chart
-        self.chart_data_box_for_detail = empty_chart
         self.charts = []
 
         # Some charts of data that don't need fitting
@@ -97,8 +96,9 @@ class BayesWindow:
         if data is None:
             data = self.data
         y_domain = list(np.quantile(data[self.y], [.05, .95]))
-        self.chart_data_box_for_detail = visualization.plot_data(
+        chart_data_box_for_detail = visualization.plot_data(
             df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0].properties(width=60)
+
         if (self.detail in self.data.columns) and (len(self.condition) > 1):
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=self.condition[1],
@@ -112,7 +112,10 @@ class BayesWindow:
                                                                           )
         else:  # Empty chart; potentially override with new data
             self.chart_data_detail = alt.Chart(data).mark_rule().encode()
-        self.chart_data_box_detail = alt.layer(self.chart_data_box_for_detail, self.chart_data_detail)
+        if self.detail in self.data.columns:
+            self.chart_data_box_detail = alt.layer(chart_data_box_for_detail, self.chart_data_detail)
+        else:
+            self.chart_data_box_detail = chart_data_box_for_detail
         if autofacet:
             self.chart_data_box_detail = self.chart_data_box_detail.facet(**visualization.auto_facet(self.group,
                                                                                                      self.condition))
@@ -379,20 +382,24 @@ class BayesWindow:
         return self
 
     def default_regression_charts(self, **kwargs):
+        reload(visualization)
         # Default plots:
-        try:
-            # facet_kwargs=visualization.auto_facet(self.group,self,condition)
-            if self.condition[0] and len(self.condition) > 1:
-                return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
-            elif self.condition[0]:
-                return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
-            else:  # self.group:
-                return self.regression_charts(x=self.condition[0] if self.condition[0] else ':O', **kwargs)
-            #    self.regression_charts(column=self.group)
-        except Exception as e:  # In case I haven't thought of something
-            print(f'Please use window.regression_charts(): {e}')
+        # try:
+        # facet_kwargs=visualization.auto_facet(self.group,self,condition)
+        if self.condition[0] and len(self.condition) > 1:
+            return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
+        elif self.condition[0]:
+            return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
+        else:  # self.group:
+            return self.regression_charts(x=self.condition[0] if self.condition[0] else ':O', **kwargs)
+        #    self.regression_charts(column=self.group)
+        # except Exception as e:  # In case I haven't thought of something
+        #     print(f'Please use window.regression_charts(): {e}')
+        #     # import traceback
+        #     # traceback.(e)
 
     def regression_charts(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None, **kwargs):
+
         # Set some options
         if (x == '') or (x[-2] != ':'):
             x = f'{x}:O'
@@ -404,6 +411,12 @@ class BayesWindow:
             x = f'{self.condition[0]}:O'
         else:
             add_x_axis = False
+
+        if (x != ':O') and (x != ':N') and len(posterior[x[:-2]].unique()) < 10:
+            long_x_axis = False
+        else:
+            long_x_axis = True
+            x = f'{x[:-1]}Q'  # Change to quantitative encoding
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.independent_axes = independent_axes or f'{self.y} diff' in posterior
         self.charts = []
@@ -458,12 +471,12 @@ class BayesWindow:
             # Plot data:
             y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
             if x != ':O':
-                self.chart_data_line, self.chart_data_points = visualization.line_with_highlight(base_chart, x, y,
-                                                                                                 color, detail,
-                                                                                                 highlight=False)
+                self.chart_data_line, chart_data_points = visualization.line_with_highlight(base_chart, x, y,
+                                                                                            color, detail,
+                                                                                            highlight=False)
                 self.charts.append(self.chart_data_line)
-                self.charts.append(self.chart_data_points)
-                self.charts_for_facet.append(self.chart_data_points)
+                self.charts.append(chart_data_points)
+                self.charts_for_facet.append(chart_data_points)
                 self.charts_for_facet.append(self.chart_data_line)
 
             self.chart_data_boxplot = base_chart.mark_boxplot(
@@ -481,20 +494,11 @@ class BayesWindow:
         else:  # No data overlay
             warnings.warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
 
-        facet_requested = ('column' in kwargs.keys()) or ('row' in kwargs.keys())
-        _ = alt.layer(*self.charts_for_facet).facet()  # Sanity check
-
-        # 3. Make layered chart out of posterior and data
-        if facet_requested:
-            self.chart = alt.layer(*self.charts_for_facet)
-        else:
-            self.chart = alt.layer(*self.charts)
-
-        if self.independent_axes:
-            self.chart = self.chart.resolve_scale(y='independent')
-
-        if facet_requested:
-            self.chart = visualization.facet(self.chart, **kwargs)
+        # Layer and facet:
+        self.chart = visualization.auto_layer_and_facet(
+            self.charts, self.charts_for_facet, self.independent_axes, **kwargs)
+        # self.chart_posterior_hdi_no_data = visualization.auto_layer_and_facet(
+        #     self.chart_posterior_hdi_no_data, charts_for_facet=None, independent_axes=self.independent_axes, **kwargs)
 
         # 4. Make overlay for data_detail_plot
         # self.plot_slopes_shading()
