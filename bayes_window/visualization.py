@@ -99,7 +99,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
     else:
         size = alt.value(1.)
 
-    if (x != ':O') and (x != ':N') and len(base.data[x[:-2]].unique()) < 10:
+    if (x != ':O') and (x != ':N') and x[:-2] in base.data.columns and len(base.data[x[:-2]].unique()) < 10:
         long_x_axis = False
     else:
         long_x_axis = True
@@ -217,7 +217,7 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
               float(data['higher interval'].max())]
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
-    if (x != ':O') and (x != ':N') and len(data[x[:-2]].unique()) < 10:
+    if (x != ':O') and (x != ':N') and x[:-2] in data.columns and len(data[x[:-2]].unique()) < 10:
         long_x_axis = False
     else:
         long_x_axis = True

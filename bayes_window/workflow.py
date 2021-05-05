@@ -412,7 +412,7 @@ class BayesWindow:
         else:
             add_x_axis = False
 
-        if (x != ':O') and (x != ':N') and len(posterior[x[:-2]].unique()) < 10:
+        if (x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10:
             long_x_axis = False
         else:
             long_x_axis = True
