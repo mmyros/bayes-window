@@ -174,8 +174,10 @@ def insert_posterior_into_data(posteriors, data, group):
 
         # Remove underscore from get_hdi_map():
         posterior.rename({f'{group}_': group}, axis=1, inplace=True)
+        posterior.rename({f'combined_condition__': 'combined_condition'}, axis=1, inplace=True)
 
         # Sanity check
+
         posterior_index_cols = list(posterior.columns[~posterior.columns.str.contains('interval')])
         posterior_value_cols = list(posterior.columns[posterior.columns.str.contains('interval')])
         if 'zero' in posterior_index_cols:
@@ -204,6 +206,8 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, group2_nam
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'{b_name}_per_condition_dim_0' in trace:
         trace = trace.rename({f'{b_name}_per_condition_dim_0': posterior_index_name})
+    if f'intercept_per_condition_dim_0' in trace:
+        trace = trace.rename({f'intercept_per_condition_dim_0': f"{posterior_index_name}__"})  # underscore so it doesnt conflict
     if f'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:

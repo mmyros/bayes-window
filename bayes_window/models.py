@@ -46,12 +46,14 @@ def model_single(y, condition, dist_y='normal'):
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
                        add_group_intercept=True,
                        add_condition_slope=True, group2=None, add_group2_slope=False,
-                       center_intercept=False, center_slope=False, robust_slopes=False):
+                       center_intercept=False, center_slope=False, robust_slopes=False,
+                       add_condition_intercept=False):
     n_subjects = np.unique(group).shape[0]
 
     n_conditions = np.unique(condition).shape[0]
     if (condition is None) or not n_conditions:
         add_condition_slope = False  # Override
+        add_condition_intercept = False
 
     if center_intercept:
         intercept = numpyro.sample('intercept', dist.Normal(0, 100))
@@ -62,6 +64,13 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
         a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 10))
         intercept += (a_group[group] * sigma_a_group)
+
+    if add_condition_intercept:
+        intercept_per_condition = numpyro.sample('intercept_per_condition',
+                                                 dist.Normal(jnp.tile(0, n_conditions), 100))
+
+        sigma_intercept_per_condition = numpyro.sample('sigma_intercept_per_condition', dist.HalfNormal(100))
+        intercept += intercept_per_condition[condition] * sigma_intercept_per_condition
 
     if not add_condition_slope:
         center_slope = True  # override center_slope

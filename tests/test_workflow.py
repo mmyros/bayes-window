@@ -134,10 +134,10 @@ def test_plot():
     chart = BayesWindow(df, y='isi', treatment='stim').plot()
     chart.display()
 
-
-def test_estimate_posteriors_slope():
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
-    window.fit_slopes(models.model_hierarchical)
+@mark.parametrize('add_condition_slope',[True, False])
+def test_estimate_posteriors_slope(add_condition_slope):
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron','neuron_x_mouse'], group='mouse', )
+    window.fit_slopes(models.model_hierarchical,add_condition_slope=add_condition_slope)
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
