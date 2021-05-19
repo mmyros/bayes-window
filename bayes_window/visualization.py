@@ -198,7 +198,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
 
 
 def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_make_change: bool = True,
-                   base_chart: object = None, add_zero_line: object = True,
+                   base_chart: object = None,
                    **kwargs: object) -> object:
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
