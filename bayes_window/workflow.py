@@ -100,11 +100,13 @@ class BayesWindow:
             df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0].properties(width=60)
 
         if (self.detail in self.data.columns) and (len(self.condition) > 1):
+            # Color=condition
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=self.condition[1],
                                                                           detail=self.detail,
                                                                           y_domain=y_domain, )
         if self.detail in self.data.columns:
+            # default color
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=color,
                                                                           detail=self.detail,

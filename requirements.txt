@@ -27,3 +27,4 @@ nbval
 nbsphinx
 statsmodels
 bokeh
+sklearn
