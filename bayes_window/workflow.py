@@ -38,6 +38,7 @@ class BayesWindow:
                  treatment: str,
                  condition: str or list = None,
                  group: str = None,
+                 group2: str = None,
                  detail=':O'
                  ):
         try:
@@ -51,6 +52,7 @@ class BayesWindow:
             assert group in df.columns
         self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
         self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
+        self.group2 = group2  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
             assert self.condition[0] in df.columns, f'{self.condition[0]} is not in {df.columns}'
@@ -304,7 +306,8 @@ class BayesWindow:
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=self.data.copy(),
-                                                                   group=self.group)
+                                                                   group=self.group,
+                                                                   group2=self.group2)
 
         self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
                                                 self.condition)
@@ -371,7 +374,8 @@ class BayesWindow:
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=df_data.copy(),
-                                                                   group=self.group)
+                                                                   group=self.group,
+                                                                   group2=self.group2)
 
         assert 'lower interval' in self.data_and_posterior.columns
         try:
@@ -390,7 +394,7 @@ class BayesWindow:
         # facet_kwargs=visualization.auto_facet(self.group,self,condition)
         if self.condition[0] and len(self.condition) > 1:
             return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
-        elif self.condition[0]:
+        elif self.condition[0] and self.b_name != 'lme':
             return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
         else:  # self.group:
             return self.regression_charts(x=self.condition[0] if self.condition[0] else ':O', **kwargs)
@@ -507,13 +511,26 @@ class BayesWindow:
         return self.chart
 
     def plot_slopes_intercepts(self, x=':O', y='mu_intercept_per_group center interval', **kwargs):
+        """
+        Plot intercepts of a regression model, mostly for a better understanding of slopes
+        Parameters
+        ----------
+        x
+        y
+        kwargs
+
+        Returns
+        -------
+
+        """
         assert self.posterior is not None
         if self.do_make_change:
             # combine posterior with original data instead, not diff TODO
             # Fill posterior into data
             data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                   data=self.original_data.copy(),
-                                                                  group=self.group)
+                                                                  group=self.group,
+                                                                  group2=self.group2)
         else:
             data_and_posterior = self.data_and_posterior
 

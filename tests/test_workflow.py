@@ -213,8 +213,8 @@ def test_two_groups():
                                     dur=2, )
 
     window = BayesWindow(df, y='isi', treatment='stim', condition=['stim_strength', 'neuron_x_mouse'],
-                         group='mouse')
-    window.fit_slopes(model=models.model_hierarchical, group2='neuron_x_mouse', add_group2_slope=True)
+                         group='mouse', group2='neuron_x_mouse')
+    window.fit_slopes(model=models.model_hierarchical, add_group2_slope=True)
 
 
 def test_estimate_posteriors_data_overlay_slope():
