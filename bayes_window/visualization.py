@@ -150,7 +150,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     base = base_chart or alt.Chart(df)
     y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
 
-    if (x != ':O') and (len(base.data[x[:-2]].unique()) > 1):
+    if (x != ':O') and (x != ':Q') and (len(base.data[x[:-2]].unique()) > 1):
         data_line, data_pts = line_with_highlight(base, x, y, color, detail, highlight=highlight, y_domain=y_domain)
         charts.append(data_line)
         charts.append(data_pts)
@@ -199,7 +199,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
 
 
 def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_make_change: bool = True,
-                   base_chart: object = None, add_zero_line: object = True,
+                   base_chart: object = None,
                    **kwargs: object) -> object:
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df

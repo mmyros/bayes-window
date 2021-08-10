@@ -7,7 +7,7 @@ import altair as alt
 
 
 def test_generate_spikes_stim_strength():
-    df = generate_spikes_stim_strength(mouse_response_slopes=range(10),
+    df = generate_spikes_stim_strength(overall_stim_response_strengths=range(10),
                                        n_trials=2,
                                        n_neurons=3,
                                        n_mice=4,

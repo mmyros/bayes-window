@@ -169,11 +169,13 @@ def recode_posterior(posteriors, levels, data, original_data, condition):
     return recoded_posteriors
 
 
-def insert_posterior_into_data(posteriors, data, group):
+def insert_posterior_into_data(posteriors, data, group, group2):
     for posterior_name, posterior in posteriors.items():
+        # posterior = posterior.drop('None', axis=1, errors='ignore')
 
         # Remove underscore from get_hdi_map():
         posterior.rename({f'{group}_': group}, axis=1, inplace=True)
+        posterior.rename({f'{group2}_': group2}, axis=1, inplace=True)
         posterior.rename({f'combined_condition__': 'combined_condition'}, axis=1, inplace=True)
 
         # Sanity check

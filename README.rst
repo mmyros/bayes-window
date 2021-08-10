@@ -1,14 +1,3 @@
-============
-Bayes Window
-============
-.. image:: bw_logo.jpg
-   :width: 70
-   :height: 40
-   :align: center
-
-=================================
-
-
 .. image:: https://img.shields.io/pypi/v/bayes_window.svg
         :target: https://pypi.python.org/pypi/bayes_window
 
@@ -25,6 +14,14 @@ Bayes Window
 .. image:: https://img.shields.io/lgtm/grade/python/g/mmyros/bayes-window.svg?logo=lgtm&logoWidth=18
       :target: https://lgtm.com/projects/g/mmyros/bayes-window/context:python
       :alt: Language grade: Python
+
+============
+Bayes Window
+============
+
+.. image:: bw_logo_drawing.png
+   :height: 160
+   :align: center
 
 
 Pretty and easy hierarchical Bayesian or linear mixed effects estimation with data overlay
