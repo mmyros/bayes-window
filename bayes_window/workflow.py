@@ -65,6 +65,7 @@ class BayesWindow:
         # Transform conditions to integers as required by numpyro:
         for level in self.levels:
             self.data[level] = LabelEncoder().fit_transform(self.data[level])
+        # TODO this is never transformed back at this time? Try using self.original data for plotting
 
         # Preallocate attributes:
         self.b_name = None  # Depends on model we'll fit
@@ -216,6 +217,10 @@ class BayesWindow:
                 raise NotImplementedError(f'conditions {self.condition}. Use combined_condition')
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
+                # Combined condition
+                self.data, self._key = utils.combined_condition(self.data.copy(), self.condition)
+                self.condition = ['combined_condition']
+                self.original_data = self.data.copy()
 
             # Make dummy variables for each level in condition:
             self.data = pd.concat((self.data,
@@ -261,9 +266,30 @@ class BayesWindow:
         self.data_and_posterior = utils.scrub_lme_result(result, include_condition, self.condition[0], self.data,
                                                          self.treatment)
         if add_data:
+            raise NotImplementedError(f'No adding data to LME')
             self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
                                                             self.condition[0], self.data, self.y, self.levels,
                                                             self.treatment)
+
+            # self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
+            #                                               posterior_index_name='combined_condition',
+            #                                               group_name=self.group, group2_name=self.group2)
+            #
+            # # HDI and MAP:
+            # self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
+            #                                          prefix=f'{var} '
+            #                                          if (var != self.b_name) and (var != 'slope_per_condition') else '')
+            #                   for var in self.trace.posterior.data_vars}
+            #
+            # # Fill posterior into data
+            # self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+            #                                                            data=self.data.copy(),
+            #                                                            group=self.group)
+            #
+            #
+            # self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
+            #                                             self.condition)
+
         self.default_regression_charts()
         return self
 
@@ -301,7 +327,7 @@ class BayesWindow:
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                   data=self.data.copy(),
+                                                                   data=self.original_data.copy(),
                                                                    group=self.group)
 
         self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
@@ -371,7 +397,6 @@ class BayesWindow:
                                                                    data=df_data.copy(),
                                                                    group=self.group)
 
-        assert 'lower interval' in self.data_and_posterior.columns
         try:
             self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
                                                     self.condition)

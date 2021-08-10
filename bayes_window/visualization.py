@@ -23,7 +23,8 @@ def facet(base_chart: alt.LayerChart,
         return base_chart  # Nothing to do
     assert base_chart.data is not None
     if column:
-        assert column in base_chart.data.columns, f'{column} is not in {base_chart.data.columns}'
+        if column not in base_chart.data.columns:
+            raise KeyError(f'{column} is not in {base_chart.data.columns}')
         # sanitize a little:
         base_chart.data[column] = base_chart.data[column].astype(str)
     if row:
