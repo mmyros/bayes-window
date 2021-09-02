@@ -461,7 +461,7 @@ def test_fit_twostep():
 
     bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
                      detail='i_trial')
-    bw = bw.fit_twostep(dist_y_step_one='gamma', dist_y='student')
+    bw = bw.fit_twostep(dist_y_step_one='gamma', dist_y='student', num_chains=1, n_draws=100, num_warmup=100)
     bw.chart.display()
 
 
