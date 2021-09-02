@@ -142,55 +142,55 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2, **kwargs).round(2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-    def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
-        if self.detail not in self.condition:
-            self.condition += [self.detail]
-        window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
+#     def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
+#         if self.detail not in self.condition:
+#             self.condition += [self.detail]
+#         window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
 
-        window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
-                                      y='center interval', treatment=self.treatment,
-                                      condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
-                                      group=self.group, detail=self.detail)
-        window_step_two.window_step_one = window_step_one
-        window_step_two.fit_slopes(model=models.model_hierarchical,
-                                   **kwargs
-                                   # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
-                                   )
+#         window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
+#                                       y='center interval', treatment=self.treatment,
+#                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+#                                       group=self.group, detail=self.detail)
+#         window_step_two.window_step_one = window_step_one
+#         window_step_two.fit_slopes(model=models.model_hierarchical,
+#                                    **kwargs
+#                                    # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
+#                                    )
 
-        return window_step_two
+#         return window_step_two
 
-    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
-        from joblib import Parallel, delayed
-        assert self.detail is not None
+#     def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
+#         from joblib import Parallel, delayed
+#         assert self.detail is not None
 
-        def fit_subset(df_m_n, i):
-            window_step_one = BayesWindow(df_m_n, y=self.y, treatment=self.treatment,
-                                          condition=[self.detail], group=self.group)
-            window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
-            posterior = window_step_one.posterior['mu_per_condition'].copy()
-            posterior[groupby] = i
-            return posterior
+#         def fit_subset(df_m_n, i):
+#             window_step_one = BayesWindow(df_m_n, y=self.y, treatment=self.treatment,
+#                                           condition=[self.detail], group=self.group)
+#             window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
+#             posterior = window_step_one.posterior['mu_per_condition'].copy()
+#             posterior[groupby] = i
+#             return posterior
 
-        groupby = groupby or self.condition[0]
-        if parallel:
-            step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
-                                                       for i, df_m_n in self.data.groupby(groupby))
-        else:
-            from tqdm import tqdm
-            step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
+#         groupby = groupby or self.condition[0]
+#         if parallel:
+#             step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
+#                                                        for i, df_m_n in self.data.groupby(groupby))
+#         else:
+#             from tqdm import tqdm
+#             step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
 
-        window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
-                                      y=self.y, treatment=self.treatment,
-                                      condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
-                                      group=self.group, detail=self.detail)
-        window_step_two.fit_slopes(model=models.model_hierarchical,
-                                   dist_y=dist_y,
-                                   robust_slopes=False,
-                                   add_group_intercept=False,
-                                   add_group_slope=False,
-                                   **kwargs
-                                   )
-        return window_step_two
+#         window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
+#                                       y=self.y, treatment=self.treatment,
+#                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+#                                       group=self.group, detail=self.detail)
+#         window_step_two.fit_slopes(model=models.model_hierarchical,
+#                                    dist_y=dist_y,
+#                                    robust_slopes=False,
+#                                    add_group_intercept=False,
+#                                    add_group_slope=False,
+#                                    **kwargs
+#                                    )
+#         return window_step_two
 
     def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
