@@ -452,30 +452,30 @@ def test_data_replacement1():
                'mouse'].unique().size == 4
 
 
-def test_fit_twostep():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=2,
-                                                                    n_mice=2,
-                                                                    dur=3,
-                                                                    mouse_response_slope=16)
+# def test_fit_twostep():
+#     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+#                                                                     n_neurons=2,
+#                                                                     n_mice=2,
+#                                                                     dur=3,
+#                                                                     mouse_response_slope=16)
 
-    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
-                     detail='i_trial')
-    bw = bw.fit_twostep(dist_y_step_one='normal', dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
-    bw.chart.display()
+#     bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+#                      detail='i_trial')
+#     bw = bw.fit_twostep(dist_y_step_one='normal', dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
+#     bw.chart.display()
 
 
-def test_fit_twostep_by_group():
-    df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
-                                                                    n_neurons=2,
-                                                                    n_mice=2,
-                                                                    dur=3,
-                                                                    mouse_response_slope=16)
+# def test_fit_twostep_by_group():
+#     df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+#                                                                     n_neurons=2,
+#                                                                     n_mice=2,
+#                                                                     dur=3,
+#                                                                     mouse_response_slope=16)
 
-    bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
-                     detail='i_trial')
-    bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', parallel=False, dist_y='student')
-    bw.chart.display()
+#     bw = BayesWindow(df_monster, y='isi', treatment='stim', condition=['neuron_x_mouse'], group='mouse',
+#                      detail='i_trial')
+#     bw = bw.fit_twostep_by_group(dist_y_step_one='gamma', parallel=False, dist_y='student')
+#     bw.chart.display()
 
 
 @mark.parametrize('do_make_change', [False, 'subtract'])
