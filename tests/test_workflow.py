@@ -503,5 +503,5 @@ def test_stim_strength():
 
     BayesWindow(df, 'Power', treatment='stim_strength', group='mouse', detail='i_trial').data_box_detail()
     window = BayesWindow(df, 'Power', treatment='stim_strength', condition='mouse', detail='i_trial')
-    window.fit_slopes(add_condition_slope=True, center_intercept=True, dist_y='gamma')
+    window.fit_slopes(add_condition_slope=True, center_intercept=True, , dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
     window.chart
