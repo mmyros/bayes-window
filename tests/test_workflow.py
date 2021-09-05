@@ -493,15 +493,15 @@ def test_plot_slopes_intercepts(do_make_change):
     chart_intercepts.display()
 
 
-def test_stim_strength():
-    df = []
-    for slope in np.linspace(4, 400, 4):
-        df1 = generate_fake_lfp(mouse_response_slope=slope)[0]
-        df1['stim_strength'] = slope
-        df.append(df1)
-    df = pd.concat(df)
+# def test_stim_strength():
+#     df = []
+#     for slope in np.linspace(4, 400, 4):
+#         df1 = generate_fake_lfp(mouse_response_slope=slope)[0]
+#         df1['stim_strength'] = slope
+#         df.append(df1)
+#     df = pd.concat(df)
 
-    BayesWindow(df, 'Power', treatment='stim_strength', group='mouse', detail='i_trial').data_box_detail()
-    window = BayesWindow(df, 'Power', treatment='stim_strength', condition='mouse', detail='i_trial')
-    window.fit_slopes(add_condition_slope=True, center_intercept=True, dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
-    window.chart
+#     BayesWindow(df, 'Power', treatment='stim_strength', group='mouse', detail='i_trial').data_box_detail()
+#     window = BayesWindow(df, 'Power', treatment='stim_strength', condition='mouse', detail='i_trial')
+#     window.fit_slopes(add_condition_slope=True, center_intercept=True, dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
+#     window.chart
