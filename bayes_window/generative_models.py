@@ -15,10 +15,10 @@ trans = LabelEncoder().fit_transform
 warnings.filterwarnings("ignore")
 
 alt.data_transformers.disable_max_rows()
-try:
-    alt.renderers.enable('altair_saver', fmts=['png'])
-except Exception:
-    pass
+# try:
+#     alt.renderers.enable('altair_saver', fmts=['png'])
+# except Exception:
+#     pass
 
 
 # fake data generation
