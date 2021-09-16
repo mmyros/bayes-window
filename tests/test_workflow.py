@@ -170,9 +170,10 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
     chart.display()
 
 
-def test_estimate_posteriors_slope_groupslope():
+@mark.parametrize('add_group_slope', [False, True])
+def test_estimate_posteriors_slope_groupslope(add_group_slope):
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
-    window.fit_slopes(models.model_hierarchical, add_group_slope=True, add_group_intercept=True)
+    window.fit_slopes(models.model_hierarchical, add_group_slope=add_group_slope, add_group_intercept=True)
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
