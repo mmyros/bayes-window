@@ -9,6 +9,8 @@ trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
 
 from pytest import mark
+import os
+os.environ['bayes_window_test_mode'] = 'True'
 
 df_radon = load_radon()
 
@@ -493,6 +495,19 @@ def test_plot_slopes_intercepts(do_make_change):
     window.plot_slopes_intercepts(x='mouse').display()
     chart_intercepts = window.posterior_intercept
     chart_intercepts.display()
+
+
+
+
+def test_gpu():
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
+                         detail='i_trial')
+    window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+                      add_condition_slope=True,
+                      add_group_slope=True,
+                      use_gpu=True)
+    assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
+               'mouse'].unique().size == 4
 
 
 # def test_stim_strength():

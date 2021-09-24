@@ -18,14 +18,14 @@ from . import models
 
 
 def select_device(use_gpu, num_chains):
-    if use_gpu:
-        try:
-            numpyro.set_platform('gpu')
-            numpyro.set_host_device_count(1)
-        except RuntimeError as e:
-            warnings.warn(f'No GPU found: {e}')
-            numpyro.set_platform('cpu')
-    else:
+    # if use_gpu:
+    #     try:
+    #         numpyro.set_platform('gpu')
+    #         numpyro.set_host_device_count(1)
+    #     except RuntimeError as e:
+    #         warnings.warn(f'No GPU found: {e}')
+    #         numpyro.set_platform('cpu')
+    # else:
         numpyro.set_platform('cpu')
         numpyro.set_host_device_count(min((num_chains, os.cpu_count())))
 
@@ -33,6 +33,12 @@ def select_device(use_gpu, num_chains):
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
                 n_draws=200, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
                 **kwargs):
+    if 'bayes_window_test_mode' in os.environ:
+        # Override settings with minimal
+        use_gpu = False
+        num_warmup = 5
+        n_draws = 5
+        num_chains = 1
     select_device(use_gpu, num_chains)
     model = model or models.model_hierarchical
     mcmc = MCMC(sampler(model=model,

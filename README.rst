@@ -46,6 +46,12 @@ TODO
    - see lfp notebook
 - Decide on Vega theme
 
+INSTALLATION
+------------
+For gpu:
+```pip install --upgrade "jax[cuda102]" -f https://storage.googleapis.com/jax-releases/jax_releases.html```
+or cudaXXX from `nvcc --version`
+
 
 Features
 --------
