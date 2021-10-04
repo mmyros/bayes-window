@@ -404,12 +404,12 @@ def combined_condition(df: pd.DataFrame, conditions: list):
 def load_radon():
     # Import radon data
     try:
-        srrs2 = pd.read_csv("../docs/example_notebooks/radon_example/srrs2.dat", error_bad_lines=False)
+        srrs2 = pd.read_csv("../tests/test_data/srrs2.dat", error_bad_lines=False)
     except FileNotFoundError:
         try:
-            srrs2 = pd.read_csv("docs/example_notebooks/radon_example/srrs2.dat", error_bad_lines=False)
+            srrs2 = pd.read_csv("tests/test_data/srrs2.dat", error_bad_lines=False)
         except FileNotFoundError:
-            srrs2 = pd.read_csv("srrs2.dat", error_bad_lines=False)
+            srrs2 = pd.read_csv("test_data/srrs2.dat", error_bad_lines=False)
     srrs2.columns = srrs2.columns.map(str.strip)
     srrs_mn = srrs2[srrs2.state == "MN"].copy()
 
@@ -417,12 +417,12 @@ def load_radon():
 
     srrs_mn["fips"] = srrs_mn.stfips * 1000 + srrs_mn.cntyfips
     try:
-        cty = pd.read_csv("../docs/example_notebooks/radon_example/cty.dat", error_bad_lines=False)
+        cty = pd.read_csv("../tests/test_data/cty.dat", error_bad_lines=False)
     except FileNotFoundError:
         try:
-            cty = pd.read_csv("docs/example_notebooks/radon_example/cty.dat", error_bad_lines=False)
+            cty = pd.read_csv("tests/test_data/cty.dat", error_bad_lines=False)
         except FileNotFoundError:
-            cty = pd.read_csv("cty.dat", error_bad_lines=False)
+            cty = pd.read_csv("test_data/cty.dat", error_bad_lines=False)
     cty_mn = cty[cty.st == "MN"].copy()
     cty_mn["fips"] = 1000 * cty_mn.stfips + cty_mn.ctfips
 
