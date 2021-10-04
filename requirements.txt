@@ -1,5 +1,6 @@
 pytest
 joblib
+elephant
 numpy
 numpyro
 bulwark
@@ -11,7 +12,6 @@ pandas
 arviz
 sklearn
 inflection
-nbval
 statsmodels
 bokeh
 sklearn
