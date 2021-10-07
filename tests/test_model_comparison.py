@@ -148,7 +148,8 @@ def test_run_methods_serial():
         parallel=False,
         ys=('Log power', 'Power')
     )
-
+    res_confusion=make_confusion_matrix(res, groups=['method'])
+    plot_confusion(res_confusion)
     res=make_roc_auc(res)
     plot_roc(res)[0].display()
     plot_roc(res)[1].display()
