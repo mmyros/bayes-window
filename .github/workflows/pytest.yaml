@@ -37,11 +37,10 @@ jobs:
       # Run tox using the version of Python in `PATH`
       # For some reason tests in test_model_comparison must be run separately - some concurrency problem maybe
       run: |
-          pytest  -s --basetemp={envtmpdir} --cov-report term --cov-report xml --cov bayes-window -m 'not serial'
+          pytest --cov bayes_window --cov-report xml -m 'not serial'
 
     - name: Run coverage
       run: |
-        coverage combine
         coverage report
         coverage xml
     - uses: codecov/codecov-action@v1

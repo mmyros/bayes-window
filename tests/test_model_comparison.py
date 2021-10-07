@@ -136,7 +136,7 @@ def test_run_methods():
         parallel=True,
         ys=('Log power', 'Power')
     )
-
+    res=make_roc_auc(res)
     plot_roc(res)[0].display()
     plot_roc(res)[1].display()
 
@@ -149,5 +149,6 @@ def test_run_methods_serial():
         ys=('Log power', 'Power')
     )
 
+    res=make_roc_auc(res)
     plot_roc(res)[0].display()
     plot_roc(res)[1].display()
