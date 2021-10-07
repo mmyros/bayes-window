@@ -10,6 +10,7 @@ from bayes_window.utils import load_radon
 
 from pytest import mark
 import os
+
 os.environ['bayes_window_test_mode'] = 'True'
 
 df_radon = load_radon()
@@ -92,6 +93,7 @@ def test_fit_lme_w_data():
     assert window.data_and_posterior is not None
     window.regression_charts().display()
 
+
 # @mark.parametrize('add_data', [False]) # Adding data to LME does not work
 def test_fit_lme_w_data_condition():
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
@@ -147,6 +149,7 @@ def test_estimate_posteriors_slope(add_condition_slope):
     chart.display()
     chart = window.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
+
 
 # This is not implemented
 # def test_lme_two_conditions():
@@ -497,8 +500,6 @@ def test_plot_slopes_intercepts(do_make_change):
     chart_intercepts.display()
 
 
-
-
 def test_gpu():
     window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
                          detail='i_trial')
@@ -508,7 +509,6 @@ def test_gpu():
                       use_gpu=True)
     assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
                'mouse'].unique().size == 4
-
 
 # def test_stim_strength():
 #     df = []

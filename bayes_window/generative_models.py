@@ -15,6 +15,8 @@ trans = LabelEncoder().fit_transform
 warnings.filterwarnings("ignore")
 
 alt.data_transformers.disable_max_rows()
+
+
 # try:
 #     alt.renderers.enable('altair_saver', fmts=['png'])
 # except Exception:
@@ -60,7 +62,7 @@ def generate_spikes_stim_strength(overall_stim_response_strengths=range(10), **k
     df = []
     for overall_stim_response_strength in overall_stim_response_strengths:
         df1 = generate_fake_spikes(overall_stim_response_strength=overall_stim_response_strength, **kwargs)[0]
-        df1.insert(0, 'stim_strength', df1['stim']*overall_stim_response_strength)
+        df1.insert(0, 'stim_strength', df1['stim'] * overall_stim_response_strength)
         df.append(df1)
     return pd.concat(df).reset_index(drop=True)
 

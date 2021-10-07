@@ -56,7 +56,7 @@ class BayesWindow:
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
             assert self.condition[0] in df.columns, f'{self.condition[0]} is not in {df.columns}'
-        self.levels = utils.parse_levels(self.treatment, self.condition, self.group)
+        self.levels = utils.parse_levels(self.treatment, self.condition, self.group, self.group2)
 
         # Combined condition
         self.data, self._key = utils.combined_condition(df.copy(), self.condition)

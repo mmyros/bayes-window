@@ -18,14 +18,14 @@ from . import models
 
 
 def select_device(use_gpu, num_chains):
-    # if use_gpu:
-    #     try:
-    #         numpyro.set_platform('gpu')
-    #         numpyro.set_host_device_count(1)
-    #     except RuntimeError as e:
-    #         warnings.warn(f'No GPU found: {e}')
-    #         numpyro.set_platform('cpu')
-    # else:
+    if use_gpu:
+        try:
+            numpyro.set_platform('gpu')
+            numpyro.set_host_device_count(1)
+        except RuntimeError as e:
+            warnings.warn(f'No GPU found: {e}')
+            numpyro.set_platform('cpu')
+    else:
         numpyro.set_platform('cpu')
         numpyro.set_host_device_count(min((num_chains, os.cpu_count())))
 

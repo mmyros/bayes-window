@@ -213,10 +213,17 @@ def split_train_predict(df, model, y, **kwargs):
     model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
     mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1, n_draws=2000)
+
+    if mcmc.num_samples < 50:
+        raise IndexError( f"Bug in numpyro? :{mcmc.num_samples, model_args}")
+
     ppc = Predictive(model, parallel=False, num_samples=2000, batch_ndims=2)
     ppc = ppc(random.PRNGKey(17), **model_args)
-    assert ((ppc['y'].shape[0] == mcmc.num_chains and ppc['y'].shape[1] == mcmc.num_samples) |
-            (ppc['y'].shape[0] == mcmc.num_chains * mcmc.num_samples)), 'there will be warning below'
+
+    if not ((ppc['y'].shape[0] == mcmc.num_chains and ppc['y'].shape[1] == mcmc.num_samples) |
+            (ppc['y'].shape[0] == mcmc.num_chains * mcmc.num_samples)):
+        raise IndexError(
+            f"Bug in numpyro? :{ppc['y'].shape[0], mcmc.num_chains, ppc['y'].shape[1], mcmc.num_samples, ppc['y'].shape[0], mcmc.num_chains * mcmc.num_samples}")
     predictive = az.from_numpyro(mcmc,
                                  posterior_predictive=ppc,
                                  # coords={"mouse": df_test['mouse_code']},

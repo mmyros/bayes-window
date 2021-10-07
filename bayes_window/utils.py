@@ -21,14 +21,16 @@ def level_to_data_column(level_name, kwargs):
         return kwargs[level_name]
 
 
-def parse_levels(treatment, condition, group):
+def parse_levels(treatment, condition, group, group2):
     levels = []
     if treatment:
         levels += [treatment]
-    if condition[0]:
+    if condition[0] and condition[0] not in levels:
         levels += condition
-    if group:
+    if group and group not in levels:
         levels += [group]
+    if group2 and group2 not in levels:
+        levels += [group2]
     return levels
 
 
@@ -209,7 +211,8 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, group2_nam
     if f'{b_name}_per_condition_dim_0' in trace:
         trace = trace.rename({f'{b_name}_per_condition_dim_0': posterior_index_name})
     if f'intercept_per_condition_dim_0' in trace:
-        trace = trace.rename({f'intercept_per_condition_dim_0': f"{posterior_index_name}__"})  # underscore so it doesnt conflict
+        trace = trace.rename(
+            {f'intercept_per_condition_dim_0': f"{posterior_index_name}__"})  # underscore so it doesnt conflict
     if f'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
