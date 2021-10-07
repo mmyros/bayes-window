@@ -19,7 +19,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
-
         pip install coverage==5.1
         pip install pytest-cov
         pip install coveralls
@@ -38,7 +37,6 @@ jobs:
       # Run tox using the version of Python in `PATH`
       # For some reason tests in test_model_comparison must be run separately - some concurrency problem maybe
       run: |
-#          pytest  -s --basetemp={envtmpdir} --cov-report term --cov-report xml --cov bayes-window -m 'serial'
           pytest  -s --basetemp={envtmpdir} --cov-report term --cov-report xml --cov bayes-window -m 'not serial'
 
     - name: Run coverage
