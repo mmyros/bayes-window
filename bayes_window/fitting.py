@@ -7,6 +7,7 @@ import os
 import warnings
 
 import arviz as az
+import jax
 import numpyro
 import numpyro.optim as optim
 from jax import random
@@ -28,6 +29,8 @@ def select_device(use_gpu, num_chains):
     else:
         numpyro.set_platform('cpu')
         numpyro.set_host_device_count(min((num_chains, os.cpu_count())))
+    # Sanity check
+    jax.lib.xla_bridge.get_backend().platform
 
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
