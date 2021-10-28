@@ -34,7 +34,7 @@ def select_device(use_gpu, num_chains):
 
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
-                n_draws=200, num_chains=5, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
+                n_draws=200, num_chains=4, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
                 **kwargs):
     if 'bayes_window_test_mode' in os.environ:
         # Override settings with minimal

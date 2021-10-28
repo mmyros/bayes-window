@@ -311,10 +311,10 @@ class BayesWindow:
 
         # Recode dummy condition taking into account all levels
         self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
-        
+
         # Transform group to integers as required by numpyro:
         self.data[self.group] = LabelEncoder().fit_transform(self.data[self.group])
-        
+
         # Estimate model
         self.trace = fit_fn(y=self.data[self.y].values,
                             condition=self.data['combined_condition'].values,
@@ -423,10 +423,22 @@ class BayesWindow:
         # Default plots:
         # try:
         # facet_kwargs=visualization.auto_facet(self.group,self,condition)
-        if self.condition[0] and len(self.condition) > 1:
-            return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
+        if self.condition[0] and len(self.condition) > 2:
+            try:
+                return self.regression_charts(x=self.condition[0], column=self.condition[1], row=self.condition[2],
+                                              **kwargs)
+            except KeyError:
+                return self.regression_charts(x=self.condition[0], row=self.condition[1], **kwargs)
+        elif self.condition[0] and len(self.condition) > 1:
+            try:
+                return self.regression_charts(x=self.condition[0], column=self.group, row=self.condition[1], **kwargs)
+            except KeyError:
+                return self.regression_charts(x=self.condition[0], row=self.condition[1], **kwargs)
         elif self.condition[0] and self.b_name != 'lme':
-            return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
+            try:
+                return self.regression_charts(x=self.condition[0], column=self.group, **kwargs)
+            except KeyError:
+                return self.regression_charts(x=self.condition[0], **kwargs)
         else:  # self.group:
             return self.regression_charts(x=self.condition[0] if self.condition[0] else ':O', **kwargs)
         #    self.regression_charts(column=self.group)
@@ -442,7 +454,8 @@ class BayesWindow:
             x = f'{x}:O'
         if color[-2] != ':':
             color = f'{color}:N'
-        posterior = self.data_and_posterior
+        # posterior = self.data_and_posterior  # TODO fix data_and_posterior
+        posterior = self.posterior['slope_per_condition']
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
             add_x_axis = True
             x = f'{self.condition[0]}:O'
@@ -606,19 +619,22 @@ class BayesWindow:
                                  detail=':O',
                                  **kwargs):
         self.independent_axes = independent_axes
-        x = x or self.treatment
+        x = x or self.treatment or self.condition[0]
         detail = detail or self.detail
-        color = color or self.condition[0]
+        if self.treatment:
+            color = color or self.condition[0]
+        elif len(self.condition)>1:
+            color = color or self.condition[1]
         # TODO default for detail
         chart_p = None
-        if self.data_and_posterior is not None:
-            base_chart = alt.Chart(self.data_and_posterior)
+        if self.posterior is not None:
+            base_chart = alt.Chart(self.posterior['mu_per_condition']) # TODO self.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
                                                               do_make_change=False,
-                                                              add_data=add_data,
                                                               title=f'{self.y} estimate',
                                                               base_chart=base_chart,
+                                                              color=color,
                                                               **kwargs
                                                               ))
             if not add_data:  # done
@@ -639,6 +655,11 @@ class BayesWindow:
                 self.chart = chart_d  # we're done
             else:
                 self.chart = chart_p + chart_d
+
+        if ('column' in kwargs) or ('row' in kwargs):
+            return visualization.facet(self.chart, **kwargs)
+        elif len(self.condition)>2:  # Auto facet
+            return visualization.facet(self.chart, **visualization.auto_facet(self.condition[2]))
 
         return self.chart
 

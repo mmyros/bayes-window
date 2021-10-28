@@ -1,6 +1,7 @@
+import warnings
+
 import altair as alt
 import numpy as np
-import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
@@ -24,7 +25,7 @@ def facet(base_chart: alt.LayerChart,
     assert base_chart.data is not None
     if column:
         if column not in base_chart.data.columns:
-            raise KeyError(f'{column} is not in {base_chart.data.columns}')
+            warnings.warn(f'{column} is not in {base_chart.data.columns}')
         # sanitize a little:
         base_chart.data[column] = base_chart.data[column].astype(str)
     if row:
@@ -80,7 +81,7 @@ def posterior_intercept_chart(data_and_posterior, x, y, group=':O'):
     )
 
 
-def auto_facet(group, condition):
+def auto_facet(group=None, condition=[None]):
     kwargs = {}
     if group and condition[0]:
         kwargs = {'column': group, 'row': condition[0]}
@@ -198,9 +199,8 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_make_change: bool = True,
-                   base_chart: object = None,
-                   **kwargs: object) -> object:
+def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type='bar',
+                   **kwargs: object):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
     if x[-2] != ':':
@@ -225,10 +225,16 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
         x = f'{x[:-1]}Q'  # Change to nominal encoding
 
     # error_bars
-    chart_posterior_whiskers = base_chart.mark_rule(
-        size=2 if not long_x_axis else .8,
-        opacity=.7 if not long_x_axis else .4,
-        clip=True).encode(
+    if error_type == 'band':
+        err = base_chart.mark_errorband(clip=True)
+    elif error_type == 'bar':
+        err = base_chart.mark_rule(size=2 if not long_x_axis else .8,
+                                   opacity=.7 if not long_x_axis else .4,
+                                   clip=True)
+    else:
+        raise ValueError(f'error type should be band or bar, you asked for {error_type}')
+
+    chart_posterior_whiskers = err.encode(
         x=x,
         y=alt.Y('mean(lower interval):Q',
                 scale=scale,
@@ -236,6 +242,7 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
                 axis=alt.Axis(orient='left', title='')
                 ),
         y2='mean(higher interval):Q',
+        **kwargs
     )
 
     # Make the zero line
@@ -270,6 +277,7 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
                     axis=alt.Axis(orient='left'),
                     ),
             x=x,
+            **kwargs
         )
     else:  # Line
         chart_posterior_center = base_chart.mark_line(
@@ -284,6 +292,7 @@ def plot_posterior(df: pd.DataFrame = None, title: str = '', x: str = ':O', do_m
                     axis=alt.Axis(orient='left'),
                     ),
             x=x,
+            **kwargs
         )
 
     return chart_posterior_whiskers, chart_posterior_center, chart_zero
