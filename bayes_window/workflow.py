@@ -19,6 +19,7 @@ from bayes_window.visualization import plot_posterior
 
 reload(visualization)
 reload(utils)
+reload(models)
 
 
 class BayesWindow:
@@ -303,16 +304,21 @@ class BayesWindow:
         self.b_name = 'mu_per_condition'
 
         # add all levels into condition
-        if self.group not in self.condition:
-            self.condition += [self.group]
+        #if self.group and self.group not in self.condition:
+        #    self.condition += [self.group]
         if self.treatment not in self.condition:
             self.condition += [self.treatment]
 
         # Recode dummy condition taking into account all levels
         self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
+        
+        # Transform group to integers as required by numpyro:
+        self.data[self.group] = LabelEncoder().fit_transform(self.data[self.group])
+        
         # Estimate model
         self.trace = fit_fn(y=self.data[self.y].values,
                             condition=self.data['combined_condition'].values,
+                            group=self.data[self.group].values if self.group else None,
                             # treatment=self.data[self.treatment].values,
                             model=model,
                             **kwargs

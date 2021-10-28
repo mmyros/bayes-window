@@ -33,13 +33,18 @@ def sample_y(dist_y, theta, y, sigma_obs=None):
         raise NotImplementedError
 
 
-def model_single(y, condition, dist_y='normal'):
+def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True):
     n_conditions = np.unique(condition).shape[0]
     a_neuron = numpyro.sample('mu', dist.Normal(0, 1))
     sigma_neuron = numpyro.sample('sigma', dist.HalfNormal(1))
     a_neuron_per_condition = numpyro.sample('mu_per_condition',
                                             dist.Normal(jnp.tile(a_neuron, n_conditions), sigma_neuron))
     theta = a_neuron + a_neuron_per_condition[condition]
+    if group is not None and add_group_intercept:
+        sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
+        a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
+                                                                  sigma_group))
+        theta += a_group[group]
     sample_y(dist_y=dist_y, theta=theta, y=y)
 
 
