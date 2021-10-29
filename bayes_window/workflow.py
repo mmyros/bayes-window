@@ -297,60 +297,6 @@ class BayesWindow:
         self.default_regression_charts()
         return self
 
-    def fit_conditions(self, model=models.model_single, fit_fn=fit_numpyro, **kwargs):
-
-        self.model = model
-        self.b_name = 'mu_per_condition'
-
-        # add all levels into condition
-        # if self.group and self.group not in self.condition:
-        #    self.condition += [self.group]
-        if self.treatment not in self.condition:
-            self.condition += [self.treatment]
-
-        # Recode dummy condition taking into account all levels
-        self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
-
-        # Transform group to integers as required by numpyro:
-        if self.group:
-            self.data[self.group] = LabelEncoder().fit_transform(self.data[self.group])
-        if self.treatment:
-            self.data[self.treatment] = LabelEncoder().fit_transform(self.data[self.treatment])
-
-        # Estimate model
-        self.trace = fit_fn(y=self.data[self.y].values,
-                            condition=self.data['combined_condition'].values,
-                            group=self.data[self.group].values if self.group else None,
-                            treatment=self.data[self.treatment].values,
-                            model=model,
-                            **kwargs
-                            )
-
-        # Add data back
-        self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
-                                                      posterior_index_name='combined_condition',
-                                                      group_name=self.group,
-                                                      treatment_name=self.treatment
-                                                      )
-
-        # HDI and MAP:
-        self.posterior = {var: utils.get_hdi_map(
-            self.trace.posterior[var],
-            prefix=f'{var} ' if (var != self.b_name) and
-                                (var not in ['slope_per_condition']) else '')
-            for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']}
-
-        # Fill posterior into data
-        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                   group=self.group,
-                                                                   group2=self.group2,
-                                                                   data=self.original_data.copy())
-
-        self.posterior = utils.recode_posterior(self.posterior, self.levels, self.data, self.original_data,
-                                                self.condition)
-
-        return self
-
     def fit_slopes(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
                    do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
         self.model_args = kwargs
@@ -616,57 +562,6 @@ class BayesWindow:
         self.chart_data_detail
         # 4. color by dimension of slope (condition (and group if self.group))
 
-    def plot_posteriors_no_slope(self,
-                                 x=None,
-                                 add_data=False,
-                                 independent_axes=True,
-                                 color=None,
-                                 detail=':O',
-                                 **kwargs):
-        self.independent_axes = independent_axes
-        x = x or self.treatment or self.condition[0]
-        detail = detail or self.detail
-        if self.treatment:
-            color = color or self.condition[0]
-        elif len(self.condition) > 1:
-            color = color or self.condition[1]
-        # TODO default for detail
-        chart_p = None
-        if self.posterior is not None:
-            base_chart = alt.Chart(self.posterior['mu_per_condition'])  # TODO self.data_and_posterior is broken
-            # Plot posterior
-            chart_p = alt.layer(*visualization.plot_posterior(x=x,
-                                                              do_make_change=False,
-                                                              title=f'{self.y} estimate',
-                                                              base_chart=base_chart,
-                                                              color=color,
-                                                              **kwargs
-                                                              ))
-            if not add_data:  # done
-                self.chart = chart_p
-        else:
-            add_data = True  # Otherwise nothing to do
-            base_chart = alt.Chart(self.data)
-
-        if add_data:
-            # Make data plot:
-            chart_d = visualization.plot_data_slope_trials(x=x,
-                                                           y=self.y,
-                                                           color=color,
-                                                           detail=detail,
-                                                           base_chart=base_chart)
-
-            if self.data_and_posterior is None:
-                self.chart = chart_d  # we're done
-            else:
-                self.chart = chart_p + chart_d
-
-        if ('column' in kwargs) or ('row' in kwargs):
-            return visualization.facet(self.chart, **kwargs)
-        elif len(self.condition) > 2:  # Auto facet
-            return visualization.facet(self.chart, **visualization.auto_facet(self.condition[2]))
-
-        return self.chart
 
     def plot(self, **kwargs):
         # Convenience function
@@ -686,8 +581,6 @@ class BayesWindow:
             return BayesWindow.regression_charts(self, **kwargs)
         elif 'slope' in self.b_name:
             return BayesWindow.regression_charts(self, **kwargs)
-        elif self.b_name == 'mu_per_condition':
-            return BayesWindow.plot_posteriors_no_slope(self, **kwargs)
 
     def facet(self, width=150, height=160, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'

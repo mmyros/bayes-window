@@ -11,3 +11,4 @@ from .fitting import *
 from .model_comparison import *
 from .utils import *
 from .visualization import *
+from .conditions import BayesConditions

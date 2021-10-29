@@ -236,21 +236,21 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
 
     chart_posterior_err = err.encode(
         x=x,
-        y=alt.Y('mean(lower interval):Q',
+        y=alt.Y('lower interval:Q',
                 scale=scale,
                 axis=alt.Axis(orient='left', title='')
                 ),
-        y2='mean(higher interval):Q',
+        y2='higher interval:Q',
         **kwargs
     )
     if error_type == 'band':  # Add 75% HDI
         chart_posterior_err += err.encode(
             x=x,
-            y=alt.Y('mean(lower interval75):Q',
+            y=alt.Y('lower interval75:Q',
                     scale=scale,
                     axis=alt.Axis(orient='left', title='')
                     ),
-            y2='mean(higher interval75):Q',
+            y2='higher interval75:Q',
             **kwargs
         )
 

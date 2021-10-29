@@ -4,6 +4,7 @@ from bayes_window import models
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
+from bayes_window.conditions import BayesConditions
 
 trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
@@ -248,18 +249,14 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope():
 
 
 def test_plot_no_slope_data_only():
-    from bayes_window.workflow import BayesWindow
-
-    window = BayesWindow(df, y='isi', treatment='stim')
-    chart = window.plot_posteriors_no_slope()
+    window = BayesConditions(df=df, y='isi', treatment='stim')
+    chart = window.plot()
     chart.display()
 
 
 def test_plot_slope_data_only():
-    from bayes_window.workflow import BayesWindow
-
-    window = BayesWindow(df, y='isi', treatment='stim')
-    chart = window.plot_posteriors_no_slope()
+    window = BayesConditions(df=df, y='isi', treatment='stim')
+    chart = window.plot()
     chart.display()
 
 
