@@ -8,14 +8,13 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
 from altair import LayerChart, Chart
-from sklearn.preprocessing import LabelEncoder
-
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
+from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
@@ -103,7 +102,7 @@ class BayesWindow:
         chart_data_box_for_detail = visualization.plot_data(
             df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0].properties(width=60)
 
-        if (self.detail in self.data.columns) and (len(self.condition) > 1):
+        if (self.detail in self.data.columns) and (len(self.condition) > 1) and not color:
             # Color=condition
             self.chart_data_detail = visualization.plot_data_slope_trials(df=data, x=self.treatment, y=self.y,
                                                                           color=self.condition[1],
@@ -143,55 +142,55 @@ class BayesWindow:
         print(f'{formula}\n {anova_lm(lm, typ=2, **kwargs).round(2)}')
         return anova_lm(lm, typ=2)['PR(>F)'][self.treatment] < 0.05
 
-#     def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
-#         if self.detail not in self.condition:
-#             self.condition += [self.detail]
-#         window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
+    #     def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
+    #         if self.detail not in self.condition:
+    #             self.condition += [self.detail]
+    #         window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
 
-#         window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
-#                                       y='center interval', treatment=self.treatment,
-#                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
-#                                       group=self.group, detail=self.detail)
-#         window_step_two.window_step_one = window_step_one
-#         window_step_two.fit_slopes(model=models.model_hierarchical,
-#                                    **kwargs
-#                                    # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
-#                                    )
+    #         window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
+    #                                       y='center interval', treatment=self.treatment,
+    #                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+    #                                       group=self.group, detail=self.detail)
+    #         window_step_two.window_step_one = window_step_one
+    #         window_step_two.fit_slopes(model=models.model_hierarchical,
+    #                                    **kwargs
+    #                                    # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
+    #                                    )
 
-#         return window_step_two
+    #         return window_step_two
 
-#     def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
-#         from joblib import Parallel, delayed
-#         assert self.detail is not None
+    #     def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
+    #         from joblib import Parallel, delayed
+    #         assert self.detail is not None
 
-#         def fit_subset(df_m_n, i):
-#             window_step_one = BayesWindow(df_m_n, y=self.y, treatment=self.treatment,
-#                                           condition=[self.detail], group=self.group)
-#             window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
-#             posterior = window_step_one.posterior['mu_per_condition'].copy()
-#             posterior[groupby] = i
-#             return posterior
+    #         def fit_subset(df_m_n, i):
+    #             window_step_one = BayesWindow(df_m_n, y=self.y, treatment=self.treatment,
+    #                                           condition=[self.detail], group=self.group)
+    #             window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
+    #             posterior = window_step_one.posterior['mu_per_condition'].copy()
+    #             posterior[groupby] = i
+    #             return posterior
 
-#         groupby = groupby or self.condition[0]
-#         if parallel:
-#             step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
-#                                                        for i, df_m_n in self.data.groupby(groupby))
-#         else:
-#             from tqdm import tqdm
-#             step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
+    #         groupby = groupby or self.condition[0]
+    #         if parallel:
+    #             step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
+    #                                                        for i, df_m_n in self.data.groupby(groupby))
+    #         else:
+    #             from tqdm import tqdm
+    #             step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.data.groupby(groupby))]
 
-#         window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
-#                                       y=self.y, treatment=self.treatment,
-#                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
-#                                       group=self.group, detail=self.detail)
-#         window_step_two.fit_slopes(model=models.model_hierarchical,
-#                                    dist_y=dist_y,
-#                                    robust_slopes=False,
-#                                    add_group_intercept=False,
-#                                    add_group_slope=False,
-#                                    **kwargs
-#                                    )
-#         return window_step_two
+    #         window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.y}, axis=1),
+    #                                       y=self.y, treatment=self.treatment,
+    #                                       condition=list(set(self.condition) - {self.treatment, self.group, self.detail}),
+    #                                       group=self.group, detail=self.detail)
+    #         window_step_two.fit_slopes(model=models.model_hierarchical,
+    #                                    dist_y=dist_y,
+    #                                    robust_slopes=False,
+    #                                    add_group_intercept=False,
+    #                                    add_group_slope=False,
+    #                                    **kwargs
+    #                                    )
+    #         return window_step_two
 
     def fit_lme(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
                 add_group_intercept=True, add_group_slope=False, add_nested_group=False):
@@ -304,7 +303,7 @@ class BayesWindow:
         self.b_name = 'mu_per_condition'
 
         # add all levels into condition
-        #if self.group and self.group not in self.condition:
+        # if self.group and self.group not in self.condition:
         #    self.condition += [self.group]
         if self.treatment not in self.condition:
             self.condition += [self.treatment]
@@ -313,13 +312,16 @@ class BayesWindow:
         self.data, self._key = utils.combined_condition(self.original_data.copy(), self.condition)
 
         # Transform group to integers as required by numpyro:
-        self.data[self.group] = LabelEncoder().fit_transform(self.data[self.group])
+        if self.group:
+            self.data[self.group] = LabelEncoder().fit_transform(self.data[self.group])
+        if self.treatment:
+            self.data[self.treatment] = LabelEncoder().fit_transform(self.data[self.treatment])
 
         # Estimate model
         self.trace = fit_fn(y=self.data[self.y].values,
                             condition=self.data['combined_condition'].values,
                             group=self.data[self.group].values if self.group else None,
-                            # treatment=self.data[self.treatment].values,
+                            treatment=self.data[self.treatment].values,
                             model=model,
                             **kwargs
                             )
@@ -327,13 +329,16 @@ class BayesWindow:
         # Add data back
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
                                                       posterior_index_name='combined_condition',
-                                                      group_name=self.group)
+                                                      group_name=self.group,
+                                                      treatment_name=self.treatment
+                                                      )
 
         # HDI and MAP:
-        self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
-                                                 prefix=f'{var} '
-                                                 if (var != self.b_name) and (var != 'slope_per_condition') else '')
-                          for var in self.trace.posterior.data_vars}
+        self.posterior = {var: utils.get_hdi_map(
+            self.trace.posterior[var],
+            prefix=f'{var} ' if (var != self.b_name) and
+                                (var not in ['slope_per_condition']) else '')
+            for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']}
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
@@ -623,12 +628,12 @@ class BayesWindow:
         detail = detail or self.detail
         if self.treatment:
             color = color or self.condition[0]
-        elif len(self.condition)>1:
+        elif len(self.condition) > 1:
             color = color or self.condition[1]
         # TODO default for detail
         chart_p = None
         if self.posterior is not None:
-            base_chart = alt.Chart(self.posterior['mu_per_condition']) # TODO self.data_and_posterior is broken
+            base_chart = alt.Chart(self.posterior['mu_per_condition'])  # TODO self.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
                                                               do_make_change=False,
@@ -658,7 +663,7 @@ class BayesWindow:
 
         if ('column' in kwargs) or ('row' in kwargs):
             return visualization.facet(self.chart, **kwargs)
-        elif len(self.condition)>2:  # Auto facet
+        elif len(self.condition) > 2:  # Auto facet
             return visualization.facet(self.chart, **visualization.auto_facet(self.condition[2]))
 
         return self.chart

@@ -113,36 +113,66 @@ def fill_row(condition_val, data_rows, df_bayes, condition_name):
 
 
 def get_hdi_map(posterior, circular=False, prefix=''):
-    # HDI and mean over draws (will replace with MAP)
-    hdi = az.hdi(posterior).to_dataframe()
-    var_name = hdi.columns[-1]
+    # HDI and mean over draws
+    hdi95 = az.hdi(posterior, hdi_prob=0.95).to_dataframe()
+    hdi75 = az.hdi(posterior, hdi_prob=0.75).to_dataframe()
+    var_name = hdi95.columns[-1]
     if posterior.ndim == 2:
         # Get MAP
-        max_a_p = calculate_point_estimate('mode', posterior.values.flatten(), bw="default", circular=circular)
 
-        hdi = pd.DataFrame({f'{prefix}higher interval': hdi.loc['higher', var_name],
-                            f'{prefix}lower interval': hdi.loc['lower', var_name],
+        max_a_p = calculate_point_estimate('auto', posterior.values.flatten(), bw="default", circular=circular)
+
+        hdi95 = pd.DataFrame({f'{prefix}higher interval': hdi95.loc['higher', var_name],
+                            f'{prefix}lower interval': hdi95.loc['lower', var_name],
                             f'{prefix}center interval': max_a_p,
                             },
                            index=[0])
     else:
         # The dimension name, other than draws and chains (eg mouse)
-        dim = posterior.dims[-1]
+        # Take the last dimension name. If there is more than one dimension in the data, this may be problematic
+        dims = posterior.dims
+        dim = [dim for dim in dims if ('_dim_' not in dim and dim[-1]!='_')][-1]
+        if len(posterior.dims)>3:
+            print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
+                          f"a problem. If you made a new numpyro model, look in utils.rename posterior() ")
+            print(posterior)
+            print(dims)
+            print(dim)
+            return
+
         # Name of the variable we are estimating (eg intercept_per_group)
 
         m_a_p = posterior.mean(['chain', 'draw']).to_dataframe()
 
         # Get MAP
+
+        for _, b in posterior.groupby(dim):
+            try:
+                m_a_p[var_name] = calculate_point_estimate('auto', b.values.flatten(), bw="default", circular=circular)
+            except ValueError:
+                print(posterior)
+                print(posterior.values)
+                print(posterior.values.flatten())
         m_a_p[var_name] = [calculate_point_estimate('mode', b.values.flatten(), bw="default", circular=circular)
                            for _, b in posterior.groupby(dim)]
 
         # Merge HDI and MAP
-        hdi = hdi.rename({var_name: 'interval'}, axis=1)
-        hdi = hdi.pivot_table(index=dim, columns=['hdi', ])
+        hdi95 = hdi95.rename({var_name: 'interval'}, axis=1)
+        hdi95 = hdi95.pivot_table(index=dim, columns=['hdi', ])
         # Reset column multiindex: Join 'interval' with 'higher
-        hdi.columns = [prefix + (' '.join(np.flip(col))) for col in hdi.columns]
-        hdi = hdi.join(m_a_p.rename({var_name: f'{prefix}center interval'}, axis=1)).reset_index()
-    return hdi
+        hdi95.columns = [prefix + (' '.join(np.flip(col))) for col in hdi95.columns]
+
+        # Repeat for 75% HDI:
+        hdi75 = hdi75.rename({var_name: 'interval75'}, axis=1)
+        hdi75 = hdi75.pivot_table(index=dim, columns=['hdi', ])
+        # Reset column multiindex: Join 'interval' with 'higher
+        hdi75.columns = [prefix + (' '.join(np.flip(col))) for col in hdi75.columns]
+
+        # 95% HDI and MAP:
+        hdi95 = hdi95.join(m_a_p.rename({var_name: f'{prefix}center interval'}, axis=1)).reset_index()
+        # Add 75% HDI:
+        hdi95 = hdi95.join(hdi75)
+    return hdi95
 
 
 def recode_posterior(posteriors, levels, data, original_data, condition):
@@ -204,7 +234,7 @@ def insert_posterior_into_data(posteriors, data, group, group2):
     return data
 
 
-def rename_posterior(trace, b_name, posterior_index_name, group_name, group2_name=None):
+def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_name='treatment', group2_name='group2'):
     # Rename axis names to what they actually represent:
     if f'{b_name}_dim_0' in trace:
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
@@ -214,11 +244,17 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, group2_nam
         trace = trace.rename(
             {f'intercept_per_condition_dim_0': f"{posterior_index_name}__"})  # underscore so it doesnt conflict
     if f'mu_intercept_per_group_dim_0' in trace:
-        trace = trace.rename({f'mu_intercept_per_group_dim_0': group_name})
+        trace = trace.rename({'mu_intercept_per_group_dim_0': group_name})
+    if f'mu_intercept_per_treatment_dim_0' in trace:
+        trace = trace.rename({'mu_intercept_per_treatment_dim_0': treatment_name})
+    if f'mu_intercept_per_treatment_dim_1' in trace:
+        trace = trace.rename({'mu_intercept_per_treatment_dim_1': 'combined_condition_'})
+    if f'mu_intercept_per_group_dim_0' in trace:
+        trace = trace.rename({'mu_intercept_per_group_dim_0': group_name})
     if f'slope_per_group_dim_0' in trace:
-        trace = trace.rename({f'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
+        trace = trace.rename({'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
     if f'slope_per_group2_dim_0' in trace:
-        trace = trace.rename({f'slope_per_group2_dim_0': f"{group2_name}_"})  # underscore so it doesnt conflict
+        trace = trace.rename({'slope_per_group2_dim_0': f"{group2_name}_"})  # underscore so it doesnt conflict
     # Check
     var_names = trace.to_dataframe().reset_index().columns
     if var_names.str.contains('_dim_0').any():

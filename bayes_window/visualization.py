@@ -102,12 +102,11 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
         size = alt.value(1.)
 
     if (x != ':O') and (x != ':N') and x[:-2] in base.data.columns and len(base.data[x[:-2]].unique()) < 10:
-        long_x_axis = False
+        pass
     else:
-        long_x_axis = True
         x = f'{x[:-1]}Q'  # Change to nominal encoding
 
-    lines = base.mark_line(clip=True, fill=None, opacity=.6).encode(
+    lines = base.mark_line(clip=True, fill=None, opacity=.8).encode(
         size=size,
         x=x,
         color=f'{color}',
@@ -192,6 +191,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
                                         median=alt.MarkConfig(color='red', strokeWidth=20)).encode(
             x=x,
             y=alt.Y(f'{y}:Q',
+                    # color=color,
                     axis=alt.Axis(orient='right', title=''),
                     scale=alt.Scale(zero=False, domain=y_domain)
                     )
@@ -234,16 +234,25 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     else:
         raise ValueError(f'error type should be band or bar, you asked for {error_type}')
 
-    chart_posterior_whiskers = err.encode(
+    chart_posterior_err = err.encode(
         x=x,
         y=alt.Y('mean(lower interval):Q',
                 scale=scale,
-                # axis=alt.Axis(labels=False, tickCount=1, title='')
                 axis=alt.Axis(orient='left', title='')
                 ),
         y2='mean(higher interval):Q',
         **kwargs
     )
+    if error_type == 'band':  # Add 75% HDI
+        chart_posterior_err += err.encode(
+            x=x,
+            y=alt.Y('mean(lower interval75):Q',
+                    scale=scale,
+                    axis=alt.Axis(orient='left', title='')
+                    ),
+            y2='mean(higher interval75):Q',
+            **kwargs
+        )
 
     # Make the zero line
     title = f'Δ {title}'
@@ -295,7 +304,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             **kwargs
         )
 
-    return chart_posterior_whiskers, chart_posterior_center, chart_zero
+    return chart_posterior_err, chart_posterior_center, chart_zero
 
 
 def plot_data_slope_trials(x,
@@ -305,6 +314,7 @@ def plot_data_slope_trials(x,
                            base_chart=None,
                            df=None,
                            y_domain=None,
+                           opacity=alt.value(.5),
                            **kwargs):
     assert (df is not None) or (base_chart is not None)
     color = color or ':N'
@@ -321,7 +331,7 @@ def plot_data_slope_trials(x,
                                    clamp=True)),
         color=color,
         detail=detail,
-        opacity=alt.value(.2),
+        opacity=opacity,
         size=alt.value(.9),
         # **kwargs
     )

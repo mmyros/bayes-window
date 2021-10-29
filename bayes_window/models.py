@@ -33,7 +33,7 @@ def sample_y(dist_y, theta, y, sigma_obs=None):
         raise NotImplementedError
 
 
-def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True):
+def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True, **kwargs):
     n_conditions = np.unique(condition).shape[0]
     a_neuron = numpyro.sample('mu', dist.Normal(0, 1))
     sigma_neuron = numpyro.sample('sigma', dist.HalfNormal(1))
@@ -43,8 +43,37 @@ def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=
     if group is not None and add_group_intercept:
         sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
         a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
-                                                                  sigma_group))
+                                                                       sigma_group))
         theta += a_group[group]
+    sample_y(dist_y=dist_y, theta=theta, y=y)
+
+
+def model_single_treatment(y, condition, treatment=None, group=None, dist_y='normal', add_group_intercept=True,
+                           subtract_no_treatment=True):
+    n_conditions = np.unique(condition).shape[0]
+    a = numpyro.sample('mu', dist.Normal(0, 1))
+    sigma_neuron = numpyro.sample('sigma', dist.HalfNormal(1))
+    a_per_condition = numpyro.sample('mu_per_condition',
+                                     dist.Normal(jnp.tile(a, n_conditions), sigma_neuron))
+
+    if treatment is not None and subtract_no_treatment:
+        sigma_treatment = numpyro.sample('sigma_intercept_per_treatment', dist.HalfNormal(1))
+        a_treatment = numpyro.sample('mu_intercept_per_treatment',
+                                     dist.Normal(jnp.tile(0, [np.unique(treatment).shape[0],
+                                                              np.unique(condition).shape[0]]),
+                                                 sigma_treatment))
+
+        a_per_condition -= a_treatment[0, :]
+
+    theta = a + a_per_condition[condition]
+    if group is not None and add_group_intercept:
+        sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
+        a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
+                                                                       sigma_group))
+        theta += a_group[group]
+    # change_due_to_treatment = numpyro.deterministic('mu_treatment',
+    #                                                 a_per_condition[condition][treatment > 0] -
+    #                                                 a_per_condition[condition][treatment == 0])
     sample_y(dist_y=dist_y, theta=theta, y=y)
 
 
