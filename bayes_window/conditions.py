@@ -12,7 +12,7 @@ class BayesConditions(BayesWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def fit_conditions(self, model=models.model_single, fit_fn=fit_numpyro, **kwargs):
+    def fit(self, model=models.model_single, fit_fn=fit_numpyro, **kwargs):
 
         self.model = model
         self.b_name = 'mu_per_condition'
@@ -139,6 +139,6 @@ class BayesConditions(BayesWindow):
         az.plot_posterior(
             posterior_post_query.sel(combined_condition=posterior_post_query['combined_condition'].max()) -
             posterior_post_query.sel(combined_condition=posterior_post_query['combined_condition'].max() - 1),
-            rope=[-1, 1],
+            rope=(-1, 1),
             ref_val=0
         );

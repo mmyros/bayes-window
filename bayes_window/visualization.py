@@ -1,13 +1,12 @@
-import warnings
-
 import altair as alt
 import numpy as np
+import warnings
 from sklearn.preprocessing import LabelEncoder
 
 trans = LabelEncoder().fit_transform
 
 
-def facet(base_chart: alt.LayerChart,
+def facet(base_chart: alt.LayerChart or alt.Chart,
           column: str = None,
           row: str = None,
           width: int = 80,
@@ -213,6 +212,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     # Add zero for zero line
     if 'zero' not in base_chart.data.columns:
         base_chart.data['zero'] = 0
+
     # Axis limits
     minmax = [float(data['lower interval'].min()), 0,
               float(data['higher interval'].max())]
@@ -234,7 +234,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     else:
         raise ValueError(f'error type should be band or bar, you asked for {error_type}')
 
-    chart_posterior_err = err.encode(
+    chart_posterior_err95 = err.encode(
         x=x,
         y=alt.Y('lower interval:Q',
                 scale=scale,
@@ -243,16 +243,16 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         y2='higher interval:Q',
         **kwargs
     )
-    if error_type == 'band':  # Add 75% HDI
-        chart_posterior_err += err.encode(
-            x=x,
-            y=alt.Y('lower interval75:Q',
-                    scale=scale,
-                    axis=alt.Axis(orient='left', title='')
-                    ),
-            y2='higher interval75:Q',
-            **kwargs
-        )
+
+    chart_posterior_err75 = err.encode(
+        x=x,
+        y=alt.Y('lower interval75:Q',
+                scale=scale,
+                axis=alt.Axis(orient='left', title='')
+                ),
+        y2='higher interval75:Q',
+        **kwargs
+    )
 
     # Make the zero line
     title = f'Δ {title}'
@@ -304,7 +304,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             **kwargs
         )
 
-    return chart_posterior_err, chart_posterior_center, chart_zero
+    return chart_posterior_err95, chart_posterior_err75, chart_posterior_center, chart_zero
 
 
 def plot_data_slope_trials(x,

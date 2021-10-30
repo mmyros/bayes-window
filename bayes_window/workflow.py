@@ -430,7 +430,7 @@ class BayesWindow:
 
             self.chart_base_posterior = base_chart
             # No-data plot
-            (self.chart_posterior_whiskers,
+            (self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
              self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
@@ -443,7 +443,8 @@ class BayesWindow:
                 self.chart_posterior_hdi_no_data = alt.layer(*plot_posterior(df=main_effect, title=f'{self.y}', x=x,
                                                                              do_make_change=self.do_make_change))
 
-            self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_center)
+            self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
+                                                 self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
             self.charts.append(self.chart_posterior_center)
             self.charts.append(self.chart_zero)

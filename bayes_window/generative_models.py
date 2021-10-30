@@ -228,7 +228,7 @@ def fake_spikes_explore(df, df_monster, index_cols):
     # mean firing rate per trial per mouse (select first and last mouse)
     alt.data_transformers.disable_max_rows()
     fig_select = alt.Chart(df[(df['neuron'] == '0') |
-                              (df['neuron'] == str(df['neuron'].astype(int).max().astype(int) - 1))]).mark_line(
+                              (df['neuron'] == str(df['neuron'].astype(int).max() - 1))]).mark_line(
         fill=None, ).encode(
         x=alt.X('stim:O'),
         y=alt.Y('mean(log_firing_rate)', scale=alt.Scale(zero=False)),
