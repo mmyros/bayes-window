@@ -199,7 +199,8 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
 
 
 def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type='bar',
-                   **kwargs: object):
+                   row=None, column=None,  # noqa
+                   **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
     if x[-2] != ':':
