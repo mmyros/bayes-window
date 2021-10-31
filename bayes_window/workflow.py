@@ -405,8 +405,12 @@ class BayesWindow:
             x = f'{x}:O'
         if color[-2] != ':':
             color = f'{color}:N'
-        # posterior = self.data_and_posterior  # TODO fix data_and_posterior
-        posterior = self.posterior['slope_per_condition']
+        if 'slope_per_condition' in self.posterior.keys():
+            posterior = self.posterior['slope_per_condition']
+        elif ['mu_intercept_per_group'] in self.posterior.keys():
+            posterior = self.posterior['mu_intercept_per_group']  # TODO fix data_and_posterior
+        else:
+            posterior = self.data_and_posterior
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
             add_x_axis = True
             x = f'{self.condition[0]}:O'

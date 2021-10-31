@@ -240,9 +240,9 @@ def test_estimate_posteriors_data_overlay_slope():
 
 
 def test_estimate_posteriors_data_overlay_indep_axes_slope():
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit_slopes(model=models.model_hierarchical)
-    chart = window.plot_posteriors_no_slope(independent_axes=True)
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_hierarchical)
+    chart = window.plot(independent_axes=True)
     chart.display()
     chart = window.facet(column='neuron', row='mouse')
     chart.display()
@@ -298,7 +298,7 @@ def test_plot_generic():
     window.fit_slopes(model=models.model_hierarchical)
     window.plot()
     # conditions:
-    window = BayesConditions(Bayesdf, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_single)
     window.plot()
 
@@ -407,7 +407,7 @@ def test_chirp_data2():
 
 def test_conditions2():
     df.neuron = df.neuron.astype(int)
-    window = BayesConditions(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
 
     window.fit(model=models.model_single, num_chains=1)
     assert window.y in window.data_and_posterior
