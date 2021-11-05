@@ -14,6 +14,10 @@ from .visualization import plot_posterior
 
 class BayesRegression(BayesWindow):
 
+    def __init__(self, add_data=True, **kwargs):
+        super().__init__(add_data=add_data, **kwargs)
+
+
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
             do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
         self.model_args = kwargs

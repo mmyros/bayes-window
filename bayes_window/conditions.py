@@ -9,8 +9,8 @@ from sklearn.preprocessing import LabelEncoder
 
 class BayesConditions(BayesWindow):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, add_data=False, **kwargs):
+        super().__init__(add_data=add_data, **kwargs)
 
     def fit(self, model=models.model_single, fit_fn=fit_numpyro, **kwargs):
 
