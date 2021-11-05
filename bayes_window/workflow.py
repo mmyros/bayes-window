@@ -405,7 +405,9 @@ class BayesWindow:
             x = f'{x}:O'
         if color[-2] != ':':
             color = f'{color}:N'
-        if 'slope_per_condition' in self.posterior.keys():
+        if self.posterior is None: # LME
+            posterior = self.data_and_posterior
+        elif 'slope_per_condition' in self.posterior.keys():
             posterior = self.posterior['slope_per_condition']
         elif ['mu_intercept_per_group'] in self.posterior.keys():
             posterior = self.posterior['mu_intercept_per_group']  # TODO fix data_and_posterior
