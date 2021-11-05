@@ -11,7 +11,6 @@ from altair import LayerChart, Chart
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
-from bayes_window.model_comparison import compare_models
 from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
@@ -156,6 +155,7 @@ class BayesWindow:
         )
 
     def explore_models(self, parallel=True, add_group_slope=False, **kwargs):
+        from bayes_window.model_comparison import compare_models
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
@@ -217,6 +217,7 @@ class BayesWindow:
             )
 
     def explore_model_kinds(self, parallel=True, add_group_slope=True, **kwargs):
+        from bayes_window.model_comparison import compare_models
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':

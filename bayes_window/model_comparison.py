@@ -6,9 +6,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bayes_window.lme import LMERegression
-from bayes_window.slopes import BayesRegression
-from bayes_window.workflow import BayesWindow
+from bayes_window import BayesRegression, LMERegression
 from bayes_window import models
 from bayes_window import utils
 from bayes_window.fitting import fit_numpyro
@@ -133,15 +131,15 @@ def plot_roc(df):
 
 
 def run_method(df, method='bw_student', y='Log power'):
-    bw = BayesWindow(df, y=y, treatment='stim', group='mouse', add_data=True)
+    args = dict(df=df, y=y, treatment='stim', group='mouse', add_data=True)
     if method[:2] == 'bw':
-        BayesRegression(bw).fit(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
+        bw = BayesRegression(**args).fit(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
         return bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
-        return LMERegression(bw).fit()  # Returns p-value
+        return LMERegression(**args).fit()  # Returns p-value
 
     elif method == 'mlm':
-        posterior = LMERegression(bw).fit().data_and_posterior
+        posterior = LMERegression(**args).fit().data_and_posterior
         try:
             return posterior['lower interval'].iloc[0]
         except AttributeError:

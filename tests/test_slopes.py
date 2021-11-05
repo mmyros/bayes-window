@@ -160,12 +160,12 @@ def test_two_groups():
     window.fit(model=models.model_hierarchical, add_group2_slope=True)
 
 
-def test_inheritance():
-    window = BayesWindow(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window = BayesRegression(window)
-    window.fit(model=models.model_hierarchical)
-    chart = window.plot(x='neuron', independent_axes=False)
-    chart.display()
+# def test_inheritance():
+#     window = BayesWindow(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+#     window = BayesRegression(window)
+#     window.fit(model=models.model_hierarchical)
+#     chart = window.plot(x='neuron', independent_axes=False)
+#     chart.display()
 
 
 def test_estimate_posteriors_data_overlay_slope():
