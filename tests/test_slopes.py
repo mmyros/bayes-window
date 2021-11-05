@@ -3,7 +3,7 @@ from pathlib import Path
 from bayes_window import BayesWindow
 from bayes_window import models
 from bayes_window.conditions import BayesConditions
-from bayes_window.generative_models import *
+from bayes_window.generative_models import generate_spikes_stim_types,generate_fake_spikes,LabelEncoder, generate_fake_lfp
 from bayes_window.slopes import BayesRegression
 from bayes_window.visualization import plot_posterior
 

@@ -6,8 +6,9 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bayes_window import BayesRegression, LMERegression
-from bayes_window import BayesWindow
+from bayes_window.lme import LMERegression
+from bayes_window.slopes import BayesRegression
+from bayes_window.workflow import BayesWindow
 from bayes_window import models
 from bayes_window import utils
 from bayes_window.fitting import fit_numpyro
