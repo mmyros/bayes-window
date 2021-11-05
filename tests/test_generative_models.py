@@ -1,4 +1,4 @@
-from bayes_window import BayesWindow
+from bayes_window import BayesRegression
 from bayes_window.generative_models import generate_spikes_stim_strength
 
 
@@ -9,6 +9,6 @@ def test_generate_spikes_stim_strength():
                                        n_mice=4,
                                        dur=2, )
 
-    window = BayesWindow(df, 'isi', treatment='stim_strength', condition='neuron')
-    window.fit_slopes()
-    window.chart
+    window = BayesRegression(df=df, y='isi', treatment='stim_strength', condition='neuron')
+    window.fit()
+    window.chart.display()
