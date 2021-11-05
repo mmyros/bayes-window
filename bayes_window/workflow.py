@@ -8,13 +8,14 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
 from altair import LayerChart, Chart
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
 from bayes_window.model_comparison import compare_models
 from bayes_window.visualization import plot_posterior
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
@@ -31,6 +32,7 @@ class BayesWindow:
     chart_base_posterior: Chart
     charts_for_facet: List[Any]
     chart_posterior_hdi_no_data: LayerChart
+    add_data: bool
 
     def __init__(self,
                  df: pd.DataFrame,
@@ -39,7 +41,8 @@ class BayesWindow:
                  condition: str or list = None,
                  group: str = None,
                  group2: str = None,
-                 detail=':O'
+                 detail=':O',
+                 add_data=False
                  ):
         try:
             az.plots.backends.output_notebook(hide_banner=True)
@@ -50,6 +53,7 @@ class BayesWindow:
         assert treatment in df.columns
         if group:
             assert group in df.columns
+        self.add_data=add_data
         self.treatment = treatment  # if type(treatment)=='list' else [treatment]  # self.levels[2]
         self.group = group  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
         self.group2 = group2  # if type(group)=='list' else [group] # self.levels[1]  # Eg subject
@@ -398,14 +402,18 @@ class BayesWindow:
         #     # import traceback
         #     # traceback.(e)
 
-    def regression_charts(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None, **kwargs):
+    def regression_charts(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
+                          add_data=None,
+                          **kwargs):
 
         # Set some options
         if (x == '') or (x[-2] != ':'):
             x = f'{x}:O'
         if color[-2] != ':':
             color = f'{color}:N'
-        if self.posterior is None: # LME
+        if add_data is None:
+            add_data = self.add_data
+        if add_data or self.posterior is None:  # LME
             posterior = self.data_and_posterior
         elif 'slope_per_condition' in self.posterior.keys():
             posterior = self.posterior['slope_per_condition']
@@ -568,7 +576,6 @@ class BayesWindow:
         # 3. Overlay with
         self.chart_data_detail
         # 4. color by dimension of slope (condition (and group if self.group))
-
 
     def plot(self, **kwargs):
         # Convenience function

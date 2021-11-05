@@ -82,9 +82,10 @@ class BayesConditions(BayesWindow):
         elif len(self.condition) > 1:
             color = color or self.condition[1]
         # TODO default for detail
+        posterior = self.data_and_posterior if self.add_data else self.posterior['mu_per_condition']
         chart_p = None
-        if self.posterior is not None:
-            base_chart = alt.Chart(self.posterior['mu_per_condition'])  # TODO self.data_and_posterior is broken
+        if posterior is not None:
+            base_chart = alt.Chart(posterior)  # TODO self.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
                                                               do_make_change=False,

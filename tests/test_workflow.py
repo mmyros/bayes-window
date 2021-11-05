@@ -1,10 +1,10 @@
 from pathlib import Path
 
 from bayes_window import models
+from bayes_window.conditions import BayesConditions
 from bayes_window.generative_models import *
 from bayes_window.visualization import plot_posterior
 from bayes_window.workflow import BayesWindow
-from bayes_window.conditions import BayesConditions
 
 trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
@@ -63,7 +63,8 @@ def test_slopes(do_make_change, detail):
 
 
 def test_estimate_posteriors():
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition=['neuron_x_mouse', 'i_trial', ], group='mouse', )
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition=['neuron_x_mouse', 'i_trial', ],
+                             group='mouse', )
     window.fit(model=models.model_single)
 
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )
@@ -98,7 +99,8 @@ def test_plot():
 
 @mark.parametrize('add_condition_slope', [True, False])
 def test_estimate_posteriors_slope(add_condition_slope):
-    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'neuron_x_mouse'], group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'neuron_x_mouse'], group='mouse',
+                         add_data=True)
     window.fit_slopes(models.model_hierarchical, add_condition_slope=add_condition_slope)
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
@@ -122,7 +124,7 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
     df = df.drop(df[(df['i_trial'] == 0) &
                     # (df['neuron_x_mouse'] == '0m0bayes') &
                     (df['stim'] == 0)].index)
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
     window.fit_slopes(models.model_hierarchical, do_make_change='divide')
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
@@ -133,7 +135,7 @@ def test_estimate_posteriors_slope_uneven_n_data_per_condition():
 
 @mark.parametrize('add_group_slope', [False, True])
 def test_estimate_posteriors_slope_groupslope(add_group_slope):
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
     window.fit_slopes(models.model_hierarchical, add_group_slope=add_group_slope, add_group_intercept=True)
 
     chart = window.plot(x='neuron', column='neuron', row='mouse')
@@ -166,7 +168,8 @@ def test_estimate_posteriors_two_conditions():
                                     n_mice=4,
                                     dur=2, )
 
-    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse', )
+    window = BayesWindow(df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse',
+                         add_data=True)
     window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False)
     for condition_name in window.condition:
         assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
@@ -227,13 +230,14 @@ def test_fit_slopes():
 
 
 def test_plot_slopes():
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
     window.fit_slopes(model=models.model_hierarchical)
     window.plot()
 
 
 def test_plot_slopes_2levelslope():
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse')
+    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
+                         add_data=True)
     window.fit_slopes(model=models.model_hierarchical, add_group_slope=True)
     window.plot().display()
 
@@ -353,7 +357,8 @@ def test_chirp_data2():
     window = BayesWindow(df, y='Log power',
                          treatment='stim_on',
                          condition=['Condition code'],
-                         group='Subject')
+                         group='Subject',
+                         add_data=True)
     window.fit_slopes(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',
         'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], do_mean_over_trials=True, num_chains=1,
                       n_draws=100, num_warmup=100)
@@ -362,7 +367,7 @@ def test_chirp_data2():
 
 def test_conditions2():
     df.neuron = df.neuron.astype(int)
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
 
     window.fit(model=models.model_single, num_chains=1)
     assert window.y in window.data_and_posterior
@@ -400,12 +405,28 @@ def random_tests():
     window.facet(column='neuron', row='mouse')
 
 
+# def test_group_slope(): #TODO
+#     window = BayesWindow(df, y='isi', treatment='stim',
+#                          condition='neuron_x_mouse',
+#                          group='mouse',
+#                          detail='i_trial', add_data=True
+#                          )
+#     window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
+#                       add_condition_slope=True,
+#                       add_group_slope=True
+#                       )
+
+
 def test_data_replacement1():
-    window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
-                         detail='i_trial')
+    window = BayesWindow(df, y='isi', treatment='stim',
+                         condition='neuron_x_mouse',
+                         group='mouse',
+                         detail='i_trial', add_data=True
+                         )
     window.fit_slopes(model=models.model_hierarchical, do_make_change='subtract',
                       add_condition_slope=True,
-                      add_group_slope=True)
+                      # add_group_slope=True
+                      )
     assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
                'mouse'].unique().size == 4
 
@@ -438,7 +459,7 @@ def test_data_replacement1():
 
 @mark.parametrize('do_make_change', [False, 'subtract'])
 def test_plot_slopes_intercepts(do_make_change):
-    window = BayesWindow(dfl, y='Power', treatment='stim', group='mouse')
+    window = BayesWindow(dfl, y='Power', treatment='stim', group='mouse', add_data=True)
     # Fit:
     window.fit_slopes(model=models.model_hierarchical, add_group_intercept=True,
                       add_group_slope=False, robust_slopes=False,
