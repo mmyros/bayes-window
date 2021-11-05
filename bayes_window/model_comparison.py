@@ -131,7 +131,7 @@ def plot_roc(df):
 
 
 def run_method(df, method='bw_student', y='Log power'):
-    bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse')
+    bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse', add_data=True)
     if method[:2] == 'bw':
         bw.fit_slopes(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
         return bw.data_and_posterior['lower interval'].iloc[0]
