@@ -409,7 +409,7 @@ class BayesWindow:
             posterior = self.data_and_posterior
         elif 'slope_per_condition' in self.posterior.keys():
             posterior = self.posterior['slope_per_condition']
-        elif ['mu_intercept_per_group'] in self.posterior.keys():
+        elif 'mu_intercept_per_group' in self.posterior.keys():
             posterior = self.posterior['mu_intercept_per_group']  # TODO fix data_and_posterior
         else:
             posterior = self.data_and_posterior
