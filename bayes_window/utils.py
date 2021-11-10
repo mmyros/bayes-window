@@ -258,7 +258,7 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_
     # Check
     var_names = trace.to_dataframe().reset_index().columns
     if var_names.str.contains('_dim_0').any():
-        raise NameError(f'Unhandled dimension {var_names[var_names.str.contains("_dim_0")]}')
+        warnings.warn(f'Unhandled dimension {var_names[var_names.str.contains("_dim_0")]}')
     return trace
 
 

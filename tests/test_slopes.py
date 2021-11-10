@@ -6,7 +6,8 @@ from bayes_window.conditions import BayesConditions
 from bayes_window.generative_models import generate_spikes_stim_types,generate_fake_spikes,LabelEncoder, generate_fake_lfp
 from bayes_window.slopes import BayesRegression
 from bayes_window.visualization import plot_posterior
-
+import altair as alt
+import pandas as pd
 trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
 
