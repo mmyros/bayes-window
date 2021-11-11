@@ -4,13 +4,13 @@ from importlib import reload
 from typing import List, Any
 
 import altair as alt
-import arviz as az
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
-from sklearn.preprocessing import LabelEncoder
 
 reload(visualization)
 reload(utils)
@@ -131,25 +131,11 @@ class BayesWindow:
 
     def facet(self, width=150, height=160, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
-        if self.independent_axes is None:
+        if not hasattr(self, 'independent_axes') or self.independent_axes is None:
             # TODO let's not force users to plot. have a sensible default
             raise RuntimeError('Plot first, then you can use facet')
-        if self.independent_axes:
+        elif self.independent_axes:
             facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         else:
             facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
         return facetchart
-
-    def plot_model_quality(self, var_names=None, **kwargs):
-        assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
-        az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
-        az.plot_pair(
-            self.trace,
-            var_names=var_names,
-            kind="hexbin",
-            # coords=coords,
-            colorbar=False,
-            divergences=True,
-            # backend="bokeh",
-        )
-

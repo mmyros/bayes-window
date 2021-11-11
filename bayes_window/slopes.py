@@ -1,3 +1,4 @@
+import arviz as az
 import warnings
 from importlib import reload
 from typing import List, Any
@@ -33,7 +34,7 @@ class BayesRegression:
     trace: xr.Dataset
 
     def __init__(self, window=None, add_data=True, **kwargs):
-        window = window or BayesWindow(**kwargs)
+        window = window if window is None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
 
@@ -467,3 +468,16 @@ class BayesRegression:
                             **kwargs
                             )
         return window_step_two
+
+    def plot_model_quality(self, var_names=None, **kwargs):
+        assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
+        az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
+        az.plot_pair(
+            self.trace,
+            var_names=var_names,
+            kind="hexbin",
+            # coords=coords,
+            colorbar=False,
+            divergences=True,
+            # backend="bokeh",
+        )

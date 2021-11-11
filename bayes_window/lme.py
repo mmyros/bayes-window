@@ -27,7 +27,7 @@ class LMERegression:
     posterior: dict
 
     def __init__(self, window=None, add_data=True, **kwargs):
-        window = window or BayesWindow(**kwargs)
+        window = window if window is None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
         self.independent_axes = False
