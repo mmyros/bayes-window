@@ -453,7 +453,7 @@ def test_plot_slopes_intercepts(do_make_change):
     # %
 
     window.plot_intercepts(x='mouse').display()
-    chart_intercepts = window.posterior_intercept
+    chart_intercepts = window.chart_posterior_intercept
     chart_intercepts.display()
 
 

@@ -20,7 +20,7 @@ class BayesRegression:
     chart_data_line: alt.Chart
     chart_posterior_kde: alt.Chart
     chart_zero: alt.Chart
-    posterior_intercept: alt.Chart
+    chart_posterior_intercept: alt.Chart
     chart: alt.Chart
     chart_data_boxplot: alt.Chart
     chart_posterior_whiskers: alt.Chart
@@ -276,9 +276,9 @@ class BayesRegression:
         self.window.data_box_detail(data=data_and_posterior, autofacet=False)
 
         # Make stand-alone posterior intercept chart:
-        self.posterior_intercept = visualization.posterior_intercept_chart(data_and_posterior,
-                                                                           x=x, y=y,
-                                                                           group=self.window.group)
+        self.chart_posterior_intercept = visualization.posterior_intercept_chart(data_and_posterior,
+                                                                                 x=x, y=y,
+                                                                                 group=self.window.group)
         # Redo chart_intercept with x=treatment for overlay with self.chart_data_box_detail:
         chart_intercept = visualization.posterior_intercept_chart(data_and_posterior,
                                                                   x=':O', y=y,
