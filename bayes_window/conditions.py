@@ -85,7 +85,7 @@ class BayesConditions(BayesWindow):
         # TODO default for detail
 
         # Determine wheteher to use self.data_and_posterior or self.posterior
-        if hasattr(self, 'posterior') and self.posterior is None:
+        if not hasattr(self, 'posterior') or self.posterior is None:
             add_data = True  # Otherwise nothing to do
             base_chart = alt.Chart(self.data)
             posterior = None
@@ -115,7 +115,7 @@ class BayesConditions(BayesWindow):
                                                            detail=detail,
                                                            base_chart=base_chart)
 
-            if self.data_and_posterior is None:
+            if not hasattr(self, 'data_and_posterior') or self.data_and_posterior is None:
                 self.chart = chart_d  # we're done
             else:
                 self.chart = chart_p + chart_d
