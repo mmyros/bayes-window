@@ -1,13 +1,16 @@
 from pathlib import Path
 
+import altair as alt
+import pandas as pd
+
 from bayes_window import BayesWindow
 from bayes_window import models
 from bayes_window.conditions import BayesConditions
-from bayes_window.generative_models import generate_spikes_stim_types,generate_fake_spikes,LabelEncoder, generate_fake_lfp
+from bayes_window.generative_models import generate_spikes_stim_types, generate_fake_spikes, LabelEncoder, \
+    generate_fake_lfp
 from bayes_window.slopes import BayesRegression
 from bayes_window.visualization import plot_posterior
-import altair as alt
-import pandas as pd
+
 trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
 
@@ -61,7 +64,7 @@ def test_slopes(do_make_change, detail):
     window.fit(model=models.model_hierarchical, do_make_change=do_make_change, )
     # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse'))
     window.chart.display()
-    window.chart_data_box_detail.display()
+    window.window.chart_data_box_detail.display()
 
 
 def test_plot():
@@ -140,12 +143,13 @@ def test_estimate_posteriors_two_conditions():
                                     n_mice=4,
                                     dur=2, )
 
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron', 'stim_strength'], group='mouse',
-                             add_data=True)
-    window.fit(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False)
-    for condition_name in window.condition:
-        assert condition_name in window.data_and_posterior.columns, f'{condition_name} not in window.condition'
-    chart = window.plot(x='neuron', column='neuron', row='mouse')
+    regression = BayesRegression(BayesWindow(df=df, y='isi', treatment='stim',
+                                             condition=['neuron', 'stim_strength'], group='mouse',
+                                             add_data=True))
+    regression.fit(model=models.model_hierarchical, fold_change_index_cols=None, do_mean_over_trials=False)
+    for condition_name in regression.window.condition:
+        assert condition_name in regression.data_and_posterior.columns, f'{condition_name} not in window.condition'
+    chart = regression.plot(x='neuron', column='neuron', row='mouse')
     chart.display()
 
 
@@ -161,12 +165,12 @@ def test_two_groups():
     window.fit(model=models.model_hierarchical, add_group2_slope=True)
 
 
-# def test_inheritance():
-#     window = BayesWindow(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-#     window = BayesRegression(window)
-#     window.fit(model=models.model_hierarchical)
-#     chart = window.plot(x='neuron', independent_axes=False)
-#     chart.display()
+def test_inheritance():
+    window = BayesWindow(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesRegression(window)
+    window.fit(model=models.model_hierarchical)
+    chart = window.plot(x='neuron', independent_axes=False)
+    chart.display()
 
 
 def test_estimate_posteriors_data_overlay_slope():
