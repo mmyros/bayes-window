@@ -6,7 +6,6 @@ from typing import List, Any
 import altair as alt
 import numpy as np
 import pandas as pd
-from altair import LayerChart, Chart
 
 from bayes_window import models, BayesWindow
 from bayes_window import utils
@@ -17,21 +16,22 @@ from .visualization import plot_posterior
 
 class BayesRegression:
     b_name: str
-    chart_data_line: Chart
-    chart_posterior_kde: Chart
-    chart_zero: Chart
-    posterior_intercept: Chart
-    chart: Chart
-    chart_data_boxplot: Chart
-    chart_posterior_whiskers: Chart
-    chart_posterior_center: Chart
-    chart_base_posterior: Chart
+    chart_data_line: alt.Chart
+    chart_posterior_kde: alt.Chart
+    chart_zero: alt.Chart
+    posterior_intercept: alt.Chart
+    chart: alt.Chart
+    chart_data_boxplot: alt.Chart
+    chart_posterior_whiskers: alt.Chart
+    chart_posterior_center: alt.Chart
+    chart_base_posterior: alt.Chart
     charts_for_facet: List[Any]
-    chart_posterior_hdi_no_data: LayerChart
+    chart_posterior_hdi_no_data: alt.LayerChart
     add_data: bool
     data_and_posterior: pd.DataFrame
     posterior: dict
     trace: xr.Dataset
+
 
     def __init__(self, window=None, add_data=True, **kwargs):
         window = window or BayesWindow(**kwargs)
