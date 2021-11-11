@@ -215,48 +215,4 @@ class BayesWindow:
                 **kwargs
             )
 
-    def explore_model_kinds(self, parallel=True, add_group_slope=True, **kwargs):
-        from bayes_window.model_comparison import compare_models
-        if self.b_name is None:
-            raise ValueError('Fit a model first')
-        elif self.b_name == 'mu_per_condition':
-            return compare_models(df=self.data,
-                                  models={
-                                      'no_condition': self.model,
-                                  },
-                                  extra_model_args=[
-                                      {'condition': None},
-                                  ],
-                                  y=self.y,
-                                  parallel=True,
-                                  **kwargs
-                                  )
-        elif 'slope' in self.b_name:
-            models = {
-                'full': self.model,
-                'no_condition': self.model,
-                'no_condition_or_treatment': self.model,
-                'no-treatment': self.model,
-                'no_group': self.model,
-            }
-            extra_model_args = [
-                {'treatment': self.treatment, 'condition': self.condition, 'group': self.group},
-                {'treatment': self.treatment, 'condition': None},
-                {'treatment': None, 'condition': None},
-                {'treatment': None, 'condition': self.condition},
-                {'treatment': self.treatment, 'condition': self.condition, 'group': None},
-            ]
-            if add_group_slope and self.group is not None:
-                models['with_group_slope'] = self.model
-                # add_group_slope is False by default in model_hierarchical
-                extra_model_args.extend([{'treatment': self.treatment, 'condition': self.condition, 'group': self.group,
-                                          'add_group_slope': True}])
-            return compare_models(
-                df=self.data,
-                models=models,
-                extra_model_args=extra_model_args,
-                y=self.y,
-                parallel=parallel,
-                dist_y=self.model_args['dist_y'] if self.model_args else None,
-                **kwargs
-            )
+

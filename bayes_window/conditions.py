@@ -80,10 +80,10 @@ class BayesConditions:
             for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']}
 
         # Fill posterior into data
-        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                   group=self.window.group,
-                                                                   group2=self.window.group2,
-                                                                   data=self.window.original_data.copy())
+        self.window.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                          group=self.window.group,
+                                                                          group2=self.window.group2,
+                                                                          data=self.window.original_data.copy())
 
         self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
                                                 self.window.original_data,
@@ -108,18 +108,18 @@ class BayesConditions:
             color = color or self.window.condition[1]
         # TODO default for detail
 
-        # Determine wheteher to use self.data_and_posterior or self.posterior
+        # Determine wheteher to use self.window.data_and_posterior or self.posterior
         if not hasattr(self, 'posterior') or self.posterior is None:
             add_data = True  # Otherwise nothing to do
             base_chart = alt.Chart(self.window.data)
             posterior = None
         elif self.window.add_data:
-            posterior = self.data_and_posterior
+            posterior = self.window.data_and_posterior
         else:
             posterior = self.posterior['mu_per_condition']
         chart_p = None
         if posterior is not None:
-            base_chart = alt.Chart(posterior)  # TODO self.data_and_posterior is broken
+            base_chart = alt.Chart(posterior)  # TODO self.window.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
                                                               do_make_change=False,
@@ -139,7 +139,7 @@ class BayesConditions:
                                                            detail=detail,
                                                            base_chart=base_chart)
 
-            if not hasattr(self, 'data_and_posterior') or self.data_and_posterior is None:
+            if not hasattr(self, 'data_and_posterior') or self.window.data_and_posterior is None:
                 self.chart = chart_d  # we're done
             else:
                 self.chart = chart_p + chart_d
@@ -174,3 +174,21 @@ class BayesConditions:
             rope=(-1, 1),
             ref_val=0
         )
+
+    def explore_model_kinds(self, **kwargs):
+        from bayes_window.model_comparison import compare_models
+        if self.b_name is None:
+            raise ValueError('Fit a model first')
+        else:
+            assert self.b_name == 'mu_per_condition'
+            return compare_models(df=self.window.data,
+                                  models={
+                                      'no_condition': self.model,
+                                  },
+                                  extra_model_args=[
+                                      {'condition': None},
+                                  ],
+                                  y=self.window.y,
+                                  parallel=True,
+                                  **kwargs
+                                  )
