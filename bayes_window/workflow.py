@@ -7,7 +7,6 @@ import altair as alt
 import arviz as az
 import numpy as np
 import pandas as pd
-from altair import LayerChart, Chart
 from bayes_window import models
 from bayes_window import utils
 from bayes_window import visualization
@@ -19,15 +18,15 @@ reload(models)
 
 
 class BayesWindow:
-    chart_zero: Chart
-    posterior_intercept: Chart
-    chart: Chart
-    chart_data_boxplot: Chart
-    chart_posterior_whiskers: Chart
-    chart_posterior_center: Chart
-    chart_base_posterior: Chart
+    chart_zero: alt.Chart
+    posterior_intercept: alt.Chart
+    chart: alt.Chart
+    chart_data_boxplot: alt.Chart
+    chart_posterior_whiskers: alt.Chart
+    chart_posterior_center: alt.Chart
+    chart_base_posterior: alt.Chart
     charts_for_facet: List[Any]
-    chart_posterior_hdi_no_data: LayerChart
+    chart_posterior_hdi_no_data: alt.LayerChart
     add_data: bool
 
     def __init__(self,

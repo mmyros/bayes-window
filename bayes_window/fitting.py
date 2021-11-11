@@ -10,7 +10,6 @@ import arviz as az
 import jax
 import numpyro
 import numpyro.optim as optim
-from jax import random
 from numpyro.infer import MCMC, NUTS
 from numpyro.infer import SVI, Trace_ELBO
 from numpyro.infer.autoguide import AutoLaplaceApproximation
@@ -52,7 +51,7 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
                 num_warmup=num_warmup, num_samples=n_draws, num_chains=num_chains, progress_bar=progress_bar,
                 chain_method='parallel'
                 )
-    mcmc.run(random.PRNGKey(16), **kwargs)
+    mcmc.run(jax.random.PRNGKey(16), **kwargs)
 
     # arviz convert
     try:
@@ -87,15 +86,15 @@ def fit_svi(model, n_draws=1000,
         **kwargs
     )
     # Experimental interface:
-    param, loss = svi.run(random.PRNGKey(0), num_steps=num_warmup, stable_update=True,
+    param, loss = svi.run(jax.random.PRNGKey(0), num_steps=num_warmup, stable_update=True,
                           progress_bar=False)
-    post = guide.sample_posterior(random.PRNGKey(1), param, (1, n_draws))
+    post = guide.sample_posterior(jax.random.PRNGKey(1), param, (1, n_draws))
 
     # Old interface:
-    # init_state = svi.init(random.PRNGKey(0))
+    # init_state = svi.init(jax.random.PRNGKey(0))
     # state, loss = lax.scan(lambda x, i: svi.update(x), init_state, jnp.zeros(n_draws))#, length=num_warmup)
     # svi_params = svi.get_params(state)
-    # post = guide.sample_posterior(random.PRNGKey(1), svi_params, (1, n_draws))
+    # post = guide.sample_posterior(jax.random.PRNGKey(1), svi_params, (1, n_draws))
 
     trace = az.from_dict(post)
     return trace
