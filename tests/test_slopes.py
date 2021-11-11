@@ -311,8 +311,8 @@ def test_single_condition_nodata_dists(dist):
 
 
 def test_chirp_data():
-    df = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
-    window = BayesRegression(df=df, y='Log power',
+    dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
+    window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
                              condition='Condition code',
                              group='Subject')
@@ -324,8 +324,8 @@ def test_chirp_data():
 
 
 def test_chirp_data1():
-    df = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
-    window = BayesRegression(df=df, y='Log power',
+    dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
+    window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
                              condition=['Stim phase', 'Inversion'],
                              group='Subject')
@@ -337,8 +337,8 @@ def test_chirp_data1():
 
 
 def test_chirp_data2():
-    df = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
-    window = BayesRegression(df=df, y='Log power',
+    dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
+    window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
                              condition=['Condition code'],
                              group='Subject',

@@ -68,8 +68,8 @@ class BayesWindow:
         self.b_name = None  # Depends on model we'll fit
         self.do_make_change = None  # Depends on plotting input
         self.independent_axes = None
-        self.data_and_posterior = None
-        self.posterior = None
+        # self.data_and_posterior = None
+        # self.posterior = None
         self.trace = None
         self.model = None
         self.group2 = None

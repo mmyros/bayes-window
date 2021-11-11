@@ -34,12 +34,12 @@ def test_fit_lme_w_condition():
                                                                     mouse_response_slope=12,
                                                                     overall_stim_response_strength=45)
     try:
-        window = LMERegression(df=df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
-        assert window.fit().data_and_posterior is not None
-        window.plot(x=window.condition[0]).display()
-        window.plot(x='neuron_x_mouse').display()
-        window.facet(column='neuron_x_mouse', width=300).display()
-        assert len(window.charts) > 0
+        reg = LMERegression(df=df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
+        assert reg.fit().data_and_posterior is not None
+        reg.plot(x=reg.window.condition[0]).display()
+        reg.plot(x='neuron_x_mouse').display()
+        reg.facet(column='neuron_x_mouse', width=300).display()
+        assert len(reg.charts) > 0
     except LinAlgError as e:
         print(e)
 

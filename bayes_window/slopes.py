@@ -1,3 +1,4 @@
+import xarray as xr
 import warnings
 from importlib import reload
 from typing import List, Any
@@ -15,6 +16,7 @@ from .visualization import plot_posterior
 
 
 class BayesRegression:
+    b_name: str
     chart_data_line: Chart
     chart_posterior_kde: Chart
     chart_zero: Chart
@@ -29,6 +31,7 @@ class BayesRegression:
     add_data: bool
     data_and_posterior: pd.DataFrame
     posterior: dict
+    trace: xr.Dataset
 
     def __init__(self, window=None, add_data=True, **kwargs):
         window = window or BayesWindow(**kwargs)
@@ -43,9 +46,9 @@ class BayesRegression:
         if not add_condition_slope:
             warnings.warn(
                 f'add_condition_slope is not requested. Slopes will be the same across {self.window.condition}')
-        if self.window.b_name is not None:
-            raise SyntaxError("A model is already present in this BayesWindow object. "
-                              "Please create a new one by calling BayesWindow(...) again")
+        # if self.b_name is not None:
+        #     raise SyntaxError("A model is already present in this BayesWindow object. "
+        #                       "Please create a new one by calling BayesWindow(...) again")
         self.window.do_make_change = do_make_change
         self.window.model = model
         if fold_change_index_cols is None:
@@ -58,7 +61,7 @@ class BayesRegression:
             add_condition_slope = self.window.condition[0] and (
                     np.unique(self.window.data['combined_condition']).size > 1)
             fold_change_index_cols.append('combined_condition')
-        self.window.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
+        self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
         if add_condition_slope and (not self.window.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.window.condition
              if not (condition in fold_change_index_cols)]
@@ -87,14 +90,14 @@ class BayesRegression:
                 print(e)
 
         reload(utils)
-        self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.window.b_name,
+        self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
                                                       posterior_index_name='combined_condition',
                                                       group_name=self.window.group, group2_name=self.window.group2)
 
         # HDI and MAP:
         self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
                                                  prefix=f'{var} '
-                                                 if (var != self.window.b_name) and (
+                                                 if (var != self.b_name) and (
                                                          var != 'slope_per_condition') else '')
                           for var in self.trace.posterior.data_vars}
 
@@ -163,8 +166,8 @@ class BayesRegression:
                                                                             do_make_change=self.window.do_make_change)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
-            if (self.window.b_name != 'lme') and (type(self.posterior) == dict):
-                main_effect = (self.posterior[self.window.b_name] if self.posterior[self.window.b_name] is not None
+            if (self.b_name != 'lme') and (type(self.posterior) == dict):
+                main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
                                else self.posterior['slope_per_condition'])
                 self.chart_posterior_hdi_no_data = alt.layer(
                     *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
@@ -176,7 +179,7 @@ class BayesRegression:
             self.charts.append(self.chart_posterior_center)
             self.charts.append(self.chart_zero)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
-            if (self.window.b_name != 'lme') and not add_x_axis:
+            if (self.b_name != 'lme') and not add_x_axis:
                 # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
@@ -184,7 +187,7 @@ class BayesRegression:
                 self.chart_posterior_kde = visualization.plot_posterior_density(base_chart, self.window.y, y_domain,
                                                                                 self.trace,
                                                                                 posterior,
-                                                                                self.window.b_name,
+                                                                                self.b_name,
                                                                                 do_make_change=self.window.do_make_change)
                 self.charts.append(self.chart_posterior_kde)
                 # self.charts_for_facet.append(self.chart_posterior_kde) # kde cannot be faceted
@@ -308,7 +311,7 @@ class BayesRegression:
                                  **kwargs)
             except KeyError:
                 return self.plot(x=self.window.condition[0], row=self.window.condition[1], **kwargs)
-        elif self.window.condition[0] and self.window.b_name != 'lme':
+        elif self.window.condition[0] and self.b_name != 'lme':
             try:
                 return self.plot(x=self.window.condition[0], column=self.window.group, **kwargs)
             except KeyError:
@@ -320,6 +323,9 @@ class BayesRegression:
         #     print(f'Please use window.regression_charts(): {e}')
         #     # import traceback
         #     # traceback.(e)
+
+    def facet(self, **kwargs):
+        return BayesWindow.facet(self, **kwargs)
 
 #     def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
 #         if self.detail not in self.window.condition:

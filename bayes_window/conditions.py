@@ -1,10 +1,11 @@
 import altair as alt
 import arviz as az
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
-from sklearn.preprocessing import LabelEncoder
 
 
 class BayesConditions(BayesWindow):
@@ -84,10 +85,10 @@ class BayesConditions(BayesWindow):
         # TODO default for detail
 
         # Determine wheteher to use self.data_and_posterior or self.posterior
-        if self.posterior is None:
+        if hasattr(self, 'posterior') and self.posterior is None:
             add_data = True  # Otherwise nothing to do
             base_chart = alt.Chart(self.data)
-            posterior=None
+            posterior = None
         elif self.add_data:
             posterior = self.data_and_posterior
         else:
@@ -105,7 +106,6 @@ class BayesConditions(BayesWindow):
                                                               ))
             if not add_data:  # done
                 self.chart = chart_p
-
 
         if add_data:
             # Make data plot:
