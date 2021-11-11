@@ -34,7 +34,7 @@ class BayesRegression:
     trace: xr.Dataset
 
     def __init__(self, window=None, add_data=True, **kwargs):
-        window = window if window is None else BayesWindow(**kwargs)
+        window = window if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
 
