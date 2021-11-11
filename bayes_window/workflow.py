@@ -7,7 +7,6 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as sm
-from altair import LayerChart, Chart
 from sklearn.preprocessing import LabelEncoder
 
 from bayes_window import models
@@ -23,15 +22,15 @@ reload(models)
 
 
 class BayesWindow:
-    chart_zero: Chart
-    posterior_intercept: Chart
-    chart: Chart
-    chart_data_boxplot: Chart
-    chart_posterior_whiskers: Chart
-    chart_posterior_center: Chart
-    chart_base_posterior: Chart
+    chart_zero: alt.Chart
+    posterior_intercept: alt.Chart
+    chart: alt.Chart
+    chart_data_boxplot: alt.Chart
+    chart_posterior_whiskers: alt.Chart
+    chart_posterior_center: alt.Chart
+    chart_base_posterior: alt.Chart
     charts_for_facet: List[Any]
-    chart_posterior_hdi_no_data: LayerChart
+    chart_posterior_hdi_no_data: alt.LayerChart
     add_data: bool
 
     def __init__(self,
@@ -226,9 +225,9 @@ class BayesWindow:
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.y} ~ 1+ {self.condition}(condition_index) | {self.treatment}"
                 # Combined condition
-                self.data, self._key = utils.combined_condition(self.data.copy(), self.condition)
-                self.condition = ['combined_condition']
-                self.original_data = self.data.copy()
+                # self.data, self._key = utils.combined_condition(self.data.copy(), self.condition)
+                # self.condition = ['combined_condition']
+                # self.original_data = self.data.copy()
 
             # Make dummy variables for each level in condition:
             self.data = pd.concat((self.data,
