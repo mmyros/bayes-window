@@ -33,7 +33,7 @@ class LMERegression:
         self.independent_axes = False
 
     def fit(self, do_make_change='divide', add_interaction=False, add_data=False, formula=None,
-            add_group_intercept=True, add_group_slope=False, add_nested_group=False):
+            add_group_intercept=True, add_group_slope=False, add_nested_group=False, **kwargs):
         # model = MixedLM(endog=self.window.data[self.window.y],
         #                 exog=self.window.data[self.window.condition],
         #                 groups=self.window.data[self.window.group],
