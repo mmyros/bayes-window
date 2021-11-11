@@ -102,9 +102,9 @@ class BayesRegression:
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                          data=df_data.copy(),
-                                                                          group=self.window.group,
-                                                                          group2=self.window.group2)
+                                                                   data=df_data.copy(),
+                                                                   group=self.window.group,
+                                                                   group2=self.window.group2)
 
         try:
             self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
@@ -411,52 +411,59 @@ class BayesRegression:
                 **kwargs
             )
 
-#     def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
-#         if self.detail not in self.window.condition:
-#             self.window.condition += [self.detail]
-#         window_step_one = self.fit_conditions(dist_y=dist_y_step_one)
+    def fit_twostep(self, dist_y_step_one='gamma', **kwargs):
+        from bayes_window import BayesConditions
+        if self.window.detail not in self.window.condition:
+            self.window.condition += [self.window.detail]
+        window_step_one = BayesConditions(dist_y=dist_y_step_one)
 
-#         window_step_two = BayesWindow(window_step_one.posterior['mu_per_condition'],
-#                                       y='center interval', treatment=self.window.treatment,
-#                                       condition=list(set(self.window.condition) - {self.window.treatment, self.window.group, self.detail}),
-#                                       group=self.window.group, detail=self.detail)
-#         window_step_two.window_step_one = window_step_one
-#         window_step_two.fit_slopes(model=models.model_hierarchical,
-#                                    **kwargs
-#                                    # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
-#                                    )
+        window_step_two = BayesRegression(df=window_step_one.posterior['mu_per_condition'],
+                                          y='center interval', treatment=self.window.treatment,
+                                          condition=list(
+                                              set(self.window.condition) -
+                                              {self.window.treatment, self.window.group,
+                                               self.window.detail}),
+                                          group=self.window.group, detail=self.window.detail)
+        window_step_two.window_step_one = window_step_one
+        window_step_two.fit(model=models.model_hierarchical,
+                            **kwargs
+                            # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse')
+                            )
 
-#         return window_step_two
+        return window_step_two
 
-#     def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
-#         from joblib import Parallel, delayed
-#         assert self.detail is not None
+    def fit_twostep_by_group(self, dist_y_step_one='gamma', groupby=None, dist_y='student', parallel=True, **kwargs):
+        from joblib import Parallel, delayed
+        from bayes_window import BayesConditions
+        assert self.window.detail is not None
 
-#         def fit_subset(df_m_n, i):
-#             window_step_one = BayesWindow(df_m_n, y=self.window.y, treatment=self.window.treatment,
-#                                           condition=[self.detail], group=self.window.group)
-#             window_step_one.fit_conditions(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
-#             posterior = window_step_one.posterior['mu_per_condition'].copy()
-#             posterior[groupby] = i
-#             return posterior
+        def fit_subset(df_m_n, i):
+            window_step_one = BayesConditions(df=df_m_n, y=self.window.y, treatment=self.window.treatment,
+                                              condition=[self.window.detail], group=self.window.group)
+            window_step_one.fit(dist_y=dist_y_step_one, n_draws=1000, num_chains=1)
+            posterior = window_step_one.posterior['mu_per_condition'].copy()
+            posterior[groupby] = i
+            return posterior
 
-#         groupby = groupby or self.window.condition[0]
-#         if parallel:
-#             step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
-#                                                        for i, df_m_n in self.window.data.groupby(groupby))
-#         else:
-#             from tqdm import tqdm
-#             step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.window.data.groupby(groupby))]
+        groupby = groupby or self.window.condition[0]
+        if parallel:
+            step1_res = Parallel(n_jobs=12, verbose=1)(delayed(fit_subset)(df_m_n, i)
+                                                       for i, df_m_n in self.window.data.groupby(groupby))
+        else:
+            from tqdm import tqdm
+            step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.window.data.groupby(groupby))]
 
-#         window_step_two = BayesWindow(pd.concat(step1_res).rename({'center interval': self.window.y}, axis=1),
-#                                       y=self.window.y, treatment=self.window.treatment,
-#                                       condition=list(set(self.window.condition) - {self.window.treatment, self.window.group, self.detail}),
-#                                       group=self.window.group, detail=self.detail)
-#         window_step_two.fit_slopes(model=models.model_hierarchical,
-#                                    dist_y=dist_y,
-#                                    robust_slopes=False,
-#                                    add_group_intercept=False,
-#                                    add_group_slope=False,
-#                                    **kwargs
-#                                    )
-#         return window_step_two
+        window_step_two = BayesRegression(pd.concat(step1_res).rename({'center interval': self.window.y}, axis=1),
+                                          y=self.window.y, treatment=self.window.treatment,
+                                          condition=list(
+                                              set(self.window.condition) - {self.window.treatment, self.window.group,
+                                                                            self.window.detail}),
+                                          group=self.window.group, detail=self.window.detail)
+        window_step_two.fit(model=models.model_hierarchical,
+                            dist_y=dist_y,
+                            robust_slopes=False,
+                            add_group_intercept=False,
+                            add_group_slope=False,
+                            **kwargs
+                            )
+        return window_step_two
