@@ -25,9 +25,6 @@ trans = LabelEncoder().fit_transform
 
 def make_confusion_matrix(res, groups):
     df = []
-    # Error check:
-    for score in res['score'].iloc[1:]:
-        assert type(score) == np.float64, f'{type(score)} in  \n{res["score"]}'
     for _, this_res in res.groupby(list(groups)):
         this_res['score'] = this_res['score'].replace({'': None}).astype(float)
         this_res['true_slope'] = this_res['true_slope'] > 0
@@ -185,11 +182,6 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
     else:
         res = [run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False)
                for true_slope, n_trials, randomness in tqdm(conditions)]
-
-
-    # Error check:
-    for score in res['score']:
-        assert type(score) == np.float64, f'{type(score)} in  \n{res["score"]}'
 
     return pd.concat(res)
 
