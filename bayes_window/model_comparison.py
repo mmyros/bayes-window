@@ -25,6 +25,9 @@ trans = LabelEncoder().fit_transform
 
 def make_confusion_matrix(res, groups):
     df = []
+    # Error check:
+    for score in res['score'].iloc[1:]:
+        assert type(score) == np.float64, f'{type(score)} in  \n{res["score"]}'
     for _, this_res in res.groupby(list(groups)):
         this_res['score'] = this_res['score'].replace({'': None}).astype(float)
         this_res['true_slope'] = this_res['true_slope'] > 0
@@ -134,16 +137,19 @@ def run_method(df, method='bw_student', y='Log power'):
     args = dict(df=df, y=y, treatment='stim', group='mouse', add_data=True)
     if method[:2] == 'bw':
         bw = BayesRegression(**args).fit(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
-        return bw.data_and_posterior['lower interval'].iloc[0]
+        result = bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
-        return LMERegression(**args).fit()  # Returns p-value
+        result = LMERegression(**args).fit_anova()  # Returns p-value
 
     elif method == 'mlm':
         posterior = LMERegression(**args).fit().data_and_posterior
         try:
-            return posterior['lower interval'].iloc[0]
+            result = posterior['lower interval'].iloc[0]
         except AttributeError:
-            return posterior['lower interval']
+            result = posterior['lower interval']
+
+    assert type(result) in (np.float64, np.bool_, np.float, float)
+    return result
 
 
 def run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False):
@@ -179,6 +185,11 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
     else:
         res = [run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False)
                for true_slope, n_trials, randomness in tqdm(conditions)]
+
+
+    # Error check:
+    for score in res['score'].iloc[1:]:
+        assert type(score) == np.float64, f'{type(score)} in  \n{res["score"]}'
 
     return pd.concat(res)
 

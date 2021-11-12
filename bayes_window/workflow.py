@@ -129,12 +129,12 @@ class BayesWindow:
                                        y=self.y,
                                        **kwargs)[0]
 
-    def facet(self, width=150, height=160, **kwargs):
+    def facet(self, width=150, height=160, independent_axes=False, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'
-        if not hasattr(self, 'independent_axes') or self.independent_axes is None:
+        if not hasattr(self, 'chart') or self.chart is None:
             # TODO let's not force users to plot. have a sensible default
             raise RuntimeError('Plot first, then you can use facet')
-        elif self.independent_axes:
+        elif independent_axes or type(self.chart) == alt.LayerChart:
             facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         else:
             facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
