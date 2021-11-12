@@ -134,8 +134,14 @@ class BayesWindow:
         if not hasattr(self, 'chart') or self.chart is None:
             # TODO let's not force users to plot. have a sensible default
             raise RuntimeError('Plot first, then you can use facet')
+        elif type(self.chart.data) != pd.DataFrame:
+            facetchart = visualization.facet(alt.layer(*self.charts_for_facet), width=width, height=height, **kwargs)
         elif independent_axes or type(self.chart) == alt.LayerChart:
             facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         else:
-            facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
+            try:
+                facetchart = self.chart.properties(width=width, height=height).facet(**kwargs)
+            except ValueError as e:
+                assert 'Facet charts require' in str(e)
+                facetchart = visualization.facet(self.chart, width=width, height=height, **kwargs)
         return facetchart
