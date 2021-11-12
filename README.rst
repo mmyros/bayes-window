@@ -28,23 +28,8 @@ Pretty and easy hierarchical Bayesian or linear mixed effects estimation with da
 
 
 * Free software: MIT license
-* Documentation: https://bayes-window.readthedocs.io.
+* Documentation: https://mmyros.github.io/bayes-book/index.html
 
-TODO
-----
-- Replace dummified `self.posterior` axes with original without filling in data
-- Fit checks for LME under plot_diagnostics()
-- Posterior predictive to mimic data plot
-- Shade slope HDI
-- Less haphazard testing
-- Shrinkage layer: Should be as easy as alt.layer with unpooled model
-   - Make sure + works well with facet
-- Prior predictive and posterior predictive plots
-- wait for resolution to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
-- delete facet attribute of chart if independent_axes=True - how? Ask in altair github
-- Random-effect plots (eg intercepts): bw.plot_extras?
-   - see lfp notebook
-- Decide on Vega theme
 
 INSTALLATION
 ------------
@@ -56,4 +41,17 @@ or cudaXXX from `nvcc --version`
 Features
 --------
 
-See extensive examples https://bayes-window.readthedocs.io/en/latest/index.html
+See extensive examples https://mmyros.github.io/bayes-book/index.html
+
+
+
+TODO
+----
+- Fit checks for LME under plot_diagnostics()
+- Posterior predictive to mimic data plot
+- Less haphazard testing
+- Shrinkage layer: Should be as easy as alt.layer with unpooled model
+- Prior predictive and posterior predictive plots
+- wait for resolution to https://github.com/vega/vega-lite/issues/4373#issuecomment-447726094
+- Random-effect plots (eg intercepts): bw.plot_extras?
+- Decide on Vega theme
