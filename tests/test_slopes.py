@@ -448,7 +448,7 @@ def test_plot_slopes_intercepts(do_make_change):
     window.fit(model=models.model_hierarchical, add_group_intercept=True,
                add_group_slope=False, robust_slopes=False,
                do_make_change=do_make_change, dist_y='gamma', num_chains=1,
-               n_draws=100, num_warmup=100);
+               n_draws=100, num_warmup=500);
 
     # %
 
