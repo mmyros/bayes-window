@@ -123,18 +123,20 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         max_a_p = calculate_point_estimate('auto', posterior.values.flatten(), bw="default", circular=circular)
 
         hdi95 = pd.DataFrame({f'{prefix}higher interval': hdi95.loc['higher', var_name],
-                            f'{prefix}lower interval': hdi95.loc['lower', var_name],
-                            f'{prefix}center interval': max_a_p,
-                            },
-                           index=[0])
+                              f'{prefix}lower interval': hdi95.loc['lower', var_name],
+                              f'{prefix}center interval': max_a_p,
+                              },
+                             index=[0])
     else:
         # The dimension name, other than draws and chains (eg mouse)
         # Take the last dimension name. If there is more than one dimension in the data, this may be problematic
         dims = posterior.dims
-        dim = [dim for dim in dims if ('_dim_' not in dim and dim[-1]!='_')][-1]
-        if len(posterior.dims)>3:
+        # dims = list(set(dims) - {'chain', 'draw'})
+        dim = [dim for dim in dims if ('_dim_' not in dim #and dim[-1] != '_'
+                                       ) and dim not in ['chain', 'draw']][-1]
+        if len(posterior.dims) > 3:
             print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
-                          f"a problem. If you made a new numpyro model, look in utils.rename posterior() ")
+                  f"a problem. If you made a new numpyro model, look in utils.rename_posterior() ")
             print(posterior)
             print(dims)
             print(dim)
@@ -251,6 +253,8 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_
         trace = trace.rename({'mu_intercept_per_treatment_dim_1': 'combined_condition_'})
     if f'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({'mu_intercept_per_group_dim_0': group_name})
+    if f'slope_per_condition_dim_0' in trace:
+        trace = trace.rename({'slope_per_condition_dim_0': f"combined_condition"})  # underscore so it doesnt conflict
     if f'slope_per_group_dim_0' in trace:
         trace = trace.rename({'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
     if f'slope_per_group2_dim_0' in trace:

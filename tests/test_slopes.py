@@ -182,7 +182,7 @@ def test_estimate_posteriors_data_overlay_slope():
 
 
 def test_estimate_posteriors_data_overlay_indep_axes_slope():
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_hierarchical)
     chart = window.plot(independent_axes=True)
     chart.display()
@@ -354,7 +354,7 @@ def test_conditions2():
     window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
 
     window.fit(model=models.model_single, num_chains=1)
-    assert window.y in window.data_and_posterior
+    assert window.window.y in window.data_and_posterior
     window.plot(x='stim:O', independent_axes=False, add_data=True)
 
 

@@ -4,11 +4,12 @@ import altair as alt
 import arviz as az
 import pandas as pd
 import xarray as xr
+from sklearn.preprocessing import LabelEncoder
+
 from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
-from sklearn.preprocessing import LabelEncoder
 
 
 class BayesConditions:
@@ -73,17 +74,23 @@ class BayesConditions:
                                                       )
 
         # HDI and MAP:
-        self.posterior = {var: utils.get_hdi_map(
-            self.trace.posterior[var],
-            prefix=f'{var} ' if (var != self.b_name) and
-                                (var not in ['slope_per_condition']) else '')
-            for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']}
+        # self.posterior = {var: utils.get_hdi_map(
+        #     self.trace.posterior[var],
+        #     prefix=f'{var} ' if (var != self.b_name) #and (var not in ['slope_per_condition'])
+        #                         and (self.trace.posterior[var] is not None) else '')
+        #     for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']} \
+        self.posterior={}
+        for var in self.trace.posterior.data_vars:
+            if var in ['mu_intercept_per_treatment'] or (self.trace.posterior[var] is None):
+                continue
+            self.posterior[var] = utils.get_hdi_map(self.trace.posterior[var],
+                                                    prefix=f'{var} ' if (var != self.b_name) else '')
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                          group=self.window.group,
-                                                                          group2=self.window.group2,
-                                                                          data=self.window.original_data.copy())
+                                                                   group=self.window.group,
+                                                                   group2=self.window.group2,
+                                                                   data=self.window.original_data.copy())
 
         self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
                                                 self.window.original_data,
@@ -115,8 +122,10 @@ class BayesConditions:
             posterior = None
         elif self.window.add_data:
             posterior = self.data_and_posterior
-        else:
+        elif 'mu_per_condition' in self.posterior.keys():
             posterior = self.posterior['mu_per_condition']
+        else:
+            posterior = self.data_and_posterior
         chart_p = None
         if posterior is not None:
             base_chart = alt.Chart(posterior)  # TODO self.data_and_posterior is broken
@@ -215,7 +224,6 @@ class BayesConditions:
                                   parallel=True,
                                   **kwargs
                                   )
-
 
     def plot_model_quality(self, var_names=None, **kwargs):
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
