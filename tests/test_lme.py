@@ -1,5 +1,5 @@
 from bayes_window.generative_models import *
-from bayes_window.workflow import BayesWindow
+from bayes_window.lme import LMERegression
 
 trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
@@ -19,9 +19,9 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
 
 
 def test_fit_lme():
-    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
-    window.fit_lme()
-    window.regression_charts()
+    window = LMERegression(df=dfl, y='Log power', treatment='stim', group='mouse')
+    window.fit()
+    window.plot()
     # window.facet(row='mouse') # currently group is coded as a random variable
 
 
@@ -34,30 +34,30 @@ def test_fit_lme_w_condition():
                                                                     mouse_response_slope=12,
                                                                     overall_stim_response_strength=45)
     try:
-        window = BayesWindow(df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
-        assert window.fit_lme().data_and_posterior is not None
-        window.regression_charts(x=window.condition[0]).display()
-        window.plot(x='neuron_x_mouse').display()
-        window.facet(column='neuron_x_mouse', width=300).display()
-        assert len(window.charts) > 0
+        reg = LMERegression(df=df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse', )
+        assert reg.fit().data_and_posterior is not None
+        reg.plot(x=reg.window.condition[0]).display()
+        reg.plot(x='neuron_x_mouse').display()
+        reg.facet(column='neuron_x_mouse', width=300).display()
+        assert len(reg.charts) > 0
     except LinAlgError as e:
         print(e)
 
 
 def test_fit_lme_w_data():
-    window = BayesWindow(dfl, y='Log power', treatment='stim', group='mouse')
-    window.fit_lme(do_make_change='divide')
+    window = LMERegression(df=dfl, y='Log power', treatment='stim', group='mouse')
+    window.fit(do_make_change='divide')
     assert window.data_and_posterior is not None
-    window.regression_charts().display()
+    window.plot().display()
 
 
 # @mark.parametrize('add_data', [False]) # Adding data to LME does not work
 def test_fit_lme_w_data_condition():
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
 
-    window = BayesWindow(df, y='isi', treatment='stim', group='mouse',
+    window = LMERegression(df=df, y='isi', treatment='stim', group='mouse',
                          condition='neuron_x_mouse')
 
-    window.fit_lme(do_make_change='divide', )
-    window.regression_charts().display()
+    window.fit(do_make_change='divide', )
+    window.plot().display()
     window.facet(column='neuron_x_mouse', width=300).display()

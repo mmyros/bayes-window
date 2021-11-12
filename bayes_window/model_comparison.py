@@ -6,6 +6,11 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from bayes_window import BayesRegression, LMERegression
+from bayes_window import models
+from bayes_window import utils
+from bayes_window.fitting import fit_numpyro
+from bayes_window.generative_models import generate_fake_lfp
 from jax import random
 from joblib import Parallel, delayed
 from numpyro.infer import Predictive
@@ -14,11 +19,6 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
-
-from bayes_window import utils
-from bayes_window import workflow, models
-from bayes_window.fitting import fit_numpyro
-from bayes_window.generative_models import generate_fake_lfp
 
 trans = LabelEncoder().fit_transform
 
@@ -131,19 +131,22 @@ def plot_roc(df):
 
 
 def run_method(df, method='bw_student', y='Log power'):
-    bw = workflow.BayesWindow(df, y=y, treatment='stim', group='mouse', add_data=True)
+    args = dict(df=df, y=y, treatment='stim', group='mouse', add_data=True)
     if method[:2] == 'bw':
-        bw.fit_slopes(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
-        return bw.data_and_posterior['lower interval'].iloc[0]
+        bw = BayesRegression(**args).fit(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
+        result = bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
-        return bw.fit_anova()  # Returns p-value
+        result = LMERegression(**args).fit_anova()  # Returns p-value
 
     elif method == 'mlm':
-        posterior = bw.fit_lme().data_and_posterior
+        posterior = LMERegression(**args).fit().data_and_posterior
         try:
-            return posterior['lower interval'].iloc[0]
+            result = posterior['lower interval'].iloc[0]
         except AttributeError:
-            return posterior['lower interval']
+            result = posterior['lower interval']
+
+    assert type(result) in (np.float64, np.bool_, np.float, float)
+    return result
 
 
 def run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False):
@@ -215,7 +218,7 @@ def split_train_predict(df, model, y, **kwargs):
     mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1, n_draws=2000)
 
     if mcmc.num_samples < 50:
-        raise IndexError( f"Bug in numpyro? :{mcmc.num_samples, model_args}")
+        raise IndexError(f"Bug in numpyro? :{mcmc.num_samples, model_args}")
 
     ppc = Predictive(model, parallel=False, num_samples=2000, batch_ndims=2)
     ppc = ppc(random.PRNGKey(17), **model_args)

@@ -6,7 +6,7 @@ import pytest
 
 # from click.testing import CliRunner
 
-from bayes_window import bayes_window
+from bayes_window import workflow
 from bayes_window import cli
 
 
