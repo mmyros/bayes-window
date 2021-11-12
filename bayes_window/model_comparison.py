@@ -188,7 +188,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
 
 
     # Error check:
-    for score in res['score'].iloc[1:]:
+    for score in res['score']:
         assert type(score) == np.float64, f'{type(score)} in  \n{res["score"]}'
 
     return pd.concat(res)
