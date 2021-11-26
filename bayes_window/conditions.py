@@ -31,7 +31,7 @@ class BayesConditions:
     trace: xr.Dataset
     independent_axes: bool
 
-    def __init__(self, window=None, add_data=False, **kwargs):
+    def __init__(self, window=None, add_data=True, **kwargs):
         window = window if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
@@ -44,6 +44,9 @@ class BayesConditions:
         # add all levels into condition
         # if self.window.group and self.window.group not in self.window.condition:
         #    self.window.condition += [self.window.group]
+
+        if not self.window.condition[0]:
+            self.window.condition = [self.window.treatment]
         if self.window.treatment not in self.window.condition:
             self.window.condition += [self.window.treatment]
 
@@ -186,7 +189,7 @@ class BayesConditions:
                        ridgeplot_alpha=.5
                        )
 
-    def compare_conditions(self, query=None):
+    def plot_BEST(self, query=None, rope=(-1, 1)):
         """
         eg query = 'opsin=="chr2" & delay_length==60'
         """
@@ -197,7 +200,7 @@ class BayesConditions:
             (trace_post_query.sel({self.window.treatment: 1}) - 
              trace_post_query.sel({self.window.treatment: 0})),
             'mu_per_condition',
-            rope=(-1, 1),
+            rope=rope,
             ref_val=0
         )
 

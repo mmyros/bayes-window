@@ -114,6 +114,10 @@ class BayesRegression:
         except Exception as e:
             print(e)
 
+        self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
+                                                  self.window.original_data,
+                                                  self.window.condition)
+
         self.default_regression_charts()
         return self
 
@@ -480,4 +484,12 @@ class BayesRegression:
             colorbar=False,
             divergences=True,
             # backend="bokeh",
+        )
+
+    def plot_BEST(self):
+        az.plot_posterior(
+            self.trace.posterior,
+            'slope',
+            rope=(-.01, .01),
+            ref_val=0
         )
