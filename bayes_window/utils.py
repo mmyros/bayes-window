@@ -208,11 +208,9 @@ def recode_posterior(posteriors, levels, data, original_data, condition):
 def recode_trace(traces, levels, data, original_data, condition):
     # Recode index variables to their original state
     recoded_traces = []
-    for p_name, trace0 in traces.data_vars.items():
-        trace = recode(trace0.to_dataframe().reset_index(), levels, data, original_data, condition)
-        recoded_traces.append(
-            trace.set_index(list(set(levels).intersection(trace0.coords))).to_xarray()[p_name] if set(levels).intersection(trace0.coords) else trace0
-            )
+    for p_name in traces.data_vars:
+        trace = recode(traces[p_name].to_dataframe().reset_index(), levels, data, original_data, condition)
+        recoded_traces.append(trace.set_index(list(set(trace.columns)-{p_name} -{'combined_condition'} )).to_xarray()[p_name])
     return xr.merge(recoded_traces)
 
 
