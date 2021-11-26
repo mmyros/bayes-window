@@ -96,6 +96,10 @@ class BayesConditions:
                                                 self.window.original_data,
                                                 self.window.condition)
 
+        self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
+                                                self.window.original_data,
+                                                self.window.condition)
+
         return self
 
     def plot(self,
@@ -160,26 +164,39 @@ class BayesConditions:
 
         return self.chart
 
-    def query_posterior(self, query):
-        query_combined_condition = self.posterior['mu_per_condition'].query(query)['combined_condition']
-        posterior_post_query = self.trace.posterior['mu_per_condition'].sel(
-            combined_condition=slice(query_combined_condition.min(),
-                                     query_combined_condition.max()))
-        return posterior_post_query
+    def query_posterior(trace, posterior, query=None):
+        # Query posterior since we have access to sane conditions there:
+        query_combined_condition = posterior['mu_per_condition']
+
+        # Restrict if requested:
+        if query:
+            query_combined_condition = query_combined_condition.query(query)
+
+        # Use posterior query to Select only min and max of combined condition:
+        trace_post_query = trace.posterior['mu_per_condition'].sel(
+            combined_condition=slice(query_combined_condition['combined_condition'].min(),
+                                     query_combined_condition['combined_condition'].max()))
+        return trace_post_query
 
     def forest(self, query='opsin=="chr2" & delay_length==60'):
-        posterior_post_query = self.query_posterior(query)
-        az.plot_forest(posterior_post_query,
+        trace_post_query = self.query_posterior(query) if query else self.trace.posterior['mu_per_condition']
+        az.plot_forest(trace_post_query,
                        combined=True,
                        kind='ridgeplot',
                        ridgeplot_alpha=.5
                        )
 
-    def compare_conditions(self, query='opsin=="chr2" & delay_length==60'):
-        posterior_post_query = self.query_posterior(query)
+    def compare_conditions(self, query=None):
+        """
+        eg query = 'opsin=="chr2" & delay_length==60'
+        """
+        trace_post_query = self.query_posterior(query, self.trace.posterior) if query else self.trace.posterior
+        # TODO querying trace.posterior will have to wait for replacing actual values of index with originals
+        #trace_post_query = trace.query()
         az.plot_posterior(
-            posterior_post_query.sel(combined_condition=posterior_post_query['combined_condition'].max()) -
-            posterior_post_query.sel(combined_condition=posterior_post_query['combined_condition'].max() - 1),
+            (trace_post_query.sel({self.window.treatment: 1}) - 
+             trace_post_query.sel({self.window.treatment: 0})),
+            'mu_per_condition',
             rope=(-1, 1),
             ref_val=0
         )

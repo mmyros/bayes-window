@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from arviz.plots.plot_utils import calculate_point_estimate
 from sklearn.preprocessing import LabelEncoder
+import xarray as xr
 
 
 def level_to_data_column(level_name, kwargs):
@@ -176,31 +177,43 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         hdi95 = hdi95.join(hdi75)
     return hdi95
 
+def recode(posterior, levels, data, original_data, condition):
+    """ This is really a replace operation on a dataframe. """
+    for column in levels + ['combined_condition']:
+        if column not in posterior.columns:
+            continue
+
+        if column == 'combined_condition':
+            original_columns = condition
+        else:
+            original_columns = [column]
+
+        for i, val in posterior[column].iteritems():
+            original_data_index = data[data[column] == val].index
+            original_vals = original_data.loc[original_data_index, original_columns]
+            if original_vals.shape[0] == 0:
+                continue
+            # for col in original_vals.columns:
+            #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
+            posterior.loc[i, original_columns] = original_vals.iloc[0].values
+    return posterior
+
 
 def recode_posterior(posteriors, levels, data, original_data, condition):
     # Recode index variables to their original state
-    recoded_posteriors = dict()
-    for p_name, posterior in posteriors.items():
+    return {p_name: recode(posterior, levels, data, original_data, condition) 
+            for p_name, posterior in posteriors.items()}
 
-        for column in levels + ['combined_condition']:
-            if column not in posterior.columns:
-                continue
 
-            if column == 'combined_condition':
-                original_columns = condition
-            else:
-                original_columns = [column]
-
-            for i, val in posterior[column].iteritems():
-                original_data_index = data[data[column] == val].index
-                original_vals = original_data.loc[original_data_index, original_columns]
-                if original_vals.shape[0] == 0:
-                    continue
-                # for col in original_vals.columns:
-                #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
-                posterior.loc[i, original_columns] = original_vals.iloc[0].values
-        recoded_posteriors[p_name] = posterior
-    return recoded_posteriors
+def recode_trace(traces, levels, data, original_data, condition):
+    # Recode index variables to their original state
+    recoded_traces = []
+    for p_name, trace0 in traces.data_vars.items():
+        trace = recode(trace0.to_dataframe().reset_index(), levels, data, original_data, condition)
+        recoded_traces.append(
+            trace.set_index(list(set(levels).intersection(trace0.coords))).to_xarray()[p_name] if set(levels).intersection(trace0.coords) else trace0
+            )
+    return xr.merge(recoded_traces)
 
 
 def insert_posterior_into_data(posteriors, data, group, group2):

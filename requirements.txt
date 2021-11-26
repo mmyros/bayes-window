@@ -8,6 +8,7 @@ bulwark
 xarray
 altair
 jax
+jaxlib
 # jaxlib==0.1.51
 pandas
 arviz
