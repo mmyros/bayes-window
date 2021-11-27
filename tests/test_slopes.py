@@ -217,6 +217,7 @@ def test_plot_slopes():
     window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
     window.fit(model=models.model_hierarchical)
     window.plot()
+    window.plot_BEST()
 
 
 def test_plot_slopes_2levelslope():

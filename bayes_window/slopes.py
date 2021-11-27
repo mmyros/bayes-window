@@ -2,6 +2,8 @@ import arviz as az
 import warnings
 from importlib import reload
 from typing import List, Any
+from copy import copy
+
 
 import altair as alt
 import numpy as np
@@ -34,7 +36,7 @@ class BayesRegression:
     trace: xr.Dataset
 
     def __init__(self, window=None, add_data=True, **kwargs):
-        window = window if window is not None else BayesWindow(**kwargs)
+        window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
 
@@ -486,10 +488,21 @@ class BayesRegression:
             # backend="bokeh",
         )
 
-    def plot_BEST(self):
-        az.plot_posterior(
-            self.trace.posterior,
-            'slope',
-            rope=(-.01, .01),
-            ref_val=0
-        )
+    def plot_BEST(self, rope=(-.01, .01), **kwargs):
+        if 'slope' in self.trace.posterior.data_vars:
+            az.plot_posterior(
+                self.trace.posterior,
+                'slope',
+                rope=rope,
+                ref_val=0
+            )
+        elif 'slope_per_condition' in self.trace.posterior.data_vars:
+            az.plot_posterior(
+                self.trace.posterior,
+                'slope_per_condition',
+                rope=rope,
+                ref_val=0
+            )            
+        else:
+            raise KeyError(f'No "slope" or "slope_per_condition" in posterior: {self.trace.posterior.data_vars}')
+

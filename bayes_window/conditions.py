@@ -10,7 +10,7 @@ from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
-
+from copy import copy
 
 class BayesConditions:
     b_name: str
@@ -32,7 +32,7 @@ class BayesConditions:
     independent_axes: bool
 
     def __init__(self, window=None, add_data=True, **kwargs):
-        window = window if window is not None else BayesWindow(**kwargs)
+        window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
 
@@ -102,6 +102,14 @@ class BayesConditions:
         self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
                                                 self.window.original_data,
                                                 self.window.condition)
+
+        # Make slope from conditions to emulate regression:
+        self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel({self.window.treatment: 1}) - 
+                                         self.trace.posterior['mu_per_condition'].sel({self.window.treatment: 0}))
+
+        # HDI and MAP for slope:
+        self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
+                                                
 
         return self
 
@@ -189,7 +197,7 @@ class BayesConditions:
                        ridgeplot_alpha=.5
                        )
 
-    def plot_BEST(self, query=None, rope=(-1, 1)):
+    def plot_BEST(self, query=None, rope=(-1, 1), **kwargs):
         """
         eg query = 'opsin=="chr2" & delay_length==60'
         """
@@ -201,7 +209,8 @@ class BayesConditions:
              trace_post_query.sel({self.window.treatment: 0})),
             'mu_per_condition',
             rope=rope,
-            ref_val=0
+            ref_val=0,
+            **kwargs
         )
 
     def explore_models(self, **kwargs):

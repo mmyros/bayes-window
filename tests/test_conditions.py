@@ -28,6 +28,7 @@ def test_estimate_posteriors():
     chart.display()
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )
     chart.display()
+    #window.plot_BEST()
 
 
 def test_estimate_posteriors_data_overlay():

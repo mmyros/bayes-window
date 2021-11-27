@@ -6,7 +6,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bayes_window import BayesRegression, LMERegression
+from bayes_window import BayesRegression, LMERegression, BayesConditions
 from bayes_window import models
 from bayes_window import utils
 from bayes_window.fitting import fit_numpyro
@@ -135,6 +135,9 @@ def run_method(df, method='bw_student', y='Log power'):
     if method[:2] == 'bw':
         bw = BayesRegression(**args).fit(model=models.model_hierarchical, dist_y=method[3:], num_chains=1)
         result = bw.data_and_posterior['lower interval'].iloc[0]
+    elif method[:2] == 'bc':
+        bw = BayesConditions(**args).fit(model=models.model_single, dist_y=method[3:], num_chains=1)
+        result = bw.data_and_posterior['lower interval'].iloc[0]
     elif method[:5] == 'anova':
         result = LMERegression(**args).fit_anova()  # Returns p-value
 
@@ -177,7 +180,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    ys=('Log power',)):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
-        res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
+        res = Parallel(n_jobs=4)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
                                   for true_slope, n_trials, randomness in tqdm(conditions))
     else:
         res = [run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False)
