@@ -1,7 +1,6 @@
 import warnings
 
 import altair as alt
-import arviz as az
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
@@ -389,4 +388,3 @@ def auto_layer_and_facet(charts, charts_for_facet=None, independent_axes=True, *
     if facet_requested:
         chart = facet(chart, **kwargs)
     return chart
-

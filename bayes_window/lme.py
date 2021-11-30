@@ -63,9 +63,9 @@ class LMERegression:
                 # This would need a combined condition dummy variable and an index of condition in patsy:
                 # formula = f"{self.window.y} ~ 1+ {self.window.condition}(condition_index) | {self.window.treatment}"
                 # Combined condition
-                self.window.data, self._key = utils.combined_condition(self.window.data.copy(), self.window.condition)
-                self.window.condition = ['combined_condition']
-                self.window.original_data = self.window.data.copy()
+                # self.window.data, self._key = utils.combined_condition(self.window.data.copy(), self.window.condition)
+                # self.window.condition = ['combined_condition']
+                # self.window.original_data = self.window.data.copy()
 
             # Make dummy variables for each level in condition:
             self.window.data = pd.concat((self.window.data,
@@ -113,10 +113,10 @@ class LMERegression:
                                                          self.window.treatment)
         if add_data:
             raise NotImplementedError(f'No adding data to LME')
-            self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-                                                            self.window.condition[0], self.window.data,
-                                                            self.window.y, self.levels,
-                                                            self.window.treatment)
+            # self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
+            #                                                 self.window.condition[0], self.window.data,
+            #                                                 self.window.y, self.levels,
+            #                                                 self.window.treatment)
 
             # self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
             #                                               posterior_index_name='combined_condition',

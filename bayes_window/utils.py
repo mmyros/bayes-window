@@ -201,7 +201,7 @@ def recode(posterior, levels, data, original_data, condition):
 
 def recode_posterior(posteriors, levels, data, original_data, condition):
     # Recode index variables to their original state
-    return {p_name: recode(posterior, levels, data, original_data, condition) 
+    return {p_name: recode(posterior, levels, data, original_data, condition)
             for p_name, posterior in posteriors.items()}
 
 
@@ -496,3 +496,18 @@ def load_radon():
     # floor = srrs_mn.floor.values
 
     return pd.DataFrame({'county': srrs_mn.county, 'radon': srrs_mn.activity, 'floor': srrs_mn.floor.values})
+
+
+def query_posterior(trace, posterior, query=None):
+    # Query posterior since we have access to sane conditions there:
+    query_combined_condition = posterior['mu_per_condition']
+
+    # Restrict if requested:
+    if query:
+        query_combined_condition = query_combined_condition.query(query)
+
+    # Use posterior query to Select only min and max of combined condition:
+    trace_post_query = trace.posterior['mu_per_condition'].sel(
+        combined_condition=slice(query_combined_condition['combined_condition'].min(),
+                                 query_combined_condition['combined_condition'].max()))
+    return trace_post_query

@@ -148,10 +148,10 @@ class BayesRegression:
         else:
             add_x_axis = False
 
-        if (x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10:
-            long_x_axis = False
-        else:
-            long_x_axis = True
+        if not ((x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10):
+        #     long_x_axis = False
+        # else:
+        #     long_x_axis = True
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.window.independent_axes = independent_axes or f'{self.window.y} diff' in posterior
@@ -502,7 +502,7 @@ class BayesRegression:
                 'slope_per_condition',
                 rope=rope,
                 ref_val=0
-            )            
+            )
         else:
             raise KeyError(f'No "slope" or "slope_per_condition" in posterior: {self.trace.posterior.data_vars}')
 
