@@ -460,7 +460,7 @@ class BayesRegression:
             from tqdm import tqdm
             step1_res = [fit_subset(df_m_n, i) for i, df_m_n in tqdm(self.window.data.groupby(groupby))]
 
-        window_step_two = BayesRegression(pd.concat(step1_res).rename({'center interval': self.window.y}, axis=1),
+        window_step_two = BayesRegression(df=pd.concat(step1_res).rename({'center interval': self.window.y}, axis=1),
                                           y=self.window.y, treatment=self.window.treatment,
                                           condition=list(
                                               set(self.window.condition) - {self.window.treatment, self.window.group,
@@ -477,7 +477,10 @@ class BayesRegression:
 
     def plot_model_quality(self, var_names=None, **kwargs):
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
-        az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
+        try:
+            az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
+        except IndexError:
+            pass
         az.plot_pair(
             self.trace,
             var_names=var_names,

@@ -113,10 +113,10 @@ class LMERegression:
                                                          self.window.treatment)
         if add_data:
             raise NotImplementedError(f'No adding data to LME')
-            # self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
-            #                                                 self.window.condition[0], self.window.data,
-            #                                                 self.window.y, self.levels,
-            #                                                 self.window.treatment)
+            self.data_and_posterior = utils.add_data_to_lme(do_make_change, include_condition, self.posterior,
+                                                            self.window.condition[0], self.window.data,
+                                                            self.window.y, self.levels,
+                                                            self.window.treatment)
 
             # self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
             #                                               posterior_index_name='combined_condition',

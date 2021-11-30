@@ -26,7 +26,10 @@ trans = LabelEncoder().fit_transform
 def make_confusion_matrix(res, groups):
     df = []
     for _, this_res in res.groupby(list(groups)):
-        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        try:
+            this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        except TypeError:
+            pass
         this_res['true_slope'] = this_res['true_slope'] > 0
         this_res['score'] = this_res['score'] > 0
 
@@ -74,7 +77,10 @@ def make_roc_auc(res, binary=True, groups=('method', 'y', 'randomness', 'n_trial
     """ Vary as function of true_slope """
     df = []
     for head, this_res in res.groupby(list(groups)):
-        this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        try:
+            this_res['score'] = this_res['score'].replace({'': None}).astype(float)
+        except TypeError:
+            pass
         if binary:
             this_res['score'] = this_res['score'] > 0
         else:
@@ -180,7 +186,7 @@ def run_conditions(true_slopes=np.hstack([np.zeros(180), np.linspace(.03, 18, 14
                    ys=('Log power',)):
     conditions = list(product(true_slopes, n_trials, trial_baseline_randomness))
     if parallel:
-        res = Parallel(n_jobs=4)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
+        res = Parallel(n_jobs=12)(delayed(run_methods)(methods, ys, true_slope, n_trials, randomness, parallel=False)
                                   for true_slope, n_trials, randomness in tqdm(conditions))
     else:
         res = [run_methods(methods, ys, true_slope, n_trials, randomness, parallel=False)
