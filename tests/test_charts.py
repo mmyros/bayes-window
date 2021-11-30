@@ -1,8 +1,8 @@
 from bayes_window import BayesRegression, LMERegression
 from bayes_window import models
-from bayes_window.generative_models import *
+from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
 
-trans = LabelEncoder().fit_transform
+
 from bayes_window.utils import load_radon
 
 from pytest import mark

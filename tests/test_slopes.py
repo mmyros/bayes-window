@@ -6,12 +6,10 @@ import pandas as pd
 from bayes_window import BayesWindow
 from bayes_window import models
 from bayes_window.conditions import BayesConditions
-from bayes_window.generative_models import generate_spikes_stim_types, generate_fake_spikes, LabelEncoder, \
-    generate_fake_lfp
+from bayes_window.generative_models import generate_spikes_stim_types, generate_fake_spikes, generate_fake_lfp
 from bayes_window.slopes import BayesRegression
 from bayes_window.visualization import plot_posterior
 
-trans = LabelEncoder().fit_transform
 from bayes_window.utils import load_radon
 
 from pytest import mark
@@ -264,26 +262,26 @@ def test_facet():
 def test_single_condition_withdata():
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
     # Without data again
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
     # With data again
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
 def test_single_condition_nodata():
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
@@ -291,7 +289,7 @@ def test_single_condition_nodata():
 def test_single_condition_nodata_dists(dist):
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse', add_data=True)
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title=f'Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
@@ -384,7 +382,7 @@ def random_tests():
                              condition='neuron',
                              group='mouse')
     window.fit(model=models.model_hierarchical, num_chains=1)
-    c = window.plot(x='neuron', color='i_trial')
+    window.plot(x='neuron', color='i_trial')
 
     window.plot()  # x='Stim phase', color='Fid')#,independent_axes=True)
     window.facet(column='neuron', row='mouse')

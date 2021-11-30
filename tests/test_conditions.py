@@ -1,11 +1,9 @@
+import os
+
 from bayes_window import models
 from bayes_window.conditions import BayesConditions
-from bayes_window.generative_models import *
-
-trans = LabelEncoder().fit_transform
+from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
 from bayes_window.utils import load_radon
-
-import os
 
 os.environ['bayes_window_test_mode'] = 'True'
 
@@ -28,7 +26,7 @@ def test_estimate_posteriors():
     chart.display()
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )
     chart.display()
-    #window.plot_BEST()
+    # window.plot_BEST()
 
 
 def test_estimate_posteriors_data_overlay():

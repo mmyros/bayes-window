@@ -253,22 +253,22 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_
         trace = trace.rename({f'{b_name}_dim_0': posterior_index_name})
     if f'{b_name}_per_condition_dim_0' in trace:
         trace = trace.rename({f'{b_name}_per_condition_dim_0': posterior_index_name})
-    if f'intercept_per_condition_dim_0' in trace:
+    if 'intercept_per_condition_dim_0' in trace:
         trace = trace.rename(
             {f'intercept_per_condition_dim_0': f"{posterior_index_name}__"})  # underscore so it doesnt conflict
-    if f'mu_intercept_per_group_dim_0' in trace:
+    if 'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({'mu_intercept_per_group_dim_0': group_name})
-    if f'mu_intercept_per_treatment_dim_0' in trace:
+    if 'mu_intercept_per_treatment_dim_0' in trace:
         trace = trace.rename({'mu_intercept_per_treatment_dim_0': treatment_name})
-    if f'mu_intercept_per_treatment_dim_1' in trace:
+    if 'mu_intercept_per_treatment_dim_1' in trace:
         trace = trace.rename({'mu_intercept_per_treatment_dim_1': 'combined_condition_'})
-    if f'mu_intercept_per_group_dim_0' in trace:
+    if 'mu_intercept_per_group_dim_0' in trace:
         trace = trace.rename({'mu_intercept_per_group_dim_0': group_name})
-    if f'slope_per_condition_dim_0' in trace:
+    if 'slope_per_condition_dim_0' in trace:
         trace = trace.rename({'slope_per_condition_dim_0': f"combined_condition"})  # underscore so it doesnt conflict
-    if f'slope_per_group_dim_0' in trace:
+    if 'slope_per_group_dim_0' in trace:
         trace = trace.rename({'slope_per_group_dim_0': f"{group_name}_"})  # underscore so it doesnt conflict
-    if f'slope_per_group2_dim_0' in trace:
+    if 'slope_per_group2_dim_0' in trace:
         trace = trace.rename({'slope_per_group2_dim_0': f"{group2_name}_"})  # underscore so it doesnt conflict
     # Check
     var_names = trace.to_dataframe().reset_index().columns

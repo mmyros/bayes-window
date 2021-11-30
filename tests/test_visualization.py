@@ -1,7 +1,6 @@
 from altair.vegalite.v4.api import FacetChart, Chart, LayerChart
 from sklearn.preprocessing import LabelEncoder
 
-from bayes_window import BayesWindow
 from bayes_window import LMERegression
 from bayes_window import fake_spikes_explore
 from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp

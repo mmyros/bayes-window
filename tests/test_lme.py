@@ -1,10 +1,8 @@
-from bayes_window.generative_models import *
-from bayes_window.lme import LMERegression
-
-trans = LabelEncoder().fit_transform
-from bayes_window.utils import load_radon
-
 import os
+
+from bayes_window.generative_models import generate_fake_spikes, generate_fake_lfp
+from bayes_window.lme import LMERegression
+from bayes_window.utils import load_radon
 
 os.environ['bayes_window_test_mode'] = 'True'
 
@@ -56,7 +54,7 @@ def test_fit_lme_w_data_condition():
     df, df_monster, index_cols, _ = generate_fake_spikes(n_trials=25)
 
     window = LMERegression(df=df, y='isi', treatment='stim', group='mouse',
-                         condition='neuron_x_mouse')
+                           condition='neuron_x_mouse')
 
     window.fit(do_make_change='divide', )
     window.plot().display()

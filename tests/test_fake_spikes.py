@@ -1,5 +1,5 @@
 import bulwark.checks as ck
-import numpy as np
+
 from bayes_window.generative_models import generate_fake_spikes
 
 
