@@ -35,38 +35,38 @@ def parse_levels(treatment, condition, group, group2):
     return levels
 
 
-def fill_conditions(original_data: pd.DataFrame, data: pd.DataFrame, df_result: pd.DataFrame, group: str):
-    # Back to human-readable labels
-    if ('combined_condition' not in original_data.columns) or ('combined_condition' not in df_result.columns):
-        warnings.warn('No condition found. Returning posterior unchanged')
-        return df_result
-
-    levels_to_replace = ['combined_condition', group]
-    # Replace index code  values with true data values we saved in self.original_data
-    for level_values, data_subset in original_data[levels_to_replace].groupby(levels_to_replace):
-        # print(level_values, data_subset)
-        if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
-            level_values = [level_values]
-        recoded_data_subset = data.loc[data_subset.index, levels_to_replace]
-
-        # Sanity check:
-        for col in recoded_data_subset.columns:
-            if recoded_data_subset[col].unique().size > 1:
-                raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
-                                 f'but data_subset[{col}] = {data_subset[col].unique()}')
-        index = ((df_result[levels_to_replace[0]] == data_subset[levels_to_replace[0]].iloc[0]) |
-                 (df_result[levels_to_replace[0]] == recoded_data_subset[levels_to_replace[0]].iloc[0])) & \
-                ((df_result[levels_to_replace[1]] == data_subset[levels_to_replace[1]].iloc[0]) |
-                 (df_result[levels_to_replace[1]] == recoded_data_subset[levels_to_replace[1]].iloc[0]))
-        # Strict check only if conditions and intercepts are requested:
-        # assert sum(index) > 0, ('all_zero index', levels_to_replace, index)
-        # Set rows we found to to level values. If not found, nothing is modified
-        df_result.loc[index, levels_to_replace] = level_values
-    # sanity check 1:
-    if 'mu_intercept_per_group center interval' in df_result.columns:
-        assert (df_result.dropna(subset=['mu_intercept_per_group center interval'])[group].unique().size ==
-                data[group].unique().size)
-    return df_result
+# def fill_conditions(original_data: pd.DataFrame, data: pd.DataFrame, df_result: pd.DataFrame, group: str):
+#     # Back to human-readable labels
+#     if ('combined_condition' not in original_data.columns) or ('combined_condition' not in df_result.columns):
+#         warnings.warn('No condition found. Returning posterior unchanged')
+#         return df_result
+#
+#     levels_to_replace = ['combined_condition', group]
+#     # Replace index code  values with true data values we saved in self.original_data
+#     for level_values, data_subset in original_data[levels_to_replace].groupby(levels_to_replace):
+#         # print(level_values, data_subset)
+#         if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
+#             level_values = [level_values]
+#         recoded_data_subset = data.loc[data_subset.index, levels_to_replace]
+#
+#         # Sanity check:
+#         for col in recoded_data_subset.columns:
+#             if recoded_data_subset[col].unique().size > 1:
+#                 raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
+#                                  f'but data_subset[{col}] = {data_subset[col].unique()}')
+#         index = ((df_result[levels_to_replace[0]] == data_subset[levels_to_replace[0]].iloc[0]) |
+#                  (df_result[levels_to_replace[0]] == recoded_data_subset[levels_to_replace[0]].iloc[0])) & \
+#                 ((df_result[levels_to_replace[1]] == data_subset[levels_to_replace[1]].iloc[0]) |
+#                  (df_result[levels_to_replace[1]] == recoded_data_subset[levels_to_replace[1]].iloc[0]))
+#         # Strict check only if conditions and intercepts are requested:
+#         # assert sum(index) > 0, ('all_zero index', levels_to_replace, index)
+#         # Set rows we found to to level values. If not found, nothing is modified
+#         df_result.loc[index, levels_to_replace] = level_values
+#     # sanity check 1:
+#     if 'mu_intercept_per_group center interval' in df_result.columns:
+#         assert (df_result.dropna(subset=['mu_intercept_per_group center interval'])[group].unique().size ==
+#                 data[group].unique().size)
+#     return df_result
     # sanity check 2, for when we have data:
     # if df_result.shape[0] * 2 != data.shape[0]:
     #     warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
