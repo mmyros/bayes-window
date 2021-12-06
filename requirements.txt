@@ -1,5 +1,4 @@
 pytest
-nbsphinx
 joblib
 elephant
 numpy
