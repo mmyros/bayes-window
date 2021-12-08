@@ -364,7 +364,7 @@ class BayesRegression:
                 extra_model_args=extra_model_args,
                 y=self.window.y,
                 parallel=parallel,
-                dist_y=self.model_args['dist_y'] if self.model_args else None,
+                dist_y=self.model_args['dist_y'] if 'dist_y' in self.model_args.keys() else None,
                 **kwargs
             )
 
@@ -377,18 +377,21 @@ class BayesRegression:
                 'full_normal': self.model,
                 'no_condition': self.model,
                 'no_condition_or_treatment': self.model,
-                'no-treatment': self.model,
-                'no_group': self.model,
-                'full_student': self.model,
-                'full_lognormal': self.model,
-                'full_gamma': self.model,
-                'full_exponential': self.model,
+                'no-treatment': self.model
             }
             extra_model_args = [
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group},
                 {'treatment': self.window.treatment, 'condition': None},
                 {'treatment': None, 'condition': None},
-                {'treatment': None, 'condition': self.window.condition},
+                {'treatment': None, 'condition': self.window.condition}]
+            if self.window.group:
+                models.update({
+                    'no_group': self.model,
+                    'full_student': self.model,
+                    'full_lognormal': self.model,
+                    'full_gamma': self.model,
+                    'full_exponential': self.model,})
+            extra_model_args+=[
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': None},
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
                  'dist_y': 'student'},
