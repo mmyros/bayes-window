@@ -126,7 +126,6 @@ class BayesRegression:
     def plot(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
              add_data=None,
              **kwargs):
-
         # Set some options
         if (x == '') or (x[-2] != ':'):
             x = f'{x}:O'
@@ -144,15 +143,15 @@ class BayesRegression:
             posterior = self.data_and_posterior
         if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
             add_x_axis = True
-            x = f'{self.window.condition[0]}:O'
+            # x = f'{self.window.condition[0]}:O'
         else:
             add_x_axis = False
-
         if not ((x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10):
         #     long_x_axis = False
         # else:
         #     long_x_axis = True
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
+            print(f'changing x to {x}')
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.window.independent_axes = independent_axes or f'{self.window.y} diff' in posterior
         self.charts = []
@@ -169,7 +168,7 @@ class BayesRegression:
              self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.window.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
-                                                                            do_make_change=self.window.do_make_change)
+                                                                            do_make_change=self.window.do_make_change, **kwargs)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
             if (self.b_name != 'lme') and (type(self.posterior) == dict):

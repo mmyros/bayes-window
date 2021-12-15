@@ -135,13 +135,13 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         # dims = list(set(dims) - {'chain', 'draw'})
         dim = [dim for dim in dims if ('_dim_' not in dim #and dim[-1] != '_'
                                        ) and dim not in ['chain', 'draw']][-1]
-        if len(posterior.dims) > 3:
-            print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
-                  f"a problem. If you made a new numpyro model, look in utils.rename_posterior() ")
-            print(posterior)
-            print(dims)
-            print(dim)
-            return
+#        if len(posterior.dims) > 3:
+#            print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
+#                  f"a problem. If you made a new numpyro model, look in utils.rename_posterior() ")
+#            print(posterior)
+#            print(dims)
+#            print(dim)
+#            return
 
         # Name of the variable we are estimating (eg intercept_per_group)
 

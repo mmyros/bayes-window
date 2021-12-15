@@ -72,11 +72,15 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         intercept = numpyro.sample('intercept', dist.Normal(0, 100))
     else:
         intercept = 0
-
     if (group is not None) and add_group_intercept:
-        sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
-        a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 10))
-        intercept += (a_group[group] * sigma_a_group)
+        if dist_y == 'poisson':
+            print('poisson intercepts')
+            a_group = numpyro.sample(f'mu_intercept_per_group', dist.Poisson(jnp.tile(0, n_subjects)))
+            intercept += a_group
+        else:
+            sigma_a_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(100))
+            a_group = numpyro.sample(f'mu_intercept_per_group', dist.Normal(jnp.tile(0, n_subjects), 10))
+            intercept += (a_group[group] * sigma_a_group)
 
     if add_condition_intercept:
         intercept_per_condition = numpyro.sample('intercept_per_condition',

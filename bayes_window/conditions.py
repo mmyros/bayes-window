@@ -104,11 +104,16 @@ class BayesConditions:
                                                 self.window.condition)
 
         # Make slope from conditions to emulate regression:
-        self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel({self.window.treatment: 1}) -
-                                         self.trace.posterior['mu_per_condition'].sel({self.window.treatment: 0}))
+        try:
+            self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
+                                             self.trace.posterior['mu_per_condition'].sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].min()}))
 
-        # HDI and MAP for slope:
-        self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
+            # HDI and MAP for slope:
+            self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
+        except (KeyError, ):
+            import pdb;pdb.set_trace()
+        except ValueError:
+            print(f"Cant make fake slope from {self.trace.posterior['slope']}")
 
 
         return self
@@ -176,7 +181,7 @@ class BayesConditions:
         return self.chart
 
     def forest(self, query='opsin=="chr2" & delay_length==60'):
-        trace_post_query = utils.query_posterior(query) if query else self.trace.posterior['mu_per_condition']
+        trace_post_query = utils.query_posterior(trace=self.trace, posterior=self.posterior, query=query) if query else self.trace.posterior['mu_per_condition']
         az.plot_forest(trace_post_query,
                        combined=True,
                        kind='ridgeplot',
@@ -191,8 +196,8 @@ class BayesConditions:
         # TODO querying trace.posterior will have to wait for replacing actual values of index with originals
         #trace_post_query = trace.query()
         az.plot_posterior(
-            (trace_post_query.sel({self.window.treatment: 1}) -
-             trace_post_query.sel({self.window.treatment: 0})),
+            (trace_post_query.sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
+             trace_post_query.sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].min()})),
             'mu_per_condition',
             rope=rope,
             ref_val=0,
