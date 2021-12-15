@@ -49,9 +49,12 @@ def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=
                                             dist.Normal(jnp.tile(a_neuron, n_conditions), sigma_neuron))
     theta = a_neuron + a_neuron_per_condition[condition]
     if group is not None and add_group_intercept:
-        sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
-        a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
-                                                                       sigma_group))
+        if dist_y == 'poisson':
+            a_group = numpyro.sample('mu_intercept_per_group', dist.HalfNormal(jnp.tile(10, np.unique(group).shape[0])))
+        else:
+            sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
+            a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
+                                                                           sigma_group))
         theta += a_group[group]
     sample_y(dist_y=dist_y, theta=theta, y=y)
 
