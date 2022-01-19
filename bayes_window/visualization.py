@@ -199,12 +199,12 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type='bar',
+def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type='band',
                    row=None, column=None,  # noqa
                    **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
-    if x[-2] != ':':
+    if type(x)==str and x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     assert 'higher interval' in data.columns
     assert 'lower interval' in data.columns
@@ -220,7 +220,8 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
               float(data['higher interval'].max())]
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
-    if (x != ':O') and (x != ':N') and x[:-2] in data.columns and len(data[x[:-2]].unique()) < 10:
+
+    if type(x) != str or (x != ':O') and (x != ':N') and x[:-2] in data.columns and len(data[x[:-2]].unique()) < 10:
         long_x_axis = False
     else:
         long_x_axis = True
@@ -257,7 +258,6 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     )
 
     # Make the zero line
-    title = f'Δ {title}'
     if (x == ':O') or (x == ':N'):
         chart_zero = base_chart.mark_rule(
             color='black',

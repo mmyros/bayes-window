@@ -165,7 +165,7 @@ class BayesRegression:
             self.chart_base_posterior = base_chart
             # No-data plot
             (self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
-             self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'{self.window.y}',
+             self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'Δ{self.window.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
                                                                             do_make_change=self.window.do_make_change, **kwargs)
