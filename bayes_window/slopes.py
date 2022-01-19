@@ -36,6 +36,9 @@ class BayesRegression:
     trace: xr.Dataset
 
     def __init__(self, window=None, add_data=True, **kwargs):
+        if type(window) == pd.DataFrame:  # User must want to specify df, not window
+            kwargs['df'] = window
+            window = None
         window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
@@ -151,7 +154,6 @@ class BayesRegression:
         # else:
         #     long_x_axis = True
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
-            print(f'changing x to {x}')
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.window.independent_axes = independent_axes or f'{self.window.y} diff' in posterior
         self.charts = []
