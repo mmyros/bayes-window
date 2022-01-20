@@ -48,7 +48,7 @@ def test_fit_numpyro_gamma():
                                                                     n_mice=4,
                                                                     dur=2, )
 
-    trace = fit_numpyro(y=df['isi'].values,
+    trace, mcmc = fit_numpyro(y=df['isi'].values,
                         treatment=trans(df['stim']),
                         condition=trans(df['neuron']),
                         group=trans(df['mouse']),
@@ -65,7 +65,7 @@ def test_fit_numpyro_serial():
                                                                     dur=2, )
 
     for y in (set(df.columns) - set(index_cols)):
-        trace = fit_numpyro(y=df[y].values,
+        trace, mcmc = fit_numpyro(y=df[y].values,
                             treatment=trans(df['stim']),
                             condition=trans(df['neuron']),
                             group=trans(df['mouse']),
@@ -102,5 +102,5 @@ def test_fit_numpyro_parallel():
                              n_draws=10
                              )
         for y in [df[y].values for y in meas])
-    assert type(traces[0].posterior) == xr.Dataset
-    [trace.posterior.to_dataframe().pipe(ck.has_no_nans) for trace in traces]
+    assert type(traces[0][0].posterior) == xr.Dataset
+    [trace[0].posterior.to_dataframe().pipe(ck.has_no_nans) for trace in traces]

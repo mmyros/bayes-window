@@ -1,3 +1,4 @@
+from copy import copy
 from typing import List, Any
 
 import altair as alt
@@ -10,7 +11,7 @@ from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
-from copy import copy
+
 
 class BayesConditions:
     b_name: str
@@ -29,6 +30,7 @@ class BayesConditions:
     data_and_posterior: pd.DataFrame
     posterior: dict
     trace: xr.Dataset
+    mcmc: Any
     independent_axes: bool
 
     def __init__(self, window=None, add_data=True, **kwargs):
@@ -64,13 +66,13 @@ class BayesConditions:
                 self.window.data[self.window.treatment])
 
         # Estimate model
-        self.trace = fit_fn(y=self.window.data[self.window.y].values,
-                            condition=self.window.data['combined_condition'].values,
-                            group=self.window.data[self.window.group].values if self.window.group else None,
-                            treatment=self.window.data[self.window.treatment].values,
-                            model=model,
-                            **kwargs
-                            )
+        self.trace, self.mcmc = fit_fn(y=self.window.data[self.window.y].values,
+                                       condition=self.window.data['combined_condition'].values,
+                                       group=self.window.data[self.window.group].values if self.window.group else None,
+                                       treatment=self.window.data[self.window.treatment].values,
+                                       model=model,
+                                       **kwargs
+                                       )
 
         # Add data back
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
@@ -85,7 +87,7 @@ class BayesConditions:
         #     prefix=f'{var} ' if (var != self.b_name) #and (var not in ['slope_per_condition'])
         #                         and (self.trace.posterior[var] is not None) else '')
         #     for var in self.trace.posterior.data_vars if var not in ['mu_intercept_per_treatment']} \
-        self.posterior={}
+        self.posterior = {}
         for var in self.trace.posterior.data_vars:
             if var in ['mu_intercept_per_treatment'] or (self.trace.posterior[var] is None):
                 continue
@@ -103,22 +105,25 @@ class BayesConditions:
                                                 self.window.condition)
 
         self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
-                                                self.window.original_data,
-                                                self.window.condition)
+                                                  self.window.original_data,
+                                                  self.window.condition)
 
         # Make slope from conditions to emulate regression:
         try:
-            self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
-                                             self.trace.posterior['mu_per_condition'].sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].min()}))
+            self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel(
+                {self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
+                                             self.trace.posterior['mu_per_condition'].sel({self.window.treatment:
+                                                                                               self.trace.posterior[
+                                                                                                   'mu_per_condition'][
+                                                                                                   self.window.treatment].min()}))
 
             # HDI and MAP for slope:
             self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
-        except (KeyError, ):
-            import pdb;pdb.set_trace()
+        except (KeyError,):
+            import pdb;
+            pdb.set_trace()
         except ValueError:
             print(f"Cant make fake slope from {self.trace.posterior['slope']}")
-
-
         return self
 
     def plot(self,
@@ -184,7 +189,8 @@ class BayesConditions:
         return self.chart
 
     def forest(self, query='opsin=="chr2" & delay_length==60'):
-        trace_post_query = utils.query_posterior(trace=self.trace, posterior=self.posterior, query=query) if query else self.trace.posterior['mu_per_condition']
+        trace_post_query = utils.query_posterior(trace=self.trace, posterior=self.posterior, query=query) if query else \
+        self.trace.posterior['mu_per_condition']
         az.plot_forest(trace_post_query,
                        combined=True,
                        kind='ridgeplot',
@@ -197,10 +203,12 @@ class BayesConditions:
         """
         trace_post_query = utils.query_posterior(query, self.trace.posterior) if query else self.trace.posterior
         # TODO querying trace.posterior will have to wait for replacing actual values of index with originals
-        #trace_post_query = trace.query()
+        # trace_post_query = trace.query()
         az.plot_posterior(
-            (trace_post_query.sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
-             trace_post_query.sel({self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].min()})),
+            (trace_post_query.sel(
+                {self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
+             trace_post_query.sel(
+                 {self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].min()})),
             'mu_per_condition',
             rope=rope,
             ref_val=0,

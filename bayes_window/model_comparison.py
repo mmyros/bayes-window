@@ -224,8 +224,11 @@ def split_train_predict(df, model, y, **kwargs):
     model_args = {'y': df_test[y].values}
     model_args.update({level: trans(df_test[kwargs[level]]) for level in level_names})
 
-    mcmc = fit_numpyro(model=model, **model_args, convert_to_arviz=False, num_chains=1, n_draws=2000)
+    _, mcmc = fit_numpyro(model=model, **model_args, num_chains=1, n_draws=2000)
+    return posterior_predictive(mcmc, model, model_args)
 
+
+def posterior_predictive(mcmc, model, model_args):
     if mcmc.num_samples < 50:
         raise IndexError(f"Bug in numpyro? :{mcmc.num_samples, model_args}")
 
@@ -241,7 +244,6 @@ def split_train_predict(df, model, y, **kwargs):
                                  # coords={"mouse": df_test['mouse_code']},
                                  # dims={"y": ["mouse"]},
                                  )
-
     return predictive
 
 

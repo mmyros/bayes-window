@@ -33,7 +33,7 @@ def select_device(use_gpu, num_chains):
 
 
 def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
-                n_draws=200, num_chains=4, convert_to_arviz=True, sampler=NUTS, use_gpu=False,
+                n_draws=200, num_chains=4, sampler=NUTS, use_gpu=False,
                 **kwargs):
     if 'bayes_window_test_mode' in os.environ:
         # Override settings with minimal
@@ -64,10 +64,7 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
     if 'sample_stats' in trace:
         if trace.sample_stats.diverging.sum(['chain', 'draw']).values > 0:
             print(f"n(Divergences) = {trace.sample_stats.diverging.sum(['chain', 'draw']).values}")
-    if convert_to_arviz:
-        return trace
-    else:
-        return mcmc
+    return trace, mcmc
 
 
 def fit_svi(model, n_draws=1000,

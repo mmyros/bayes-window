@@ -1,19 +1,18 @@
-import arviz as az
 import warnings
+from copy import copy
 from importlib import reload
 from typing import List, Any
-from copy import copy
-
 
 import altair as alt
+import arviz as az
 import numpy as np
 import pandas as pd
 import xarray as xr
+
 from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
-
 from .visualization import plot_posterior
 
 
@@ -72,15 +71,17 @@ class BayesRegression:
              if not (condition in fold_change_index_cols)]
 
         # Fit
-        self.trace = fit_method(y=self.window.data[self.window.y].values,
-                                treatment=self.window.data[self.window.treatment].values,
-                                # condition=self.window.data[self.window.condition[0]].values if self.window.condition[0] else None,
-                                condition=self.window.data['combined_condition'].values if self.window.condition[
-                                    0] else None,
-                                group=self.window.data[self.window.group].values if self.window.group else None,
-                                model=model,
-                                add_condition_slope=add_condition_slope,
-                                **kwargs)
+        self.trace, self.mcmc = fit_method(y=self.window.data[self.window.y].values,
+                                           treatment=self.window.data[self.window.treatment].values,
+                                           # condition=self.window.data[self.window.condition[0]].values if self.window.condition[0] else None,
+                                           condition=self.window.data['combined_condition'].values if
+                                           self.window.condition[
+                                               0] else None,
+                                           group=self.window.data[
+                                               self.window.group].values if self.window.group else None,
+                                           model=model,
+                                           add_condition_slope=add_condition_slope,
+                                           **kwargs)
         df_data = self.window.data.copy()
         if do_mean_over_trials:
             df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
@@ -127,7 +128,7 @@ class BayesRegression:
         return self
 
     def plot(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
-             add_data=None,
+             add_data=None, add_posterior_density=True,
              **kwargs):
         # Set some options
         if (x == '') or (x[-2] != ':'):
@@ -150,9 +151,9 @@ class BayesRegression:
         else:
             add_x_axis = False
         if not ((x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10):
-        #     long_x_axis = False
-        # else:
-        #     long_x_axis = True
+            #     long_x_axis = False
+            # else:
+            #     long_x_axis = True
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.window.independent_axes = independent_axes or f'{self.window.y} diff' in posterior
@@ -170,7 +171,8 @@ class BayesRegression:
              self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'Δ{self.window.y}',
                                                                             x=x,
                                                                             base_chart=base_chart,
-                                                                            do_make_change=self.window.do_make_change, **kwargs)
+                                                                            do_make_change=self.window.do_make_change,
+                                                                            **kwargs)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
             if (self.b_name != 'lme') and (type(self.posterior) == dict):
@@ -186,7 +188,7 @@ class BayesRegression:
             self.charts.append(self.chart_posterior_center)
             self.charts.append(self.chart_zero)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
-            if (self.b_name != 'lme') and not add_x_axis:
+            if (self.b_name != 'lme') and not add_x_axis and add_posterior_density:
                 # Y Axis limits to match self.chart
                 minmax = [float(posterior['lower interval'].min()), 0,
                           float(posterior['higher interval'].max())]
@@ -391,8 +393,8 @@ class BayesRegression:
                     'full_student': self.model,
                     'full_lognormal': self.model,
                     'full_gamma': self.model,
-                    'full_exponential': self.model,})
-            extra_model_args+=[
+                    'full_exponential': self.model, })
+            extra_model_args += [
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': None},
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
                  'dist_y': 'student'},
@@ -512,4 +514,3 @@ class BayesRegression:
             )
         else:
             raise KeyError(f'No "slope" or "slope_per_condition" in posterior: {self.trace.posterior.data_vars}')
-
