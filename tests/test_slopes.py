@@ -179,12 +179,17 @@ def test_estimate_posteriors_data_overlay_slope():
     window.chart.facet(row='mouse').display()
 
 
-def test_estimate_posteriors_data_overlay_indep_axes_slope():
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit(model=models.model_hierarchical)
+@mark.parametrize('add_data', [True, False])
+@mark.parametrize('add_group_slope', [True, False])
+def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_group_slope):
+    window = BayesRegression(df=df, add_data=add_data, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_hierarchical, add_group_slope=add_group_slope)
     chart = window.plot(independent_axes=True)
     chart.display()
-    chart = window.facet(column='neuron', row='mouse')
+    if add_group_slope:
+        chart = window.facet(column='neuron', row='mouse')
+    else:
+        chart = window.facet(column='neuron')
     chart.display()
 
 

@@ -40,6 +40,7 @@ class BayesWindow:
                  add_data=False
                  ):
         assert y in df.columns
+        assert not df[y].isna().any()
         assert treatment in df.columns
         if group:
             assert group in df.columns
@@ -57,7 +58,7 @@ class BayesWindow:
         self.original_data = self.data.copy()
         self.detail = detail
         self.y = y
-
+        
         # Transform conditions to integers as required by numpyro:
         for level in self.levels:
             self.data[level] = LabelEncoder().fit_transform(self.data[level])

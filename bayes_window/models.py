@@ -62,7 +62,7 @@ def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=
 def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,
                        add_group_intercept=True,
                        add_condition_slope=True, group2=None, add_group2_slope=False,
-                       center_intercept=False, center_slope=False, robust_slopes=False,
+                       center_intercept=True, center_slope=False, robust_slopes=False,
                        add_condition_intercept=False,
                        dist_slope=dist.Normal
                       ):
@@ -123,9 +123,10 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         b_per_group = numpyro.sample('slope_per_group2', dist_slope(jnp.tile(0, n_subjects), 100))
         slope = slope + b_per_group[group] * sigma_b_group
 
+    if type(intercept) is int:
+        print('Caution: No intercept')
     if treatment is not None:
         slope = slope * treatment
-
     sample_y(dist_y=dist_y, theta=intercept + slope, y=y)
 
 

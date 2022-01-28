@@ -22,6 +22,8 @@ def facet(base_chart: alt.LayerChart or alt.Chart,
     """
     if column is None and row is None:
         return base_chart  # Nothing to do
+    if column and row:
+        warnings.warn(f'Caution: column and row simultaneously does not always work. Consider plotting {column} or {row} as color instead')
     assert base_chart.data is not None
     if column:
         if column not in base_chart.data.columns:
@@ -228,6 +230,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         x = f'{x[:-1]}Q'  # Change to nominal encoding
 
     # error_bars
+    if (data['higher interval'] == data['lower interval']).all():
+        warnings.warn('Higher interval is equal to lower interval, errorbars will not show up on the plot')
+    
     if error_type == 'band':
         err = base_chart.mark_errorband(clip=True)
     elif error_type == 'bar':
@@ -269,7 +274,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             )
         )
     else:
-        chart_zero = base_chart.mark_line(color='black', size=.5, opacity=1).encode(
+        chart_zero = base_chart.mark_line(color='black', size=1.5, opacity=1).encode(
             x=x,
             y=alt.Y(
                 'zero',
@@ -292,11 +297,12 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         )
     else:  # Line
         chart_posterior_center = base_chart.mark_line(
-            clip=True, point=False, color='black', fill=None,
+            clip=True, point=False, #color='black',
+            fill=None,
             size=2 if not long_x_axis else 1,
             # opacity=.7 if not long_x_axis else .5,
         ).encode(
-            y=alt.Y('mean(center interval):Q',
+            y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
@@ -327,7 +333,7 @@ def plot_data_slope_trials(x,
     # mean firing rate per trial per mouse
     fig_trials = base_chart.mark_line(fill=None).encode(
         x=alt.X(x),
-        y=alt.Y(y, scale=alt.Scale(zero=False,
+        y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False,
                                    # domain=[df[y].min(), df[y].max()])),
                                    domain=y_domain,
                                    clamp=True)),

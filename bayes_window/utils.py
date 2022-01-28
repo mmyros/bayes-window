@@ -210,7 +210,16 @@ def recode_trace(traces, levels, data, original_data, condition):
     recoded_traces = []
     for p_name in traces.data_vars:
         trace = recode(traces[p_name].to_dataframe().reset_index(), levels, data, original_data, condition)
-        recoded_traces.append(trace.set_index(list(set(trace.columns)-{p_name} -{'combined_condition'} )).to_xarray()[p_name])
+        try:
+            trace_xar = trace.set_index(list(set(trace.columns)-{p_name} -{'combined_condition'} )).to_xarray()
+        except ValueError as e:
+            print(e, trace.columns, p_name)
+            try:
+                trace_xar = trace.set_index(list(set(trace.columns)-{p_name})).to_xarray()
+            except ValueError as e:
+                print(e, f'. Giving up on {p_name}')
+                continue
+        recoded_traces.append(trace_xar[p_name])
     return xr.merge(recoded_traces)
 
 

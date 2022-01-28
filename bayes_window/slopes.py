@@ -1,7 +1,7 @@
-import warnings
 from copy import copy
 from importlib import reload
 from typing import List, Any
+from warnings import warn
 
 import altair as alt
 import arviz as az
@@ -43,13 +43,13 @@ class BayesRegression:
         self.window = window
 
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
-            do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, **kwargs):
+            do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, add_group_slope=False,
+            **kwargs):
         self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
         if not add_condition_slope:
-            warnings.warn(
-                f'add_condition_slope is not requested. Slopes will be the same across {self.window.condition}')
+            warn(f'add_condition_slope is not requested. Slopes will be the same across {self.window.condition}')
         # if self.b_name is not None:
         #     raise SyntaxError("A model is already present in this BayesWindow object. "
         #                       "Please create a new one by calling BayesWindow(...) again")
@@ -69,19 +69,17 @@ class BayesRegression:
         if add_condition_slope and (not self.window.condition[0] in fold_change_index_cols):
             [fold_change_index_cols.extend([condition]) for condition in self.window.condition
              if not (condition in fold_change_index_cols)]
-
+        if self.window.group is not None and not add_group_slope:
+            warn(f'{self.window.group} will not be available for plotting, since we are not fitting group slopes')
         # Fit
-        self.trace, self.mcmc = fit_method(y=self.window.data[self.window.y].values,
-                                           treatment=self.window.data[self.window.treatment].values,
-                                           # condition=self.window.data[self.window.condition[0]].values if self.window.condition[0] else None,
-                                           condition=self.window.data['combined_condition'].values if
-                                           self.window.condition[
-                                               0] else None,
-                                           group=self.window.data[
-                                               self.window.group].values if self.window.group else None,
-                                           model=model,
-                                           add_condition_slope=add_condition_slope,
-                                           **kwargs)
+        self.trace, self.mcmc = fit_method(
+            y=self.window.data[self.window.y].values,
+            treatment=self.window.data[self.window.treatment].values,
+            condition=self.window.data['combined_condition'].values if self.window.condition[0] else None,
+            group=self.window.data[self.window.group].values if self.window.group else None,
+            model=model,
+            add_condition_slope=add_condition_slope,
+            **kwargs)
         df_data = self.window.data.copy()
         if do_mean_over_trials:
             df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
@@ -93,7 +91,8 @@ class BayesRegression:
                                                     treatment_name=self.window.treatment,
                                                     fold_change_method=do_make_change)
             except Exception as e:
-                print(e)
+                pass  # no big deal, won't plot data
+                # print(e)
 
         reload(utils)
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
@@ -123,21 +122,29 @@ class BayesRegression:
         self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
                                                   self.window.original_data,
                                                   self.window.condition)
-
-        self.default_regression_charts()
+        try:
+            self.default_regression_charts()
+        except Exception as e:
+            warn(str(e))
         return self
 
     def plot(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
-             add_data=None, add_posterior_density=True,
+             add_data=None, add_posterior_density=True, plot_data=True,
              **kwargs):
         # Set some options
-        if (x == '') or (x[-2] != ':'):
-            x = f'{x}:O'
-        if color[-2] != ':':
+        if type(x) == str:
+            if ((x == '') or (x[-2] != ':')):
+                x = f'{x}:O'
+            x_column = x[:-2]
+        else:
+            x_column = x['shorthand']
+
+        if type(color) == 'str' and color[-2] != ':':
             color = f'{color}:N'
-        if add_data is None:
-            add_data = self.window.add_data
-        if add_data or self.posterior is None:  # LME
+        # if add_data is None:
+        add_data = add_data if add_data is not None else self.window.add_data
+
+        if add_data or not hasattr(self, 'posterior'):  # LME
             posterior = self.data_and_posterior
         elif 'slope_per_condition' in self.posterior.keys():
             posterior = self.posterior['slope_per_condition']
@@ -145,16 +152,18 @@ class BayesRegression:
             posterior = self.posterior['mu_intercept_per_group']  # TODO fix data_and_posterior
         else:
             posterior = self.data_and_posterior
-        if len(x) > 2 and len(posterior[x[:-2]].unique() == 1):
-            add_x_axis = True
-            # x = f'{self.window.condition[0]}:O'
+        if len(x_column) > 0:
+            assert x_column in posterior
+
+        if type(x) == str:
+            add_x_axis = True if len(x) > 2 and len(posterior[x[:-2]].unique() == 1) else False
         else:
-            add_x_axis = False
-        if not ((x != ':O') and (x != ':N') and x[:-2] in posterior.columns and len(posterior[x[:-2]].unique()) < 10):
-            #     long_x_axis = False
-            # else:
-            #     long_x_axis = True
+            add_x_axis = True  # if len(x['shorthand']) > 2 and len(posterior[x['shorthand']].unique() == 1) else False
+
+        if type(x) == str and not (
+            (x != ':O') and (x != ':N') and x_column in posterior.columns and len(posterior[x_column].unique()) < 10):
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
+
         # If we are only plotting posterior and not data, independenet axis does not make sense:
         self.window.independent_axes = independent_axes or f'{self.window.y} diff' in posterior
         self.charts = []
@@ -172,6 +181,7 @@ class BayesRegression:
                                                                             x=x,
                                                                             base_chart=base_chart,
                                                                             do_make_change=self.window.do_make_change,
+                                                                            color=color,
                                                                             **kwargs)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
@@ -205,7 +215,7 @@ class BayesRegression:
 
         # 2. Plot data
         y = f'{self.window.y} diff'
-        if y in posterior:
+        if y in posterior and add_data and plot_data:
             if (detail != ':N') and (detail != ':O'):
                 assert detail in self.window.data
 
@@ -233,7 +243,7 @@ class BayesRegression:
             self.charts.append(self.chart_data_boxplot)
             self.charts_for_facet.append(self.chart_data_boxplot)
         else:  # No data overlay
-            warnings.warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
+            warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
 
         # Layer and facet:
         self.chart = visualization.auto_layer_and_facet(
@@ -380,22 +390,17 @@ class BayesRegression:
                 'full_normal': self.model,
                 'no_condition': self.model,
                 'no_condition_or_treatment': self.model,
-                'no-treatment': self.model
+                'no-treatment': self.model,
+                'full_student': self.model,
+                'full_lognormal': self.model,
+                'full_gamma': self.model,
+                'full_exponential': self.model,
             }
             extra_model_args = [
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group},
                 {'treatment': self.window.treatment, 'condition': None},
                 {'treatment': None, 'condition': None},
-                {'treatment': None, 'condition': self.window.condition}]
-            if self.window.group:
-                models.update({
-                    'no_group': self.model,
-                    'full_student': self.model,
-                    'full_lognormal': self.model,
-                    'full_gamma': self.model,
-                    'full_exponential': self.model, })
-            extra_model_args += [
-                {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': None},
+                {'treatment': None, 'condition': self.window.condition},
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
                  'dist_y': 'student'},
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
@@ -403,8 +408,14 @@ class BayesRegression:
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
                  'dist_y': 'gamma'},
                 {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': self.window.group,
-                 'dist_y': 'exponential'},
-            ]
+                 'dist_y': 'exponential'}, ]
+            if self.window.group:
+                models.update({
+                    'no_group': self.model,
+                })
+                extra_model_args += [
+                    {'treatment': self.window.treatment, 'condition': self.window.condition, 'group': None},
+                ]
             if add_group_slope:
                 if self.window.group is None:
                     raise KeyError(
@@ -482,13 +493,14 @@ class BayesRegression:
         return window_step_two
 
     def plot_model_quality(self, var_names=None, **kwargs):
-        assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
+        if not hasattr(self, 'mcmc'):
+            raise KeyError('Run bayesian fitting first!')
         try:
-            az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
-        except IndexError:
+            az.plot_trace(self.mcmc, var_names=var_names, show=True, **kwargs)
+        except (IndexError, ValueError):
             pass
         az.plot_pair(
-            self.trace,
+            self.mcmc,
             var_names=var_names,
             kind="hexbin",
             # coords=coords,
