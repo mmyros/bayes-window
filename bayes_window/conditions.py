@@ -99,15 +99,12 @@ class BayesConditions:
                                                                    group=self.window.group,
                                                                    group2=self.window.group2,
                                                                    data=self.window.original_data.copy())
-
-        self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
-                                                self.window.original_data,
-                                                self.window.condition)
-
-        self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
-                                                  self.window.original_data,
-                                                  self.window.condition)
-
+        self.posterior = utils.recode_posterior(self.posterior,
+                                                self.window.levels,
+                                                self.window.original_label_values)
+        self.trace.posterior = utils.recode_posterior(self.trace.posterior,
+                                                      self.window.levels,
+                                                      self.window.original_label_values)
         # Make slope from conditions to emulate regression:
         try:
             self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel(

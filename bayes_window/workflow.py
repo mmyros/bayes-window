@@ -20,6 +20,7 @@ reload(models)
 class BayesWindow:
     chart_zero: alt.Chart
     posterior_intercept: alt.Chart
+    original_label_values: dict
     chart: alt.Chart
     chart_data_boxplot: alt.Chart
     chart_posterior_whiskers: alt.Chart
@@ -58,10 +59,14 @@ class BayesWindow:
         self.original_data = self.data.copy()
         self.detail = detail
         self.y = y
-        
+
+        labeler = LabelEncoder()
         # Transform conditions to integers as required by numpyro:
+        self.original_label_values = {}
         for level in self.levels:
-            self.data[level] = LabelEncoder().fit_transform(self.data[level])
+            self.data[level] = labeler.fit_transform(self.data[level])
+            # Keep key for later use
+            self.original_label_values[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
         # TODO this is never transformed back at this time? Try using self.original data for plotting
 
         # Preallocate attributes:

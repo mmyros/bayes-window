@@ -177,60 +177,72 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         hdi95 = hdi95.join(hdi75)
     return hdi95
 
-def recode(posterior, levels, data, original_data, condition):
-    """ This is really a replace operation on a dataframe. """
-    for column in levels + ['combined_condition']:
-        if column not in posterior.columns:
-            continue
+# def recode(posterior, levels, data, original_data, condition):
+#     """ This is really a replace operation on a dataframe. """
+#     for column in levels + ['combined_condition']:
+#         if column not in posterior.columns:
+#             continue
+#
+#         if column == 'combined_condition':
+#             original_columns = condition
+#         else:
+#             original_columns = [column]
+#
+#
+#         # loop over values in posterior variable (column of df)
+#         # and replace posterior values with original values
+#         # TODO should be just looking up self.original_labels
+#         if False:
+#             for val in posterior[column].unique():
+#                 original_val = original_data.loc[original_data_index, original_columns].iloc[0]
+#                 posterior[column]=posterior[column].replace({val: original_val},axis=1)
+#         else:
+#             for i, val in posterior[column].iteritems():
+#                 original_data_index = data[data[column] == val].index
+#                 # Where were original locations?
+#                 original_vals = original_data.loc[original_data_index, original_columns]
+#                 if original_vals.shape[0] == 0:
+#                     continue
+#                 # for col in original_vals.columns:
+#                 #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
+#                 posterior.loc[i, original_columns] = original_vals.iloc[0].values
+#     return posterior
 
-        if column == 'combined_condition':
-            original_columns = condition
-        else:
-            original_columns = [column]
 
-        
-        # loop over values in posterior variable (column of df)
-        # and replace posterior values with original values
-        # TODO should be just looking up self.original_labels
-        if False:
-            for val in posterior[column].unique():
-                original_val = original_data.loc[original_data_index, original_columns].iloc[0]
-                posterior[column]=posterior[column].replace({val: original_val},axis=1)
-        else:
-            for i, val in posterior[column].iteritems():
-                original_data_index = data[data[column] == val].index
-                # Where were original locations?
-                original_vals = original_data.loc[original_data_index, original_columns]
-                if original_vals.shape[0] == 0:
-                    continue
-                # for col in original_vals.columns:
-                #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
-                posterior.loc[i, original_columns] = original_vals.iloc[0].values
+def recode_posterior(posterior, levels, original_label_values):
+    for index_var in levels:
+        for posterior_var in posterior.keys():
+            if index_var not in posterior[posterior_var]:
+                continue
+            key = original_label_values[index_var]
+            posterior[posterior_var][index_var] = posterior[posterior_var][index_var].replace(key)
+            # Also try old value as string:
+            posterior[posterior_var][index_var] = posterior[posterior_var][index_var].replace(
+                    {str(old_val): new_val for old_val, new_val in key.items()})
     return posterior
 
+# def recode_posterior(posteriors, levels, data, original_data, condition):
+#     # Recode index variables to their original state
+#     return {p_name: recode(posterior, levels, data, original_data, condition)
+#             for p_name, posterior in posteriors.items()}
 
-def recode_posterior(posteriors, levels, data, original_data, condition):
-    # Recode index variables to their original state
-    return {p_name: recode(posterior, levels, data, original_data, condition)
-            for p_name, posterior in posteriors.items()}
-
-
-def recode_trace(traces, levels, data, original_data, condition):
-    # Recode index variables to their original state
-    recoded_traces = []
-    for p_name in traces.data_vars:
-        trace = recode(traces[p_name].to_dataframe().reset_index(), levels, data, original_data, condition)
-        try:
-            trace_xar = trace.set_index(list(set(trace.columns)-{p_name} -{'combined_condition'} )).to_xarray()
-        except ValueError as e:
-            print(e, trace.columns, p_name)
-            try:
-                trace_xar = trace.set_index(list(set(trace.columns)-{p_name})).to_xarray()
-            except ValueError as e:
-                print(e, f'. Giving up on {p_name}')
-                continue
-        recoded_traces.append(trace_xar[p_name])
-    return xr.merge(recoded_traces)
+#
+# def recode_trace(traces, levels, data, original_data, condition):
+#     # Recode index variables to their original state
+#     recoded_traces = []
+#     for p_name in traces.data_vars:
+#         trace = recode(traces[p_name].to_dataframe().reset_index(), levels, data, original_data, condition)
+#         try:
+#             trace_xar = trace.set_index(list(set(trace.columns)-{p_name} -{'combined_condition'} )).to_xarray()
+#         except ValueError as e:
+#             print(e, trace.columns, p_name)
+#             try:
+#                 trace_xar = trace.set_index(list(set(trace.columns)-{p_name})).to_xarray()
+#             except ValueError as e:
+#                 print(e, f'. Giving up on {p_name}')
+#                 continue
+#         recoded_traces.append(trace_xar[p_name])
+#     return xr.merge(recoded_traces)
 
 
 def insert_posterior_into_data(posteriors, data, group, group2):

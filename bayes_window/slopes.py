@@ -8,11 +8,11 @@ import arviz as az
 import numpy as np
 import pandas as pd
 import xarray as xr
-
 from bayes_window import models, BayesWindow
 from bayes_window import utils
 from bayes_window import visualization
 from bayes_window.fitting import fit_numpyro
+
 from .visualization import plot_posterior
 
 
@@ -111,17 +111,23 @@ class BayesRegression:
                                                                    data=df_data.copy(),
                                                                    group=self.window.group,
                                                                    group2=self.window.group2)
+        self.posterior = utils.recode_posterior(self.posterior,
+                                                self.window.levels,
+                                                self.window.original_label_values)
+        self.trace.posterior = utils.recode_posterior(self.trace.posterior,
+                                                      self.window.levels,
+                                                      self.window.original_label_values)
 
-        try:
-            self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
-                                                    self.window.original_data,
-                                                    self.window.condition)
-        except Exception as e:
-            print(e)
+        # try:
+        # self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
+        #                                         self.window.original_data,
+        #                                         self.window.condition)
+        # except Exception as e:
+        #     print(e)
 
-        self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
-                                                  self.window.original_data,
-                                                  self.window.condition)
+        # self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
+        #                                           self.window.original_data,
+        #                                           self.window.condition)
         try:
             self.default_regression_charts()
         except Exception as e:
