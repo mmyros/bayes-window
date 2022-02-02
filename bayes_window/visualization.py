@@ -235,12 +235,16 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     
     if error_type == 'band':
         err = base_chart.mark_errorband(clip=True)
-    elif error_type == 'bar':
+    elif error_type == 'rule':
         err = base_chart.mark_rule(size=2 if not long_x_axis else .8,
                                    opacity=.7 if not long_x_axis else .4,
                                    clip=True)
+    elif error_type=='bar':
+        err = base_chart.mark_bar(#size=2 if not long_x_axis else .8,
+                                   opacity=.3,
+                                   clip=True)
     else:
-        raise ValueError(f'error type should be band or bar, you asked for {error_type}')
+        raise ValueError(f'error type should be band or rule or bar, you asked for {error_type}')
 
     chart_posterior_err95 = err.encode(
         x=x,
@@ -284,9 +288,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         )
 
     # line or bar for center interval (left axis)
-    if (x == ':O') or (x == ':N'):  # Bar
+    if (x == ':O') or (x == ':N'):  # Bar 
         chart_posterior_center = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
-            y=alt.Y('center interval:Q',
+           y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
@@ -295,6 +299,18 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
             **kwargs
         )
+    elif not long_x_axis:  # tick
+        chart_posterior_center = base_chart.mark_tick(opacity=1).encode(
+           y=alt.Y('center interval:Q',
+                    title=title,
+                    scale=scale,
+                    # impute=alt.ImputeParams(value='value'),
+                    axis=alt.Axis(orient='left'),
+                    ),
+            x=x,
+            **kwargs
+        )
+        
     else:  # Line
         chart_posterior_center = base_chart.mark_line(
             clip=True, point=False, #color='black',

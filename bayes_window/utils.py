@@ -188,14 +188,24 @@ def recode(posterior, levels, data, original_data, condition):
         else:
             original_columns = [column]
 
-        for i, val in posterior[column].iteritems():
-            original_data_index = data[data[column] == val].index
-            original_vals = original_data.loc[original_data_index, original_columns]
-            if original_vals.shape[0] == 0:
-                continue
-            # for col in original_vals.columns:
-            #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
-            posterior.loc[i, original_columns] = original_vals.iloc[0].values
+        
+        # loop over values in posterior variable (column of df)
+        # and replace posterior values with original values
+        # TODO should be just looking up self.original_labels
+        if False:
+            for val in posterior[column].unique():
+                original_val = original_data.loc[original_data_index, original_columns].iloc[0]
+                posterior[column]=posterior[column].replace({val: original_val},axis=1)
+        else:
+            for i, val in posterior[column].iteritems():
+                original_data_index = data[data[column] == val].index
+                # Where were original locations?
+                original_vals = original_data.loc[original_data_index, original_columns]
+                if original_vals.shape[0] == 0:
+                    continue
+                # for col in original_vals.columns:
+                #     assert original_vals[col].unique().size < 2, f'non-unique {col} in: {original_vals}'
+                posterior.loc[i, original_columns] = original_vals.iloc[0].values
     return posterior
 
 
