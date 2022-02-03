@@ -1,3 +1,4 @@
+from scipy.stats import zscore
 from copy import copy
 from importlib import reload
 from typing import List, Any
@@ -44,7 +45,7 @@ class BayesRegression:
 
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
             do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, add_group_slope=False,
-            **kwargs):
+            zscore_y=True, **kwargs):
         self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
@@ -66,11 +67,16 @@ class BayesRegression:
                 np.unique(self.window.data['combined_condition']).size > 1)
             fold_change_index_cols.append('combined_condition')
         self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
-        if add_condition_slope and (not self.window.condition[0] in fold_change_index_cols):
+        if add_condition_slope:
             [fold_change_index_cols.extend([condition]) for condition in self.window.condition
-             if not (condition in fold_change_index_cols)]
+             if (condition not in fold_change_index_cols)]
         if self.window.group is not None and not add_group_slope:
             warn(f'{self.window.group} will not be available for plotting, since we are not fitting group slopes')
+
+        # Transform y values to z scores
+        if zscore_y:
+            self.window.data[self.window.y] = zscore(self.window.data[self.window.y].values)
+
         # Fit
         self.trace, self.mcmc = fit_method(
             y=self.window.data[self.window.y].values,
@@ -92,7 +98,9 @@ class BayesRegression:
                                                     fold_change_method=do_make_change)
             except Exception as e:
                 pass  # no big deal, won't plot data
-                # print(e)
+                print(e)
+        print(df_data.columns)
+        print(fold_change_index_cols)
 
         reload(utils)
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
@@ -111,9 +119,14 @@ class BayesRegression:
                                                                    data=df_data.copy(),
                                                                    group=self.window.group,
                                                                    group2=self.window.group2)
+        self.data_and_posterior = utils.recode_posterior(self.data_and_posterior,
+                                                         self.window.levels,
+                                                         self.window.original_label_values)
+
         self.posterior = utils.recode_posterior(self.posterior,
                                                 self.window.levels,
                                                 self.window.original_label_values)
+
         self.trace.posterior = utils.recode_posterior(self.trace.posterior,
                                                       self.window.levels,
                                                       self.window.original_label_values)

@@ -67,19 +67,19 @@ def parse_levels(treatment, condition, group, group2):
 #         assert (df_result.dropna(subset=['mu_intercept_per_group center interval'])[group].unique().size ==
 #                 data[group].unique().size)
 #     return df_result
-    # sanity check 2, for when we have data:
-    # if df_result.shape[0] * 2 != data.shape[0]:
-    #     warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
-    #                   f'may suffer. Did was there another index column (like i_trial) '
-    #                   f'other than {levels_to_replace}?')
+# sanity check 2, for when we have data:
+# if df_result.shape[0] * 2 != data.shape[0]:
+#     warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
+#                   f'may suffer. Did was there another index column (like i_trial) '
+#                   f'other than {levels_to_replace}?')
 
-    # General version if we have more than two indices:
-    # Preallocate
-    # index = np.ones_like(df_result['combined_condition'])
-    # for level_value, level_name in zip(level_values, levels_to_replace):
-    #     this_index = (df_result[level_name] == data_subset[level_name].iloc[0]) | \
-    #                  (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
-    #     index = index & this_index
+# General version if we have more than two indices:
+# Preallocate
+# index = np.ones_like(df_result['combined_condition'])
+# for level_value, level_name in zip(level_values, levels_to_replace):
+#     this_index = (df_result[level_name] == data_subset[level_name].iloc[0]) | \
+#                  (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
+#     index = index & this_index
 
 
 def fill_row(condition_val, data_rows, df_bayes, condition_name):
@@ -133,15 +133,15 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         # Take the last dimension name. If there is more than one dimension in the data, this may be problematic
         dims = posterior.dims
         # dims = list(set(dims) - {'chain', 'draw'})
-        dim = [dim for dim in dims if ('_dim_' not in dim #and dim[-1] != '_'
+        dim = [dim for dim in dims if ('_dim_' not in dim  # and dim[-1] != '_'
                                        ) and dim not in ['chain', 'draw']][-1]
-#        if len(posterior.dims) > 3:
-#            print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
-#                  f"a problem. If you made a new numpyro model, look in utils.rename_posterior() ")
-#            print(posterior)
-#            print(dims)
-#            print(dim)
-#            return
+        #        if len(posterior.dims) > 3:
+        #            print(f"Untransformed dimension in {[dim for dim in dims if dim not in ['chain', 'draw']]} may be "
+        #                  f"a problem. If you made a new numpyro model, look in utils.rename_posterior() ")
+        #            print(posterior)
+        #            print(dims)
+        #            print(dim)
+        #            return
 
         # Name of the variable we are estimating (eg intercept_per_group)
 
@@ -177,6 +177,7 @@ def get_hdi_map(posterior, circular=False, prefix=''):
         hdi95 = hdi95.join(hdi75)
     return hdi95
 
+
 # def recode(posterior, levels, data, original_data, condition):
 #     """ This is really a replace operation on a dataframe. """
 #     for column in levels + ['combined_condition']:
@@ -208,18 +209,36 @@ def get_hdi_map(posterior, circular=False, prefix=''):
 #                 posterior.loc[i, original_columns] = original_vals.iloc[0].values
 #     return posterior
 
+def replace_in_xarray(xar, index_var, key):
+    ddf = xar.to_dataframe()
+    index_cols = ddf.index.names
+    ddf = ddf.reset_index()
+    ddf[index_var] = ddf[index_var].replace(key)
+    return ddf.set_index(index_cols).to_xarray()
+
 
 def recode_posterior(posterior, levels, original_label_values):
     for index_var in levels:
-        for posterior_var in posterior.keys():
-            if index_var not in posterior[posterior_var]:
+        if index_var not in original_label_values.keys():
+            continue
+        key = original_label_values[index_var]
+        key_as_str = {str(old_val): new_val for old_val, new_val in key.items()}
+
+        if type(posterior) == xr.Dataset:
+            if index_var not in posterior.coords:
                 continue
-            key = original_label_values[index_var]
-            posterior[posterior_var][index_var] = posterior[posterior_var][index_var].replace(key)
+            posterior = replace_in_xarray(posterior, index_var, key)
+            posterior = replace_in_xarray(posterior, index_var, key_as_str)
+
+        else:  # Otherwise, if dataframe:
+            if index_var not in posterior.keys():
+                continue
+            posterior[index_var] = posterior[index_var].replace(key)
             # Also try old value as string:
-            posterior[posterior_var][index_var] = posterior[posterior_var][index_var].replace(
-                    {str(old_val): new_val for old_val, new_val in key.items()})
+            posterior[index_var] = posterior[index_var].replace(key_as_str)
+
     return posterior
+
 
 # def recode_posterior(posteriors, levels, data, original_data, condition):
 #     # Recode index variables to their original state
@@ -340,9 +359,9 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         mdf.xs(treatments[0], level=treatment_name).size):
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        raise IndexError(
-            f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
-            f'{debug_info}')
+        raise IndexError()
+        # f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
+        # f'{debug_info}')
         # Some posteriors wont work then
         # if fold_change_method == 'subtract':
         #     data = (

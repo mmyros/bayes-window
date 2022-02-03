@@ -60,10 +60,11 @@ class BayesWindow:
         self.detail = detail
         self.y = y
 
-        labeler = LabelEncoder()
         # Transform conditions to integers as required by numpyro:
+        labeler = LabelEncoder()
         self.original_label_values = {}
-        for level in self.levels:
+        # for level in self.levels:
+        for level in set(self.levels) - {self.treatment}:  # Transform all except treatment
             self.data[level] = labeler.fit_transform(self.data[level])
             # Keep key for later use
             self.original_label_values[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))

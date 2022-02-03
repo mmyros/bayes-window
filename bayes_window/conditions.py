@@ -109,16 +109,16 @@ class BayesConditions:
         try:
             self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel(
                 {self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
-                                             self.trace.posterior['mu_per_condition'].sel({self.window.treatment:
-                                                                                               self.trace.posterior[
-                                                                                                   'mu_per_condition'][
-                                                                                                   self.window.treatment].min()}))
+                                             self.trace.posterior['mu_per_condition'].sel({
+                                                 self.window.treatment:
+                                                 self.trace.posterior['mu_per_condition'][self.window.treatment].min()}))
 
             # HDI and MAP for slope:
             self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
-        except (KeyError,):
-            import pdb;
-            pdb.set_trace()
+        except (KeyError,) as e:
+            #import pdb;
+            #pdb.set_trace()
+            print(e)
         except ValueError:
             print(f"Cant make fake slope from {self.trace.posterior['slope']}")
         return self

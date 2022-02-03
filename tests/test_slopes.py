@@ -180,11 +180,12 @@ def test_estimate_posteriors_data_overlay_slope():
 
 
 @mark.parametrize('add_data', [True, False])
+@mark.parametrize('add_data_plot', [True, False])
 @mark.parametrize('add_group_slope', [True, False])
-def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_group_slope):
+def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_data_plot, add_group_slope):
     window = BayesRegression(df=df, add_data=add_data, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_hierarchical, add_group_slope=add_group_slope)
-    chart = window.plot(independent_axes=True)
+    chart = window.plot(independent_axes=True,  add_data=add_data_plot)
     chart.display()
     if add_group_slope:
         chart = window.facet(column='neuron', row='mouse')
@@ -293,7 +294,7 @@ def test_single_condition_nodata():
 @mark.parametrize('dist', ['normal', 'lognormal', 'student'])
 def test_single_condition_nodata_dists(dist):
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse', add_data=True)
-    window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist)
+    window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist, zscore_y=False,)
     alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
@@ -449,7 +450,7 @@ def test_data_replacement1():
 def test_plot_slopes_intercepts(do_make_change):
     window = BayesRegression(df=dfl, y='Power', treatment='stim', group='mouse', add_data=True)
     # Fit:
-    window.fit(model=models.model_hierarchical, add_group_intercept=True,
+    window.fit(model=models.model_hierarchical, add_group_intercept=True, zscore_y=False,
                add_group_slope=False, robust_slopes=False,
                do_make_change=do_make_change, dist_y='gamma', num_chains=1,
                n_draws=100, num_warmup=100);

@@ -23,7 +23,8 @@ def facet(base_chart: alt.LayerChart or alt.Chart,
     if column is None and row is None:
         return base_chart  # Nothing to do
     if column and row:
-        warnings.warn(f'Caution: column and row simultaneously does not always work. Consider plotting {column} or {row} as color instead')
+        warnings.warn(
+            f'Caution: column and row simultaneously does not always work. Consider plotting {column} or {row} as color instead')
     assert base_chart.data is not None
     if column:
         if column not in base_chart.data.columns:
@@ -206,7 +207,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                    **kwargs):
     assert (df is not None) or (base_chart is not None)
     data = base_chart.data if df is None else df
-    if type(x)==str and x[-2] != ':':
+    if type(x) == str and x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     assert 'higher interval' in data.columns
     assert 'lower interval' in data.columns
@@ -223,7 +224,12 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
 
-    if type(x) != str or (x != ':O') and (x != ':N') and x[:-2] in data.columns and len(data[x[:-2]].unique()) < 10:
+    if type(x) == str:
+        x_column = x[:-2]
+    else:
+        x_column = x['shorthand']
+
+    if x_column in data.columns and len(data[x_column].unique()) < 6:
         long_x_axis = False
     else:
         long_x_axis = True
@@ -232,17 +238,17 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     # error_bars
     if (data['higher interval'] == data['lower interval']).all():
         warnings.warn('Higher interval is equal to lower interval, errorbars will not show up on the plot')
-    
+
     if error_type == 'band':
         err = base_chart.mark_errorband(clip=True)
     elif error_type == 'rule':
         err = base_chart.mark_rule(size=2 if not long_x_axis else .8,
                                    opacity=.7 if not long_x_axis else .4,
                                    clip=True)
-    elif error_type=='bar':
-        err = base_chart.mark_bar(#size=2 if not long_x_axis else .8,
-                                   opacity=.3,
-                                   clip=True)
+    elif error_type == 'bar':
+        err = base_chart.mark_bar(  # size=2 if not long_x_axis else .8,
+            opacity=.3,
+            clip=True)
     else:
         raise ValueError(f'error type should be band or rule or bar, you asked for {error_type}')
 
@@ -288,9 +294,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         )
 
     # line or bar for center interval (left axis)
-    if (x == ':O') or (x == ':N'):  # Bar 
+    if (x == ':O') or (x == ':N'):  # Bar
         chart_posterior_center = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
-           y=alt.Y('center interval:Q',
+            y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
@@ -301,7 +307,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         )
     elif not long_x_axis:  # tick
         chart_posterior_center = base_chart.mark_tick(opacity=1).encode(
-           y=alt.Y('center interval:Q',
+            y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
@@ -310,10 +316,10 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
             **kwargs
         )
-        
+
     else:  # Line
         chart_posterior_center = base_chart.mark_line(
-            clip=True, point=False, #color='black',
+            clip=True, point=False,  # color='black',
             fill=None,
             size=2 if not long_x_axis else 1,
             # opacity=.7 if not long_x_axis else .5,
@@ -350,9 +356,9 @@ def plot_data_slope_trials(x,
     fig_trials = base_chart.mark_line(fill=None).encode(
         x=alt.X(x),
         y=alt.Y(f'mean({y})', scale=alt.Scale(zero=False,
-                                   # domain=[df[y].min(), df[y].max()])),
-                                   domain=y_domain,
-                                   clamp=True)),
+                                              # domain=[df[y].min(), df[y].max()])),
+                                              domain=y_domain,
+                                              clamp=True)),
         color=color,
         detail=detail,
         opacity=opacity,
