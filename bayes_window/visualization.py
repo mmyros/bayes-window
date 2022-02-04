@@ -233,7 +233,8 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         long_x_axis = False
     else:
         long_x_axis = True
-        x = f'{x[:-1]}Q'  # Change to nominal encoding
+        if type(x)==str:
+            x = f'{x[:-1]}Q'  # Change to nominal encoding
 
     # error_bars
     if (data['higher interval'] == data['lower interval']).all():

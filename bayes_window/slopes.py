@@ -214,6 +214,7 @@ class BayesRegression:
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
                                                  self.chart_posterior_center)
             self.charts.append(self.chart_posterior_whiskers)
+            self.charts.append(self.chart_posterior_whiskers75)
             self.charts.append(self.chart_posterior_center)
             self.charts.append(self.chart_zero)
             self.charts_for_facet = self.charts.copy()  # KDE cannot be faceted so don't add it
