@@ -148,7 +148,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     base = base_chart or alt.Chart(df)
     y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
 
-    long_x_axis, x, error_type = is_x_axis_long(base.data, x)
+    _, x, _ = is_x_axis_long(base.data, x)
 
     charts = []
     # Plot data:

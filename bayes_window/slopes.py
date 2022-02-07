@@ -224,9 +224,18 @@ class BayesRegression:
                 **kwargs)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
-            main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
-                           else self.posterior['slope_per_condition']
-                           )
+            if self.b_name == 'lme':
+                main_effect = posterior
+            elif self.posterior[self.b_name] is not None:
+                # if no self.data_and_posterior, use self.posterior to build slope per condition:
+                main_effect = self.posterior[self.b_name]
+            elif 'slope_per_condition' in self.posterior:
+                main_effect = self.posterior['slope_per_condition']
+            else:
+                raise KeyError(f'Unknown main effect in {self.posterior.keys()}')
+            # main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
+            #                else self.posterior['slope_per_condition']
+            #                )
             self.chart_posterior_hdi_no_data = alt.layer(
                 *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
                                 do_make_change=self.window.do_make_change))
@@ -330,10 +339,12 @@ class BayesRegression:
         if self.window.do_make_change:
             # combine posterior with original data instead, not diff TODO
             # Fill posterior into data
+            reload(utils)
             data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                   data=self.window.original_data.copy(),
                                                                   group=self.window.group,
                                                                   group2=self.window.group2)
+            assert data_and_posterior.columns.str.contains(y).any()
         else:
             data_and_posterior = self.data_and_posterior
 

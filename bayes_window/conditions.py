@@ -94,18 +94,18 @@ class BayesConditions:
             self.posterior[var] = utils.get_hdi_map(self.trace.posterior[var],
                                                     prefix=f'{var} ' if (var != self.b_name) else '')
 
+        # Fill posterior into data
+        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                   group=self.window.group,
+                                                                   group2=self.window.group2,
+                                                                   data=self.window.data.copy())
+
         self.posterior = utils.recode_posterior(self.posterior,
                                                 self.window.levels,
                                                 self.window.original_label_values)
         self.trace.posterior = utils.recode_posterior(self.trace.posterior,
                                                       self.window.levels,
                                                       self.window.original_label_values)
-
-        # Fill posterior into data
-        self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                   group=self.window.group,
-                                                                   group2=self.window.group2,
-                                                                   data=self.window.original_data.copy())
         # Make slope from conditions to emulate regression:
         try:
             self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel(

@@ -235,7 +235,10 @@ def recode_posterior(posterior, levels, original_label_values):
                 continue
             posterior[index_var] = posterior[index_var].replace(key)
             # Also try old value as string:
-            posterior[index_var] = posterior[index_var].replace(key_as_str)
+            try:
+                posterior[index_var] = posterior[index_var].replace(key_as_str)
+            except TypeError:
+                pass
 
     return posterior
 
@@ -283,7 +286,7 @@ def insert_posterior_into_data(posteriors, data, group, group2):
 
         if 'zero' in posterior_index_cols:
             posterior_index_cols.remove('zero')
-        assert len(posterior_index_cols) <= 2, f'Should be [combined condition, {group}]. was {posterior_index_cols}'
+        # assert len(posterior_index_cols) <= 2, f'Should be [combined condition, {group}]. was {posterior_index_cols}'
 
         if len(posterior_index_cols) == 0:  # No indices, unidimensional
             for posterior_value_col in posterior_value_cols:
@@ -292,15 +295,20 @@ def insert_posterior_into_data(posteriors, data, group, group2):
             continue
 
         # Fill in:
-        for index, subset_posterior in posterior.groupby(posterior_index_cols):
+        for posterior_val, subset_posterior in posterior.groupby(posterior_index_cols):
             assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
             subset_posterior = subset_posterior.iloc[0]
             # Take the first time eg 'higher interval' needs to be placed
-            data_index = np.where(data[posterior_index_cols] == index)[0]
+            data_index =\
+                np.where(data[posterior_index_cols] == posterior_val)[0]
             if len(data_index) == 0:
+                data_index = np.where(data[posterior_index_cols].dropna(
+                    subset=posterior_index_cols).astype(type(posterior_val)) == posterior_val)[0]
+            if len(data_index) == 0:
+                print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
                 continue
             for posterior_value_col in posterior_value_cols:
-                data.loc[data_index[0], posterior_value_col] = subset_posterior[posterior_value_col]
+                data.loc[data.index[data_index[0]], posterior_value_col] = subset_posterior[posterior_value_col]
     return data
 
 
@@ -336,11 +344,11 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
                      treatment_name='stim', treatments=None, do_take_mean=True, fold_change_method='divide'):
-
     treatments = treatments or df[treatment_name].drop_duplicates().sort_values().values
 
     # assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
     assert fold_change_method in [False, 'subtract', 'divide']
+    index_cols = list(index_cols)
     if not (treatment_name in index_cols):
         index_cols.append(treatment_name)
     if not ('combined_condition' in index_cols) and ('combined_condition' in df.columns):
@@ -479,7 +487,6 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
 
 def decode_combined_condition(combined_condition: pd.Series, conditions: list,
                               combined_condition_labeler: LabelEncoder):
-
     decoded_df = pd.Series(combined_condition_labeler.inverse_transform(combined_condition)).str.split(',', expand=True)
     decoded_df.columns = conditions
     return decoded_df

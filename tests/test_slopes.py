@@ -187,7 +187,7 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_data_pl
     window.fit(model=models.model_hierarchical, add_group_slope=add_group_slope)
     chart = window.plot(independent_axes=True, add_data=add_data_plot)
     chart.display()
-    if add_group_slope:
+    if add_group_slope and add_data_plot:
         chart = window.facet(column='neuron', row='mouse')
     else:
         chart = window.facet(column='neuron')
@@ -429,8 +429,8 @@ def test_data_replacement1():
                add_condition_slope=True,
                # add_group_slope=True
                )
-    assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
-               'mouse'].unique().size == 4
+    posterior_no_nan = window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])
+    assert posterior_no_nan['mouse'].unique().size == 4
 
 
 # def test_fit_twostep():
@@ -459,16 +459,14 @@ def test_data_replacement1():
 #     bw.chart.display()
 
 
-@mark.parametrize('do_make_change', [False, 'subtract'])
+@mark.parametrize('do_make_change', ['subtract', False, ])
 def test_plot_slopes_intercepts(do_make_change):
     window = BayesRegression(df=dfl, y='Power', treatment='stim', group='mouse', add_data=True)
     # Fit:
     window.fit(model=models.model_hierarchical, add_group_intercept=True, zscore_y=False,
                add_group_slope=False, robust_slopes=False,
                do_make_change=do_make_change, dist_y='gamma', num_chains=1,
-               n_draws=100, num_warmup=100);
-
-    # %
+               n_draws=100, num_warmup=100)
 
     window.plot_intercepts(x='mouse').display()
     chart_intercepts = window.chart_posterior_intercept
