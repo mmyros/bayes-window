@@ -23,8 +23,8 @@ def facet(base_chart: alt.LayerChart or alt.Chart,
     if column is None and row is None:
         return base_chart  # Nothing to do
     if column and row:
-        warnings.warn(
-            f'Caution: column and row simultaneously does not always work. Consider plotting {column} or {row} as color instead')
+        warnings.warn(f'Caution: column and row simultaneously does not always work.'
+                      f' Consider plotting {column} or {row} as color instead')
     assert base_chart.data is not None
     if column:
         if column not in base_chart.data.columns:
@@ -135,7 +135,7 @@ def line_with_highlight(base, x, y, color, detail, highlight=True, y_domain=None
     return lines, points
 
 
-def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', highlight=False, add_box=True,
+def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', highlight=False, add_box=False,
               y_domain=None, **kwargs):
     assert (df is not None) or (base_chart is not None)
     if (x == '') or (x[-2] != ':'):
@@ -145,14 +145,13 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     if color[-2] != ':':
         color = f'{color}:N'
 
-    if not ((x != ':O') and (x != ':N') and len(df[x[:-2]].unique()) < 10):
-        x = f'{x[:-1]}Q'  # Change to quantitative encoding
-
-    charts = []
-    # Plot data:
     base = base_chart or alt.Chart(df)
     y_domain = y_domain or list(np.quantile(base.data[y], [.05, .95]))
 
+    long_x_axis, x, error_type = is_x_axis_long(base.data, x)
+
+    charts = []
+    # Plot data:
     if (x != ':O') and (x != ':Q') and (len(base.data[x[:-2]].unique()) > 1):
         data_line, data_pts = line_with_highlight(base, x, y, color, detail, highlight=highlight, y_domain=y_domain)
         charts.append(data_line)
@@ -190,16 +189,47 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     #     ))
 
     if add_box:
-        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9, color='black',
+        charts.append(base.mark_boxplot(clip=True, opacity=.3, size=9,  # color='black',
                                         median=alt.MarkConfig(color='red', strokeWidth=20)).encode(
             x=x,
             y=alt.Y(f'{y}:Q',
-                    # color=color,
+                    color=color,
                     axis=alt.Axis(orient='right', title=''),
                     scale=alt.Scale(zero=False, domain=y_domain)
                     )
         ))
-    return alt.layer(*charts), y_domain
+    # if add_errorbar:
+    #     charts.append(base.mark_errorbar(clip=True, opacity=.3).encode(
+    #         x=x,
+    #         y=alt.Y(f'{y}:Q',
+    #                 color=color,
+    #                 axis=alt.Axis(orient='right', title=''),
+    #                 scale=alt.Scale(zero=False, domain=y_domain)
+    #                 )
+    #     ))
+    return charts, y_domain
+
+
+def is_x_axis_long(data, x, error_type='bar'):
+    if type(x) == str:
+        x_column = x[:-2]
+    else:
+        x_column = x['shorthand']
+
+    if x_column in data.columns and data[x_column].unique().size < 6:
+        long_x_axis = False
+        if data[x_column].unique().size == 1 and error_type == 'band':  # Change to bar. bc band won't show up:
+            error_type = 'bar'
+        if error_type is None:  # default for short x axis is bar
+            error_type = 'bar'
+    else:
+        long_x_axis = True
+        if type(x) == str:
+            x = f'{x[:-1]}Q'  # Change to nominal encoding
+        if error_type is None:  # default for short x axis is band
+            error_type = 'band'
+
+    return long_x_axis, x, error_type
 
 
 def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type=None,
@@ -224,23 +254,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
 
-    if type(x) == str:
-        x_column = x[:-2]
-    else:
-        x_column = x['shorthand']
-
-    if x_column in data.columns and data[x_column].unique().size < 6:
-        long_x_axis = False
-        if data[x_column].unique().size == 1 and error_type == 'band':  # Change to bar. bc band won't show up:
-            error_type = 'bar'
-        if error_type is None:  # default for short x axis is bar
-            error_type = 'bar'
-    else:
-        long_x_axis = True
-        if type(x) == str:
-            x = f'{x[:-1]}Q'  # Change to nominal encoding
-        if error_type is None:  # default for short x axis is band
-            error_type = 'band'
+    long_x_axis, x, error_type = is_x_axis_long(data, x, error_type)
 
     # error_bars
     if (data['higher interval'] == data['lower interval']).all():

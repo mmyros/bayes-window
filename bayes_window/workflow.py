@@ -104,7 +104,7 @@ class BayesWindow:
             data = self.data
         y_domain = list(np.quantile(data[self.y], [.05, .95]))
         chart_data_box_for_detail = visualization.plot_data(
-            df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0].properties(width=60)
+            df=data, x=self.treatment, y=self.y, y_domain=y_domain)[0][0].properties(width=60)
 
         if (self.detail in self.data.columns) and (len(self.condition) > 1) and not color:
             # Color=condition
@@ -135,9 +135,9 @@ class BayesWindow:
         warnings.warn('No model has been fit. Plotting raw data. Use BayesRegression or LMERegression etc')
         # x = self.levels[0] if 'x' not in kwargs else None
         # color = color or (self.levels[1] if len(self.levels) > 1 else None),
-        return visualization.plot_data(self.data,
-                                       y=self.y,
-                                       **kwargs)[0]
+        return alt.layer(*visualization.plot_data(self.data,
+                                                  y=self.y,
+                                                  **kwargs)[0])
 
     def facet(self, width=150, height=160, independent_axes=False, **kwargs):
         assert ('row' in kwargs) or ('column' in kwargs), 'Give facet either row, or column'

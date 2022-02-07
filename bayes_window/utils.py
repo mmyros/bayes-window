@@ -266,7 +266,6 @@ def recode_posterior(posterior, levels, original_label_values):
 
 def insert_posterior_into_data(posteriors, data, group, group2):
     for posterior_name, posterior in posteriors.items():
-        # posterior = posterior.drop('None', axis=1, errors='ignore')
 
         # Remove underscore from get_hdi_map():
         posterior.rename({f'{group}_': group}, axis=1, inplace=True)
@@ -296,9 +295,12 @@ def insert_posterior_into_data(posteriors, data, group, group2):
         for index, subset_posterior in posterior.groupby(posterior_index_cols):
             assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
             subset_posterior = subset_posterior.iloc[0]
-            data_index = (data[posterior_index_cols] == index).squeeze()
+            # Take the first time eg 'higher interval' needs to be placed
+            data_index = np.where(data[posterior_index_cols] == index)[0]
+            if len(data_index) == 0:
+                continue
             for posterior_value_col in posterior_value_cols:
-                data.loc[data_index, posterior_value_col] = subset_posterior[posterior_value_col]
+                data.loc[data_index[0], posterior_value_col] = subset_posterior[posterior_value_col]
     return data
 
 

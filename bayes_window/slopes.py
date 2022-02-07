@@ -70,7 +70,7 @@ class BayesRegression:
             warn(f'add_condition_slope is requested but fold_change_index_cols is {fold_change_index_cols}, so no '
                  f'condions to make change. Thus, slopes will be the same across {self.window.condition}')
             add_condition_slope = False
-        self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
+        self.b_name = 'slope_per_condition' if (add_condition_slope and self.window.condition[0]) else 'slope'
 
         if self.window.group is not None and not add_group_slope:
             warn(f'{self.window.group} will not be available for plotting, since we are not fitting group slopes')
@@ -94,8 +94,9 @@ class BayesRegression:
             dist_y=dist_y,
             **kwargs)
         df_data = self.window.data.copy()
-        if do_mean_over_trials and (self.window.levels is not None) and (len(self.window.levels) > 0):
-            df_data = df_data.groupby(self.window.levels).mean().reset_index()
+        #TODO need  explicit trial column name to make mean_over_trials work
+        # if do_mean_over_trials and (self.window.levels is not None) and (len(self.window.levels) > 0):
+        #     df_data = df_data.groupby(self.window.levels).mean().reset_index()
 
         # Make (fold) change
         if do_make_change and (fold_change_index_cols is not None) and (len(fold_change_index_cols) > 0):
@@ -186,12 +187,9 @@ class BayesRegression:
         add_data = add_data if add_data is not None else self.window.add_data
         if add_data or not hasattr(self, 'posterior'):
             posterior = self.data_and_posterior
-        elif 'slope_per_condition' in self.posterior.keys():
-            posterior = self.posterior['slope_per_condition']
-        elif 'mu_intercept_per_group' in self.posterior.keys():
-            posterior = self.posterior['mu_intercept_per_group']  # TODO fix data_and_posterior
         else:
-            posterior = self.data_and_posterior
+            posterior = self.posterior[self.b_name]
+
         if len(x_column) > 0:
             assert x_column in posterior
 
@@ -262,28 +260,34 @@ class BayesRegression:
                 assert detail in self.window.data
 
             # Plot data:
-            y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
-            if x != ':O':
-                self.chart_data_line, chart_data_points = visualization.line_with_highlight(base_chart, x, y,
-                                                                                            color, detail,
-                                                                                            highlight=False)
-                self.charts.append(self.chart_data_line)
-                self.charts.append(chart_data_points)
-                self.charts_for_facet.append(chart_data_points)
-                self.charts_for_facet.append(self.chart_data_line)
-
-            self.chart_data_boxplot = base_chart.mark_boxplot(
-                clip=True, opacity=.3, size=9, color='black',
-                median=alt.MarkConfig(color='red', strokeWidth=20)
-            ).encode(
-                x=x,
-                y=alt.Y(f'{y}:Q',
-                        axis=alt.Axis(orient='right', title=''),
-                        scale=alt.Scale(zero=False, domain=y_domain)
-                        )
-            )
-            self.charts.append(self.chart_data_boxplot)
-            self.charts_for_facet.append(self.chart_data_boxplot)
+            # y_domain = list(np.quantile(base_chart.data[y], [.05, .95]))
+            # if x != ':O':
+            #     self.chart_data_line, chart_data_points = visualization.line_with_highlight(base_chart, x, y,
+            #                                                                                 color, detail,
+            #                                                                                 highlight=False)
+            #     self.charts.append(self.chart_data_line)
+            #     self.charts.append(chart_data_points)
+            #     self.charts_for_facet.append(chart_data_points)
+            #     self.charts_for_facet.append(self.chart_data_line)
+            data_charts, _ = visualization.plot_data(df=None, x=x, y=y, color=color, base_chart=base_chart,
+                                                     # detail=detail,
+                                                     highlight=False, add_box=False,
+                                                     # y_domain=y_domain,
+                                                     )
+            self.charts_for_facet.extend(data_charts)
+            self.charts.extend(data_charts)
+            # self.chart_data_boxplot = base_chart.mark_boxplot(
+            #     clip=True, opacity=.3, size=9, color='black',
+            #     median=alt.MarkConfig(color='red', strokeWidth=20)
+            # ).encode(
+            #     x=x,
+            #     y=alt.Y(f'{y}:Q',
+            #             axis=alt.Axis(orient='right', title=''),
+            #             scale=alt.Scale(zero=False, domain=y_domain)
+            #             )
+            # )
+            # self.charts.append(self.chart_data_boxplot)
+            # self.charts_for_facet.append(self.chart_data_boxplot)
         else:  # No data overlay
             warn("Did you have Uneven number of entries in conditions? I can't add data overlay")
 

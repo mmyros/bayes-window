@@ -320,7 +320,7 @@ def test_chirp_data(force_correct_fold_change_index_cols):
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
-                             condition='Condition code',
+                             condition=['Stim phase','Inversion','Brain region'],
                              group='Subject')
     if force_correct_fold_change_index_cols:
         window.fit(model=models.model_hierarchical, fold_change_index_cols=['Brain region', 'Stim phase', 'stim_on',
@@ -364,7 +364,7 @@ def test_chirp_data2():
     window.fit(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',
         'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], do_mean_over_trials=True, num_chains=1,
                n_draws=100, num_warmup=100)
-    window.plot(x='Stim phase', color='Fid', independent_axes=True)
+    window.plot(x='Stim phase', color='Fid',add_data=True, independent_axes=True).display()
 
 
 def test_conditions2():
