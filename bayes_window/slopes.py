@@ -35,17 +35,16 @@ class BayesRegression:
     posterior: dict
     trace: xr.Dataset
 
-    def __init__(self, window=None, add_data=True, **kwargs):
+    def __init__(self, window=None, **kwargs):
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
         window = copy(window) if window is not None else BayesWindow(**kwargs)
-        window.add_data = add_data
         self.window = window
 
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
             do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, add_group_slope=False,
-            zscore_y=True, **kwargs):
+            zscore_y=None, dist_y='normal', **kwargs):
         self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
@@ -54,24 +53,31 @@ class BayesRegression:
         # if self.b_name is not None:
         #     raise SyntaxError("A model is already present in this BayesWindow object. "
         #                       "Please create a new one by calling BayesWindow(...) again")
-        self.window.do_make_change = do_make_change
         self.model = model
         if fold_change_index_cols is None:
-            fold_change_index_cols = self.window.levels
-        fold_change_index_cols = list(fold_change_index_cols)
+            if add_condition_slope:
+                fold_change_index_cols = self.window.levels + ['combined_condition']
+                # list(set(self.window.levels) - set([self.window.treatment]))
+            # elif self.window.group and add_group_slope:
+            #     fold_change_index_cols = [self.window.group]
+            #     if self.window.group2:
+            #         fold_change_index_cols += [self.window.group2]
         if self.window.detail and (self.window.detail in self.window.data.columns) and (
             self.window.detail not in fold_change_index_cols):
             fold_change_index_cols += [self.window.detail]
-        if add_condition_slope:
-            add_condition_slope = self.window.condition[0] and (
-                np.unique(self.window.data['combined_condition']).size > 1)
-            fold_change_index_cols.append('combined_condition')
+
+        if not fold_change_index_cols:
+            warn(f'add_condition_slope is requested but fold_change_index_cols is {fold_change_index_cols}, so no '
+                 f'condions to make change. Thus, slopes will be the same across {self.window.condition}')
+            add_condition_slope = False
         self.b_name = 'slope_per_condition' if add_condition_slope else 'slope'
-        if add_condition_slope:
-            [fold_change_index_cols.extend([condition]) for condition in self.window.condition
-             if (condition not in fold_change_index_cols)]
+
         if self.window.group is not None and not add_group_slope:
             warn(f'{self.window.group} will not be available for plotting, since we are not fitting group slopes')
+
+        # dont default to zscore for non-negative distributions of y
+        if zscore_y is None and dist_y in ['lognormal', 'gamma', 'gamma_raw', 'exponential']:
+            zscore_y = False
 
         # Transform y values to z scores
         if zscore_y:
@@ -85,40 +91,43 @@ class BayesRegression:
             group=self.window.data[self.window.group].values if self.window.group else None,
             model=model,
             add_condition_slope=add_condition_slope,
+            dist_y=dist_y,
             **kwargs)
         df_data = self.window.data.copy()
-        if do_mean_over_trials:
-            df_data = df_data.groupby(fold_change_index_cols).mean().reset_index()
+        if do_mean_over_trials and (self.window.levels is not None) and (len(self.window.levels) > 0):
+            df_data = df_data.groupby(self.window.levels).mean().reset_index()
 
         # Make (fold) change
-        if do_make_change:
-            try:
-                df_data, _ = utils.make_fold_change(df_data, y=self.window.y, index_cols=fold_change_index_cols,
-                                                    treatment_name=self.window.treatment,
-                                                    fold_change_method=do_make_change)
-            except Exception as e:
-                pass  # no big deal, won't plot data
-                print(e)
-        print(df_data.columns)
-        print(fold_change_index_cols)
-
+        if do_make_change and (fold_change_index_cols is not None) and (len(fold_change_index_cols) > 0):
+            # try:
+            df_data, _ = utils.make_fold_change(df_data, y=self.window.y, index_cols=fold_change_index_cols,
+                                                treatment_name=self.window.treatment,
+                                                fold_change_method=do_make_change)
+        # except Exception as e:
+        #     print(f'fold change warning {str(e)}')
+        #     print(f'For plotting, selecting {self.window.treatment} = {df_data[self.window.treatment].min()}')
+        #     df_data = df_data[
+        #         df_data[self.window.treatment] == df_data[self.window.treatment].min()
+        #         ]
+        self.window.do_make_change = do_make_change
         reload(utils)
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
                                                       posterior_index_name='combined_condition',
                                                       group_name=self.window.group, group2_name=self.window.group2)
 
         # HDI and MAP:
-        self.posterior = {var: utils.get_hdi_map(self.trace.posterior[var],
-                                                 prefix=f'{var} '
-                                                 if (var != self.b_name) and (
-                                                     var != 'slope_per_condition') else '')
-                          for var in self.trace.posterior.data_vars}
+        self.posterior = {var: utils.get_hdi_map(
+            self.trace.posterior[var],
+            prefix=f'{var} '
+            if (var != self.b_name) and (var != 'slope_per_condition') and (var != 'slope') else '')
+            for var in self.trace.posterior.data_vars}
 
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    data=df_data.copy(),
                                                                    group=self.window.group,
                                                                    group2=self.window.group2)
+
         self.data_and_posterior = utils.recode_posterior(self.data_and_posterior,
                                                          self.window.levels,
                                                          self.window.original_label_values)
@@ -126,6 +135,17 @@ class BayesRegression:
         self.posterior = utils.recode_posterior(self.posterior,
                                                 self.window.levels,
                                                 self.window.original_label_values)
+
+        # Decode back combined_condition for posterior:
+        for posterior_name in self.posterior.keys():
+            if 'combined_condition' in self.posterior[posterior_name].keys():
+                self.posterior[posterior_name] = pd.concat(
+                    [self.posterior[posterior_name],
+                     utils.decode_combined_condition(
+                         combined_condition=self.posterior[posterior_name]['combined_condition'],
+                         conditions=self.window.condition,
+                         combined_condition_labeler=self.window.combined_condition_labeler
+                     )], axis=1)
 
         self.trace.posterior = utils.recode_posterior(self.trace.posterior,
                                                       self.window.levels,
@@ -154,16 +174,17 @@ class BayesRegression:
         if type(x) == str:
             if ((x == '') or (x[-2] != ':')):
                 x = f'{x}:O'
-            x_column = x[:-2]
+            x_column = x
         else:
             x_column = x['shorthand']
+        if x_column[-2] == ':':
+            x_column = x_column[:-2]
 
         if type(color) == 'str' and color[-2] != ':':
             color = f'{color}:N'
-        # if add_data is None:
+        # Default add_data comes from self.window.add_data:
         add_data = add_data if add_data is not None else self.window.add_data
-
-        if add_data or not hasattr(self, 'posterior'):  # LME
+        if add_data or not hasattr(self, 'posterior'):
             posterior = self.data_and_posterior
         elif 'slope_per_condition' in self.posterior.keys():
             posterior = self.posterior['slope_per_condition']
@@ -179,8 +200,8 @@ class BayesRegression:
         else:
             add_x_axis = True  # if len(x['shorthand']) > 2 and len(posterior[x['shorthand']].unique() == 1) else False
 
-        if type(x) == str and not (
-            (x != ':O') and (x != ':N') and x_column in posterior.columns and len(posterior[x_column].unique()) < 10):
+        if type(x) == str and not ((x != ':O') and (x != ':N') and x_column in posterior.columns
+                                   and len(posterior[x_column].unique()) < 10):
             x = f'{x[:-1]}Q'  # Change to quantitative encoding
 
         # If we are only plotting posterior and not data, independenet axis does not make sense:
@@ -196,20 +217,21 @@ class BayesRegression:
             self.chart_base_posterior = base_chart
             # No-data plot
             (self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
-             self.chart_posterior_center, self.chart_zero) = plot_posterior(title=f'Δ{self.window.y}',
-                                                                            x=x,
-                                                                            base_chart=base_chart,
-                                                                            do_make_change=self.window.do_make_change,
-                                                                            color=color,
-                                                                            **kwargs)
+             self.chart_posterior_center, self.chart_zero) = plot_posterior(
+                title=f'Δ{self.window.y}' if self.window.do_make_change else self.window.y,
+                x=x,
+                base_chart=base_chart,
+                do_make_change=self.window.do_make_change,
+                color=color,
+                **kwargs)
 
             # if no self.data_and_posterior, use self.posterior to build slope per condition:
-            if (self.b_name != 'lme') and (type(self.posterior) == dict):
-                main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
-                               else self.posterior['slope_per_condition'])
-                self.chart_posterior_hdi_no_data = alt.layer(
-                    *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
-                                    do_make_change=self.window.do_make_change))
+            main_effect = (self.posterior[self.b_name] if self.posterior[self.b_name] is not None
+                           else self.posterior['slope_per_condition']
+                           )
+            self.chart_posterior_hdi_no_data = alt.layer(
+                *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
+                                do_make_change=self.window.do_make_change))
 
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
                                                  self.chart_posterior_center)

@@ -277,6 +277,11 @@ def insert_posterior_into_data(posteriors, data, group, group2):
 
         posterior_index_cols = list(posterior.columns[~posterior.columns.str.contains('interval')])
         posterior_value_cols = list(posterior.columns[posterior.columns.str.contains('interval')])
+
+        if 'combined_condition' in posterior_index_cols and 'combined_condition' not in data.columns:
+            # remove combined condition if needed: it's not in data_and_posterior for example
+            posterior_index_cols = list(set(posterior_index_cols) - {'combined_condition'})
+
         if 'zero' in posterior_index_cols:
             posterior_index_cols.remove('zero')
         assert len(posterior_index_cols) <= 2, f'Should be [combined condition, {group}]. was {posterior_index_cols}'
@@ -328,19 +333,16 @@ def rename_posterior(trace, b_name, posterior_index_name, group_name, treatment_
 
 
 def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim phase'),
-                     treatment_name='stim', treatments=(0, 1), do_take_mean=False, fold_change_method='divide'):
-    # group_name should be conditions
-    if type(index_cols) == str:
-        index_cols = [index_cols]
-    fold_change_index_cols = list(index_cols)
+                     treatment_name='stim', treatments=None, do_take_mean=True, fold_change_method='divide'):
+
     treatments = treatments or df[treatment_name].drop_duplicates().sort_values().values
 
-    assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
+    # assert len(treatments) == 2, f'{treatment_name}={treatments}. Should be only two instead!'
     assert fold_change_method in [False, 'subtract', 'divide']
-    if not (treatment_name in fold_change_index_cols):
-        fold_change_index_cols.append(treatment_name)
-    if not ('combined_condition' in fold_change_index_cols) and ('combined_condition' in df.columns):
-        fold_change_index_cols.append('combined_condition')
+    if not (treatment_name in index_cols):
+        index_cols.append(treatment_name)
+    if not ('combined_condition' in index_cols) and ('combined_condition' in df.columns):
+        index_cols.append('combined_condition')
     # if not (group_name in index_cols):
     #     index_cols.append(group_name)
 
@@ -348,31 +350,21 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         assert treatment in df[treatment_name].unique(), f'{treatment} not in {df[treatment_name].unique()}'
     if y not in df.columns:
         raise ValueError(f'{y} is not a column in this dataset: {df.columns}')
-    index_cols = list(index_cols)
     # Take mean of trials:
     if do_take_mean:
-        df = df.groupby(index_cols).mean().reset_index()
+        df = df.groupby(list(set(index_cols)
+                             # -{treatment_name}
+                             )).mean().reset_index()
 
     # Make multiindex
     mdf = df.set_index(index_cols).copy()
     if (mdf.xs(treatments[1], level=treatment_name).size !=
-        mdf.xs(treatments[0], level=treatment_name).size):
+        mdf.xs(treatments[0], level=treatment_name).size):  # Warning
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        raise IndexError()
-        # f'Uneven number of entries in conditions! This will lead to nans in data (window.data[\"{y} diff"'
-        # f'{debug_info}')
-        # Some posteriors wont work then
-        # if fold_change_method == 'subtract':
-        #     data = (
-        #         mdf.xs(treatments[1], )[y] -
-        #         mdf.xs(treatments[0], )[y]
-        #     ).reset_index()
-        # else:
-        #     data = (mdf.xs(treatments[1], )[y] /
-        #             mdf.xs(treatments[0], )[y]
-        #             ).reset_index()
-    else:
+        print(f'Careful if overlaying boxplots over posterior: Uneven number of entries in conditions f"{debug_info}"')
+        data = mdf.xs(treatments[0], level=treatment_name).reset_index()
+    else:  # all good
         # Subtract/divide
         if fold_change_method == 'subtract':
             data = (
@@ -483,6 +475,14 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
     return data_and_posterior
 
 
+def decode_combined_condition(combined_condition: pd.Series, conditions: list,
+                              combined_condition_labeler: LabelEncoder):
+
+    decoded_df = pd.Series(combined_condition_labeler.inverse_transform(combined_condition)).str.split(',', expand=True)
+    decoded_df.columns = conditions
+    return decoded_df
+
+
 def combined_condition(df: pd.DataFrame, conditions: list):
     # String-valued combined condition
     # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
@@ -492,17 +492,18 @@ def combined_condition(df: pd.DataFrame, conditions: list):
 
     df['combined_condition'] = df[conditions[0]].astype('str')
     for level in conditions[1:]:
-        df['combined_condition'] += df[level].astype('str')
+        df['combined_condition'] += (',' + df[level].astype(str))
     data = df.copy()
     # Transform conditions to integers as required by numpyro:
     labeler = LabelEncoder()
     data['combined_condition'] = labeler.fit_transform(df['combined_condition'])
 
-    # Keep key for later use
-    key = dict()
-    for level in conditions:
-        key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
-    return data, key
+    # Keep key to combined_condition for later use in recode_posterior
+    combined_condition_labeler = labeler
+    # combined_condition_key = dict()
+    # for level in conditions:
+    #     combined_condition_key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
+    return data, combined_condition_labeler
 
 
 def load_radon():

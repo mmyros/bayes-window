@@ -56,14 +56,14 @@ class BayesConditions:
             self.window.condition += [self.window.treatment]
 
         # Recode dummy condition taking into account all levels
-        self.window.data, self._key = utils.combined_condition(self.window.original_data.copy(), self.window.condition)
+        # self.window.data, self._key = utils.combined_condition(self.window.original_data.copy(), self.window.condition)
 
         # Transform group to integers as required by numpyro:
-        if self.window.group:
-            self.window.data[self.window.group] = LabelEncoder().fit_transform(self.window.data[self.window.group])
-        if self.window.treatment:
-            self.window.data[self.window.treatment] = LabelEncoder().fit_transform(
-                self.window.data[self.window.treatment])
+        # if self.window.group:
+        #     self.window.data[self.window.group] = LabelEncoder().fit_transform(self.window.data[self.window.group])
+        # if self.window.treatment:
+        #     self.window.data[self.window.treatment] = LabelEncoder().fit_transform(
+        #         self.window.data[self.window.treatment])
 
         # Estimate model
         self.trace, self.mcmc = fit_fn(y=self.window.data[self.window.y].values,
@@ -116,8 +116,6 @@ class BayesConditions:
             # HDI and MAP for slope:
             self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
         except (KeyError,) as e:
-            #import pdb;
-            #pdb.set_trace()
             print(e)
         except ValueError:
             print(f"Cant make fake slope from {self.trace.posterior['slope']}")

@@ -202,7 +202,7 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
     return alt.layer(*charts), y_domain
 
 
-def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type='band',
+def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type=None,
                    row=None, column=None,  # noqa
                    **kwargs):
     assert (df is not None) or (base_chart is not None)
@@ -229,19 +229,25 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     else:
         x_column = x['shorthand']
 
-    if x_column in data.columns and len(data[x_column].unique()) < 6:
+    if x_column in data.columns and data[x_column].unique().size < 6:
         long_x_axis = False
+        if data[x_column].unique().size == 1 and error_type == 'band':  # Change to bar. bc band won't show up:
+            error_type = 'bar'
+        if error_type is None:  # default for short x axis is bar
+            error_type = 'bar'
     else:
         long_x_axis = True
-        if type(x)==str:
+        if type(x) == str:
             x = f'{x[:-1]}Q'  # Change to nominal encoding
+        if error_type is None:  # default for short x axis is band
+            error_type = 'band'
 
     # error_bars
     if (data['higher interval'] == data['lower interval']).all():
         warnings.warn('Higher interval is equal to lower interval, errorbars will not show up on the plot')
 
     if error_type == 'band':
-        err = base_chart.mark_errorband(clip=True)
+        err = base_chart.mark_errorband(clip=True, opacity=.2)
     elif error_type == 'rule':
         err = base_chart.mark_rule(size=2 if not long_x_axis else .8,
                                    opacity=.7 if not long_x_axis else .4,

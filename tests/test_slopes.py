@@ -185,7 +185,7 @@ def test_estimate_posteriors_data_overlay_slope():
 def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_data_plot, add_group_slope):
     window = BayesRegression(df=df, add_data=add_data, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_hierarchical, add_group_slope=add_group_slope)
-    chart = window.plot(independent_axes=True,  add_data=add_data_plot)
+    chart = window.plot(independent_axes=True, add_data=add_data_plot)
     chart.display()
     if add_group_slope:
         chart = window.facet(column='neuron', row='mouse')
@@ -294,7 +294,7 @@ def test_single_condition_nodata():
 @mark.parametrize('dist', ['normal', 'lognormal', 'student'])
 def test_single_condition_nodata_dists(dist):
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse', add_data=True)
-    window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist, zscore_y=False,)
+    window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist, zscore_y=False, )
     alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
@@ -315,37 +315,50 @@ def test_single_condition_nodata_dists(dist):
 #         window.explore_models(parallel=parallel, add_group_slope=add_group_slope)
 
 
-def test_chirp_data():
+@mark.parametrize('force_correct_fold_change_index_cols', [False, True])
+def test_chirp_data(force_correct_fold_change_index_cols):
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
                              condition='Condition code',
                              group='Subject')
-    window.fit(model=models.model_hierarchical, fold_change_index_cols=['Condition code',
-                                                                        'Brain region', 'Stim phase', 'stim_on',
-                                                                        'Fid', 'Subject', 'Inversion'],
-               do_mean_over_trials=True, num_chains=1, n_draws=100, num_warmup=100)
-    window.plot(x='Stim phase', color='Fid', independent_axes=True)
+    if force_correct_fold_change_index_cols:
+        window.fit(model=models.model_hierarchical, fold_change_index_cols=['Brain region', 'Stim phase', 'stim_on',
+                                                                            'Fid', 'Subject', 'Inversion'],
+                   num_chains=1, n_draws=100, num_warmup=100)
+    else:
+        window.fit(model=models.model_hierarchical, num_chains=1, n_draws=100, num_warmup=100)
+    window.plot(x='Stim phase', color='Fid', independent_axes=True).display()
 
 
-def test_chirp_data1():
+import json
+
+
+@mark.parametrize('plot_from_data_and_posterior', [True,False])
+def test_chirp_data1(plot_from_data_and_posterior):
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
                              condition=['Stim phase', 'Inversion'],
                              group='Subject')
-    window.fit(model=models.model_hierarchical, fold_change_index_cols=['Stim phase', 'Inversion',
-                                                                        # 'Brain region', 'stim_on', 'Fid', 'Subject'
-                                                                        ], do_mean_over_trials=True,
+    window.fit(model=models.model_hierarchical,
                num_chains=1, n_draws=100, num_warmup=100)
-    window.plot(x='Stim phase', color='Fid', independent_axes=True)
+    chart = window.plot(x='Stim phase',  # color='Fid',
+                        add_data=plot_from_data_and_posterior,
+                        independent_axes=True)
+    chart.display()
+    chart_data = pd.DataFrame.from_records(list(json.loads(chart.to_json())['datasets'].values())[0])
+    assert (chart_data['Stim phase'].unique().astype(float)==dfdata['Stim phase'].unique()).all()
+    # assert (chart_data['Inversion'].astype(bool).unique()==dfdata['Inversion'].unique()).all()
+    # assert (window.data_and_posterior['higher interval'].dropna().size <
+    #         window.data_and_posterior['higher interval'].size)
 
 
 def test_chirp_data2():
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
-                             condition=['Condition code'],
+                             # condition=['Condition code'],
                              group='Subject',
                              add_data=True)
     window.fit(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',

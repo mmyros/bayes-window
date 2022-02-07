@@ -42,7 +42,8 @@ class BayesWindow:
                  transform_treatment=True
                  ):
         assert y in df.columns
-        assert not df[y].isna().any()
+        if df[y].isna().any():
+            raise ValueError(f'Outcome variable {y} should not contain nans. Please clean first')
         assert treatment in df.columns
         if group:
             assert group in df.columns
@@ -56,7 +57,7 @@ class BayesWindow:
         self.levels = utils.parse_levels(self.treatment, self.condition, self.group, self.group2)
 
         # Combined condition
-        self.data, self._key = utils.combined_condition(df.copy(), self.condition)
+        self.data, self.combined_condition_labeler = utils.combined_condition(df.copy(), self.condition)
         self.original_data = self.data.copy()
         self.detail = detail
         self.y = y
