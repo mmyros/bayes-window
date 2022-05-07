@@ -72,7 +72,7 @@ def test_plot():
 
 @mark.parametrize('add_condition_slope', [True, False])
 def test_estimate_posteriors_slope(add_condition_slope):
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron', 'neuron_x_mouse'], group='mouse',
+    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse',
                              add_data=True)
     window.fit(models.model_hierarchical, add_condition_slope=add_condition_slope)
 
@@ -84,7 +84,7 @@ def test_estimate_posteriors_slope(add_condition_slope):
 
 # This is not implemented
 # def test_lme_two_conditions():
-#     window = BayesWindow(df=df, y='isi', treatment='stim', condition=['neuron', 'neuron_x_mouse'], group='mouse', )
+#     window = BayesWindow(df=df, y='isi', treatment='stim', condition=['neuron', '_mouse'], group='mouse', )
 #     window.fit_lme()
 
 
@@ -159,7 +159,7 @@ def test_two_groups():
                                     dur=2, )
 
     window = BayesRegression(df=df, y='isi', treatment='stim', condition=['stim_strength', 'neuron_x_mouse'],
-                             group='mouse', group2='neuron_x_mouse')
+                             group='mouse', group2='neuron')
     window.fit(model=models.model_hierarchical, add_group2_slope=True)
 
 
@@ -474,7 +474,7 @@ def test_plot_slopes_intercepts(do_make_change):
 
 
 def test_gpu():
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron_x_mouse', group='mouse',
+    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron','mouse'], group='mouse',
                              detail='i_trial')
     window.fit(model=models.model_hierarchical, do_make_change='subtract',
                add_condition_slope=True,
