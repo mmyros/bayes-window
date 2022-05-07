@@ -283,7 +283,7 @@ def compare_models(df, models: dict,
                                                    for model, extra_model_arg in zip(models.values(), extra_model_args))
     else:
         traces = [split_train_predict(df, model, **kwargs, **extra_model_arg)
-                  for model, extra_model_arg in zip(models.values(), extra_model_args)]
+                  for model, extra_model_arg in zip(tqdm(models.values()), extra_model_args)]
 
     # save tp dict
     traces_dict = {}  # initialize results

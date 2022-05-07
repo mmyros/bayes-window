@@ -54,7 +54,7 @@ class BayesWindow:
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
             assert self.condition[0] in df.columns, f'{self.condition[0]} is not in {df.columns}'
-        self.levels = utils.parse_levels(self.treatment, self.condition, self.group, self.group2)
+        self.levels = list(set(utils.parse_levels(self.treatment, self.condition, self.group, self.group2)))
 
         # Combined condition
         self.data, self.combined_condition_labeler = utils.combined_condition(df.copy(), self.condition)
@@ -67,7 +67,7 @@ class BayesWindow:
         self.original_label_values = {}
         levels_to_transform = self.levels if transform_treatment else set(self.levels) - {self.treatment}
         # Transform all except treatment if not transform_treatment
-        for level in levels_to_transform:
+        for level in set(levels_to_transform):
             self.data[level] = labeler.fit_transform(self.data[level])
             # Keep key for later use
             self.original_label_values[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
@@ -97,7 +97,10 @@ class BayesWindow:
         self.charts = []
 
         # Some charts of data that don't need fitting
-        self.data_box_detail()
+        try:
+            self.data_box_detail()
+        except IndexError:
+            pass
 
     def data_box_detail(self, data=None, color=None, autofacet=False):
         if data is None:

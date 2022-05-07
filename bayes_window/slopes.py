@@ -92,24 +92,23 @@ class BayesRegression:
             model=model,
             add_condition_slope=add_condition_slope,
             dist_y=dist_y,
+            add_group_slope=add_group_slope,
             **kwargs)
         df_data = self.window.data.copy()
-        #TODO need  explicit trial column name to make mean_over_trials work
+        # TODO need  explicit trial column name to make mean_over_trials work
         # if do_mean_over_trials and (self.window.levels is not None) and (len(self.window.levels) > 0):
         #     df_data = df_data.groupby(self.window.levels).mean().reset_index()
 
         # Make (fold) change
         if do_make_change and (fold_change_index_cols is not None) and (len(fold_change_index_cols) > 0):
-            # try:
-            df_data, _ = utils.make_fold_change(df_data, y=self.window.y, index_cols=fold_change_index_cols,
-                                                treatment_name=self.window.treatment,
-                                                fold_change_method=do_make_change)
-        # except Exception as e:
-        #     print(f'fold change warning {str(e)}')
-        #     print(f'For plotting, selecting {self.window.treatment} = {df_data[self.window.treatment].min()}')
-        #     df_data = df_data[
-        #         df_data[self.window.treatment] == df_data[self.window.treatment].min()
-        #         ]
+            try:
+                df_data, _ = utils.make_fold_change(df_data, y=self.window.y, index_cols=fold_change_index_cols,
+                                                    treatment_name=self.window.treatment,
+                                                    fold_change_method=do_make_change)
+            except Exception as e:
+                print(f'fold change warning {str(e)}')
+                print(f'For plotting, selecting {self.window.treatment} = {df_data[self.window.treatment].min()}')
+                df_data = df_data[df_data[self.window.treatment] == df_data[self.window.treatment].min()]
         self.window.do_make_change = do_make_change
         reload(utils)
         self.trace.posterior = utils.rename_posterior(self.trace.posterior, self.b_name,
@@ -148,20 +147,12 @@ class BayesRegression:
                          combined_condition_labeler=self.window.combined_condition_labeler
                      )], axis=1)
 
-        self.trace.posterior = utils.recode_posterior(self.trace.posterior,
-                                                      self.window.levels,
-                                                      self.window.original_label_values)
+        #self.trace.posterior = utils.recode_posterior(self.trace.posterior,
+        #                                              self.window.levels,
+        #                                              self.window.original_label_values)
 
-        # try:
-        # self.posterior = utils.recode_posterior(self.posterior, self.window.levels, self.window.data,
-        #                                         self.window.original_data,
-        #                                         self.window.condition)
-        # except Exception as e:
-        #     print(e)
+        # TODO recoding trace currently results in duplicate conditions, incorrec slope_per_condition
 
-        # self.trace.posterior = utils.recode_trace(self.trace.posterior, self.window.levels, self.window.data,
-        #                                           self.window.original_data,
-        #                                           self.window.condition)
         try:
             self.default_regression_charts()
         except Exception as e:
@@ -208,7 +199,7 @@ class BayesRegression:
 
         # 1. Plot posterior
         if posterior is not None:
-            base_chart = alt.Chart(posterior)
+            base_chart = alt.Chart(posterior.dropna(subset=['center interval']))
             # Add zero for zero line
             base_chart.data['zero'] = 0
 
@@ -322,7 +313,7 @@ class BayesRegression:
         self.chart_data_detail
         # 4. color by dimension of slope (condition (and group if self.window.group))
 
-    def plot_intercepts(self, x=':O', y='mu_intercept_per_group center interval', **kwargs):
+    def plot_intercepts(self, x=':O', y='mu_intercept_per_group center interval', query=None, **kwargs):
         """
         Plot intercepts of a regression model, mostly for a better understanding of slopes
         Parameters
@@ -341,13 +332,22 @@ class BayesRegression:
             # Fill posterior into data
             reload(utils)
             data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
-                                                                  data=self.window.original_data.copy(),
+                                                                  data=self.window.data.copy(),
                                                                   group=self.window.group,
                                                                   group2=self.window.group2)
+
+            data_and_posterior = utils.recode_posterior(data_and_posterior,
+                                                        self.window.levels,
+                                                        self.window.original_label_values)
+
             assert data_and_posterior.columns.str.contains(y).any()
         else:
             data_and_posterior = self.data_and_posterior
 
+        if query:
+            data_and_posterior = data_and_posterior.query(query)
+            if data_and_posterior.size == 0:
+                raise ValueError(f'Query {query} results in empty data. Please change it')
         # Redo boxplot (no need to show):
         self.window.data_box_detail(data=data_and_posterior, autofacet=False)
 
@@ -368,6 +368,80 @@ class BayesRegression:
             return visualization.facet(chart, **kwargs)
         else:  # Auto facet
             return visualization.facet(chart, **visualization.auto_facet(self.window.group, self.window.condition))
+
+    from scipy.stats import zscore
+    def plot_detail_minus_intercepts(self, x=':O', y='mu_intercept_per_group center interval', query=None, group=None,
+                                     **kwargs):
+        """
+        Plot intercepts of a regression model, mostly for a better understanding of slopes
+        Parameters
+        ----------
+        x
+        y
+        kwargs
+
+        Returns
+        -------
+
+        """
+        assert self.posterior is not None
+        if group is None:
+            group = self.window.group
+        if self.window.do_make_change:
+            # combine posterior with original data instead, not diff TODO
+            # Fill posterior into data
+            reload(utils)
+            data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
+                                                                  data=self.window.data.copy(),
+                                                                  group=self.window.group,
+                                                                  group2=self.window.group2)
+
+            data_and_posterior = utils.recode_posterior(data_and_posterior,
+                                                        self.window.levels,
+                                                        self.window.original_label_values)
+
+            assert data_and_posterior.columns.str.contains(y).any()
+        else:
+            data_and_posterior = self.data_and_posterior
+
+        if query:
+            data_and_posterior = data_and_posterior.query(query)
+            if data_and_posterior.size == 0:
+                raise ValueError(f'Query {query} results in empty data. Please change it')
+
+        # Zscore both intercept and response variable to bring them on the same scale for visualization
+        data_and_posterior[self.window.y] = zscore(data_and_posterior[self.window.y].values)
+        data_and_posterior[y] = zscore(data_and_posterior[y].values, nan_policy='omit')
+
+        for index, data_and_posterior_group in data_and_posterior.groupby(group):
+            where = data_and_posterior[group] == index
+            data_and_posterior.loc[where, self.window.y] = (data_and_posterior_group.loc[where, self.window.y].values -
+                                                            data_and_posterior_group[y].values[0]
+                                                            )
+        #         data_and_posterior.loc[where, self.window.y] = data_and_posterior.loc[where, self.window.y] / np.std(data_and_posterior.loc[where, self.window.y])
+
+        # Redo boxplot (no need to show):
+        self.window.data_box_detail(data=data_and_posterior, autofacet=False)
+
+        # Make stand-alone posterior intercept chart:
+        self.chart_posterior_intercept = visualization.posterior_intercept_chart(data_and_posterior,
+                                                                                 x=x, y=y,
+                                                                                 group=group)
+
+        # Redo chart_intercept with x=treatment for overlay with self.chart_data_box_detail:
+        chart_intercept = visualization.posterior_intercept_chart(data_and_posterior,
+                                                                  x=':O', y=y,
+                                                                  group=self.window.group)
+        chart = alt.layer(chart_intercept, self.window.chart_data_box_detail).resolve_scale(y='independent')
+
+        # Check
+        if len(chart.data) == 0:
+            raise IndexError('was layer chart from different sources?')
+        if ('column' in kwargs) or ('row' in kwargs):
+            return visualization.facet(chart, **kwargs)
+        else:  # Auto facet
+            return visualization.facet(chart, **visualization.auto_facet(self.window.group, self.window.condition))
+
 
     def default_regression_charts(self, **kwargs):
         reload(visualization)

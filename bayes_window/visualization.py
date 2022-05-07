@@ -211,10 +211,14 @@ def plot_data(df=None, x='', y=None, color=None, base_chart=None, detail=':O', h
 
 
 def is_x_axis_long(data, x, error_type='bar'):
-    if type(x) == str:
-        x_column = x[:-2]
+    if isinstance(x, str):
+        x_column = x
     else:
         x_column = x['shorthand']
+
+    if x_column not in data.columns:
+        x_column = x_column[:-2]
+    # from pdb import set_trace; set_trace()
 
     if x_column in data.columns and data[x_column].unique().size < 6:
         long_x_axis = False
@@ -236,7 +240,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
                    row=None, column=None,  # noqa
                    **kwargs):
     assert (df is not None) or (base_chart is not None)
-    data = base_chart.data if df is None else df
+    data = base_chart.data.dropna(subset=['center interval']) if df is None else df
     if type(x) == str and x[-2] != ':':
         x = f'{x}:O'  # Ordinal
     assert 'higher interval' in data.columns
@@ -249,9 +253,9 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
         base_chart.data['zero'] = 0
 
     # Axis limits
-    minmax = [float(data['lower interval'].min()), 0,
+    minmax = [float(data['lower interval'].min()), base_chart.data['zero'].min(),
               float(data['higher interval'].max())]
-    scale = alt.Scale(zero=do_make_change is not False,  # Any string or True
+    scale = alt.Scale(zero=False, #do_make_change is not False,  # Any string or True
                       domain=[min(minmax), max(minmax)])
 
     long_x_axis, x, error_type = is_x_axis_long(data, x, error_type)
@@ -326,8 +330,13 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
             **kwargs
         )
-    elif not long_x_axis:  # tick
-        chart_posterior_center = base_chart.mark_tick(opacity=1).encode(
+    elif error_type=='band' or long_x_axis:  # line
+        chart_posterior_center = base_chart.mark_line(
+            clip=True, point=False,  # color='black',
+            fill=None,
+            size=2 if not long_x_axis else 1,
+            # opacity=.7 if not long_x_axis else .5,
+        ).encode(
             y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,
@@ -337,14 +346,8 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             x=x,
             **kwargs
         )
-
-    else:  # Line
-        chart_posterior_center = base_chart.mark_line(
-            clip=True, point=False,  # color='black',
-            fill=None,
-            size=2 if not long_x_axis else 1,
-            # opacity=.7 if not long_x_axis else .5,
-        ).encode(
+    else:  # tick
+        chart_posterior_center = base_chart.mark_tick(opacity=1).encode(
             y=alt.Y('center interval:Q',
                     title=title,
                     scale=scale,

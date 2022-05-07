@@ -11,7 +11,7 @@ import jax
 import numpyro
 import numpyro.optim as optim
 from numpyro.infer import MCMC, NUTS
-from numpyro.infer import SVI, Trace_ELBO
+from numpyro.infer import Predictive, SVI, Trace_ELBO
 from numpyro.infer.autoguide import AutoLaplaceApproximation
 
 from . import models
@@ -70,10 +70,14 @@ def fit_numpyro(progress_bar=False, model=None, num_warmup=1000,
 def fit_svi(model, n_draws=1000,
             autoguide=AutoLaplaceApproximation,
             loss=Trace_ELBO(),
-            optim=optim.Adam(step_size=.0001),
-            num_warmup=20000,
+            optim=optim.Adam(step_size=.00001),
+            num_warmup=2000,
+            use_gpu=False,
+            num_chains=1,
+            progress_bar=False,
+            sampler=None,
             **kwargs):
-    # select_device(use_gpu, num_chains)
+    select_device(use_gpu, num_chains)
     guide = autoguide(model)
     svi = SVI(
         model=model,
@@ -83,9 +87,14 @@ def fit_svi(model, n_draws=1000,
         **kwargs
     )
     # Experimental interface:
-    param, loss = svi.run(jax.random.PRNGKey(0), num_steps=num_warmup, stable_update=True,
-                          progress_bar=False)
-    post = guide.sample_posterior(jax.random.PRNGKey(1), param, (1, n_draws))
+    svi_result = svi.run(jax.random.PRNGKey(0), num_steps=num_warmup, stable_update=True,
+                          progress_bar=progress_bar)
+    # Old:
+    post = guide.sample_posterior(jax.random.PRNGKey(1), params=svi_result.params,
+                                  sample_shape=(1, n_draws))
+    # New:
+    #predictive = Predictive(guide,  params=svi_result.params, num_samples=n_draws)
+    #post = predictive(jax.random.PRNGKey(1), **kwargs)
 
     # Old interface:
     # init_state = svi.init(jax.random.PRNGKey(0))
@@ -94,4 +103,4 @@ def fit_svi(model, n_draws=1000,
     # post = guide.sample_posterior(jax.random.PRNGKey(1), svi_params, (1, n_draws))
 
     trace = az.from_dict(post)
-    return trace
+    return trace, post

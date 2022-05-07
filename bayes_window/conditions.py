@@ -94,29 +94,60 @@ class BayesConditions:
             self.posterior[var] = utils.get_hdi_map(self.trace.posterior[var],
                                                     prefix=f'{var} ' if (var != self.b_name) else '')
 
+
+        # Decode back combined_condition for posterior:
+        for posterior_name in self.posterior.keys():
+            # Recode posterior:
+            if 'combined_condition' in self.posterior[posterior_name].keys():
+                self.posterior[posterior_name] = pd.concat(
+                    [self.posterior[posterior_name],
+                     utils.decode_combined_condition(
+                         combined_condition=self.posterior[posterior_name]['combined_condition'],
+                         conditions=self.window.condition,
+                         combined_condition_labeler=self.window.combined_condition_labeler
+                     )], axis=1)
+
+            # Recode trace:
+            if 'combined_condition' in self.trace.posterior[posterior_name].coords:
+                self.trace.posterior[posterior_name] = pd.concat(
+                    [self.trace.posterior[posterior_name].to_dataframe().reset_index(),
+                     utils.decode_combined_condition(
+                         combined_condition=self.trace.posterior[posterior_name].to_dataframe().reset_index()['combined_condition'],
+                         conditions=self.window.condition,
+                         combined_condition_labeler=self.window.combined_condition_labeler
+                     )], axis=1).set_index(['chain','draw', ] + self.window.condition
+                     ).to_xarray()[posterior_name]
+
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    group=self.window.group,
                                                                    group2=self.window.group2,
                                                                    data=self.window.data.copy())
+        self.data_and_posterior = utils.recode_posterior(self.data_and_posterior,
+                                                         self.window.levels,
+                                                         self.window.original_label_values)
 
-        self.posterior = utils.recode_posterior(self.posterior,
-                                                self.window.levels,
-                                                self.window.original_label_values)
-        self.trace.posterior = utils.recode_posterior(self.trace.posterior,
-                                                      self.window.levels,
-                                                      self.window.original_label_values)
+
+        self.posterior['mu_per_condition'] = utils.recode_posterior(self.posterior['mu_per_condition'],
+                                                                    self.window.levels,
+                                                                    self.window.original_label_values)
+        self.posterior['mu_per_condition'] = utils.recode_posterior(self.trace.posterior['mu_per_condition'],
+                                                                    self.window.levels,
+                                                                    self.window.original_label_values)
+
         # Make slope from conditions to emulate regression:
         try:
             self.trace.posterior['slope'] = (self.trace.posterior['mu_per_condition'].sel(
                 {self.window.treatment: self.trace.posterior['mu_per_condition'][self.window.treatment].max()}) -
                                              self.trace.posterior['mu_per_condition'].sel({
                                                  self.window.treatment:
-                                                 self.trace.posterior['mu_per_condition'][self.window.treatment].min()}))
+                                                     self.trace.posterior['mu_per_condition'][
+                                                         self.window.treatment].min()}))
 
             # HDI and MAP for slope:
             self.posterior['slope'] = utils.get_hdi_map(self.trace.posterior['slope'], prefix='slope')
         except (KeyError,) as e:
+            print(f"Cant make fake slope :")
             print(e)
         except ValueError:
             print(f"Cant make fake slope from {self.trace.posterior['slope']}")
@@ -150,12 +181,19 @@ class BayesConditions:
             posterior = self.posterior['mu_per_condition']
         else:
             posterior = self.data_and_posterior
+        if 'mu' in self.posterior.keys():
+            for key in posterior.columns:
+                if 'interval' in key:
+                    posterior[key] += self.posterior['mu']['mu center interval'].iloc[0]
+                    #from pdb import set_trace; set_trace()
+
+            
         chart_p = None
         if posterior is not None:
             base_chart = alt.Chart(posterior)  # TODO self.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
-                                                              do_make_change=False,
+                                                              do_make_change=True,
                                                               title=f'{self.window.y} estimate',
                                                               base_chart=base_chart,
                                                               color=color,
@@ -186,7 +224,7 @@ class BayesConditions:
 
     def forest(self, query='opsin=="chr2" & delay_length==60'):
         trace_post_query = utils.query_posterior(trace=self.trace, posterior=self.posterior, query=query) if query else \
-        self.trace.posterior['mu_per_condition']
+            self.trace.posterior['mu_per_condition']
         az.plot_forest(trace_post_query,
                        combined=True,
                        kind='ridgeplot',

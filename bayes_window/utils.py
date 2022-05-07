@@ -218,27 +218,30 @@ def replace_in_xarray(xar, index_var, key):
 
 
 def recode_posterior(posterior, levels, original_label_values):
-    for index_var in levels:
+    for index_var in set(levels):
         if index_var not in original_label_values.keys():
             continue
         key = original_label_values[index_var]
-        key_as_str = {str(old_val): new_val for old_val, new_val in key.items()}
+        # key_as_str = {str(old_val): new_val for old_val, new_val in key.items()}
+        # from pdb import set_trace; set_trace()
 
-        if type(posterior) == xr.Dataset:
+        if (type(posterior) == xr.Dataset) | (type(posterior) == xr.DataArray):
             if index_var not in posterior.coords:
                 continue
             posterior = replace_in_xarray(posterior, index_var, key)
-            posterior = replace_in_xarray(posterior, index_var, key_as_str)
+            # posterior = replace_in_xarray(posterior, index_var, key_as_str)
 
         else:  # Otherwise, if dataframe:
             if index_var not in posterior.keys():
+                print(f'Not recoding {index_var}: {index_var} not in {posterior.keys()}')
                 continue
             posterior[index_var] = posterior[index_var].replace(key)
             # Also try old value as string:
-            try:
-                posterior[index_var] = posterior[index_var].replace(key_as_str)
-            except TypeError:
-                pass
+            # try:
+            #     posterior[index_var] = posterior[index_var].replace(key_as_str)
+            # except TypeError as e:
+            #     print(e)
+            #     pass
 
     return posterior
 
@@ -305,7 +308,7 @@ def insert_posterior_into_data(posteriors, data, group, group2):
                 data_index = np.where(data[posterior_index_cols].dropna(
                     subset=posterior_index_cols).astype(type(posterior_val)) == posterior_val)[0]
             if len(data_index) == 0:
-                print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
+                #print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
                 continue
             for posterior_value_col in posterior_value_cols:
                 data.loc[data.index[data_index[0]], posterior_value_col] = subset_posterior[posterior_value_col]
@@ -372,7 +375,7 @@ def make_fold_change(df, y='log_firing_rate', index_cols=('Brain region', 'Stim 
         mdf.xs(treatments[0], level=treatment_name).size):  # Warning
         debug_info = (mdf.xs(treatments[0], level=treatment_name).size,
                       mdf.xs(treatments[1], level=treatment_name).size)
-        print(f'Careful if overlaying boxplots over posterior: Uneven number of entries in conditions f"{debug_info}"')
+        # print(f'Careful if overlaying boxplots over posterior: Uneven number of entries in conditions f"{debug_info}"')
         data = mdf.xs(treatments[0], level=treatment_name).reset_index()
     else:  # all good
         # Subtract/divide

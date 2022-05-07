@@ -41,13 +41,15 @@ def sample_y(dist_y, theta, y, sigma_obs=None):
         raise NotImplementedError
 
 
-def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True, **kwargs):
+def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True, add_intercept=False, **kwargs):
     n_conditions = np.unique(condition).shape[0]
-    a_neuron = numpyro.sample('mu', dist.Normal(0, 1))
     sigma_neuron = numpyro.sample('sigma', dist.HalfNormal(1))
+    a = numpyro.sample('mu', dist.Normal(0, 1))
     a_neuron_per_condition = numpyro.sample('mu_per_condition',
-                                            dist.Normal(jnp.tile(a_neuron, n_conditions), sigma_neuron))
-    theta = a_neuron + a_neuron_per_condition[condition]
+                                            dist.Normal(jnp.tile(a, n_conditions), sigma_neuron))
+    theta = a_neuron_per_condition[condition]
+    if add_intercept:
+        theta += a  
     if group is not None and add_group_intercept:
         if dist_y == 'poisson':
             a_group = numpyro.sample('mu_intercept_per_group', dist.HalfNormal(jnp.tile(10, np.unique(group).shape[0])))
@@ -96,11 +98,11 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
 
     if not add_condition_slope:
         center_slope = True  # override center_slope
+
     if center_slope:
         slope = numpyro.sample('slope', dist_slope(0, 100))
     else:
         slope = 0
-
     if add_condition_slope:
         if robust_slopes:
             # Robust slopes:
@@ -127,6 +129,7 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         print('Caution: No intercept')
     if treatment is not None:
         slope = slope * treatment
+    
     sample_y(dist_y=dist_y, theta=intercept + slope, y=y)
 
 
