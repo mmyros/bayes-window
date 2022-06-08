@@ -129,7 +129,7 @@ class BayesConditions:
                          combined_condition=self.trace.posterior[posterior_name].to_dataframe().reset_index()['combined_condition'],
                          conditions=self.window.original_label_values.keys(),
                          combined_condition_labeler=self.window.combined_condition_labeler
-                     )], axis=1).set_index(['chain','draw', ] + self.window.condition
+                     )], axis=1).set_index(['chain','draw', ] + list(self.window.original_label_values.keys())
                      ).to_xarray()[posterior_name]
 
         # Make slope from conditions to emulate regression:

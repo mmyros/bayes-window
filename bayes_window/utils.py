@@ -302,13 +302,13 @@ def insert_posterior_into_data(posteriors, data, group, group2):
             assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
             subset_posterior = subset_posterior.iloc[0]
             # Take the first time eg 'higher interval' needs to be placed
-            data_index =\
+            data_index = \
                 np.where(data[posterior_index_cols] == posterior_val)[0]
             if len(data_index) == 0:
                 data_index = np.where(data[posterior_index_cols].dropna(
                     subset=posterior_index_cols).astype(type(posterior_val)) == posterior_val)[0]
             if len(data_index) == 0:
-                #print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
+                # print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
                 continue
             for posterior_value_col in posterior_value_cols:
                 data.loc[data.index[data_index[0]], posterior_value_col] = subset_posterior[posterior_value_col]
@@ -502,7 +502,7 @@ def decode_combined_condition(combined_condition: pd.Series, conditions: list,
 def combined_condition(df: pd.DataFrame, conditions: list):
     # String-valued combined condition
     # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
-    if conditions[0] is None:
+    if len(conditions) > 0 and conditions[0] is None:
         df['combined_condition'] = np.ones(df.shape[0])
         return df, None
 
