@@ -502,7 +502,7 @@ def decode_combined_condition(combined_condition: pd.Series, conditions: list,
 def combined_condition(df: pd.DataFrame, conditions: list):
     # String-valued combined condition
     # df['combined_condition'] = utils.df_index_compress(df, index_columns=self.levels)[1]
-    if len(conditions) > 0 and conditions[0] is None:
+    if len(conditions) > 0 or conditions[0] is None:
         df['combined_condition'] = np.ones(df.shape[0])
         return df, None
 
