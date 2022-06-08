@@ -39,12 +39,14 @@ class BayesRegression:
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
-        window = copy(window) if window is not None else BayesWindow(**kwargs)
+        window = copy(window) if window is not None else BayesWindow(transform_treatment=False, **kwargs)
         self.window = window
 
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
             do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, add_group_slope=False,
             zscore_y=None, dist_y='normal', **kwargs):
+        # assert len(self.window.combined_condition_labeler.classes_[0].split(','))  == len(self.window.condition)
+
         self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
@@ -143,7 +145,7 @@ class BayesRegression:
                     [self.posterior[posterior_name],
                      utils.decode_combined_condition(
                          combined_condition=self.posterior[posterior_name]['combined_condition'],
-                         conditions=self.window.condition,
+                         conditions=self.window.original_label_values,
                          combined_condition_labeler=self.window.combined_condition_labeler
                      )], axis=1)
 
@@ -160,7 +162,7 @@ class BayesRegression:
         return self
 
     def plot(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
-             add_data=None, add_posterior_density=True, plot_data=True,
+             add_data=None, add_posterior_density=True, plot_data=True, y_title=None,
              **kwargs):
         # Set some options
         if type(x) == str:
@@ -207,7 +209,7 @@ class BayesRegression:
             # No-data plot
             (self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
              self.chart_posterior_center, self.chart_zero) = plot_posterior(
-                title=f'Δ{self.window.y}' if self.window.do_make_change else self.window.y,
+                y_title=y_title or (f'Δ{self.window.y}' if self.window.do_make_change else self.window.y),
                 x=x,
                 base_chart=base_chart,
                 do_make_change=self.window.do_make_change,
@@ -228,7 +230,7 @@ class BayesRegression:
             #                else self.posterior['slope_per_condition']
             #                )
             self.chart_posterior_hdi_no_data = alt.layer(
-                *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
+                *plot_posterior(df=main_effect, y_title=y_title or f'{self.window.y}', x=x,
                                 do_make_change=self.window.do_make_change))
 
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_whiskers75,

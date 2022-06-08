@@ -44,3 +44,46 @@ def test_estimate_posteriors_data_overlay_indep_axes():
     chart = window.plot(x='stim:O', independent_axes=True,
                         column='neuron', row='mouse')
     chart.display()
+
+
+def test_conditions2():
+    df.neuron = df.neuron.astype(int)
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
+
+    window.fit(model=models.model_single, num_chains=1)
+    assert window.window.y in window.data_and_posterior
+    window.plot(x='stim:O', independent_axes=False, add_data=True)
+
+
+def test_fit_conditions():
+    # TODO combined condition here somehow
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit()
+
+
+def test_plot_generic():
+    # conditions:
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_single)
+    window.plot()
+
+
+def test_facet():
+    # conditions:
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_single)
+    window.plot(row='neuron', width=40)
+    window.plot(x='neuron').facet(column='mouse')
+
+
+def test_plot_no_slope_data_only():
+    window = BayesConditions(df=df, y='isi', treatment='stim')
+    chart = window.plot()
+    chart.display()
+
+
+def test_plot_slope_data_only():
+    window = BayesConditions(df=df, y='isi', treatment='stim')
+    chart = window.plot()
+    chart.display()
+

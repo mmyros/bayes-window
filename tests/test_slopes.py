@@ -5,7 +5,6 @@ import pandas as pd
 
 from bayes_window import BayesWindow
 from bayes_window import models
-from bayes_window.conditions import BayesConditions
 from bayes_window.generative_models import generate_spikes_stim_types, generate_fake_spikes, generate_fake_lfp
 from bayes_window.slopes import BayesRegression
 from bayes_window.visualization import plot_posterior
@@ -194,24 +193,6 @@ def test_estimate_posteriors_data_overlay_indep_axes_slope(add_data, add_data_pl
     chart.display()
 
 
-def test_plot_no_slope_data_only():
-    window = BayesConditions(df=df, y='isi', treatment='stim')
-    chart = window.plot()
-    chart.display()
-
-
-def test_plot_slope_data_only():
-    window = BayesConditions(df=df, y='isi', treatment='stim')
-    chart = window.plot()
-    chart.display()
-
-
-def test_fit_conditions():
-    # TODO combined condition here somehow
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit()
-
-
 def test_fit():
     window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_hierarchical)
@@ -245,10 +226,6 @@ def test_plot_generic():
     window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_hierarchical)
     window.plot()
-    # conditions:
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit(model=models.model_single)
-    window.plot()
 
 
 def test_facet():
@@ -258,36 +235,30 @@ def test_facet():
     window.plot(row='neuron', width=40)
     window.plot(x='neuron').facet(column='mouse')
 
-    # conditions:
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit(model=models.model_single)
-    window.plot(row='neuron', width=40)
-    window.plot(x='neuron').facet(column='mouse')
-
 
 def test_single_condition_withdata():
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, y_title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
     # Without data again
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, y_title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
     # With data again
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, y_title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
 def test_single_condition_nodata():
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse')
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y='normal')
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, y_title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
@@ -295,7 +266,7 @@ def test_single_condition_nodata():
 def test_single_condition_nodata_dists(dist):
     window = BayesRegression(df=dfl, y='Log power', treatment='stim', group='mouse', add_data=True)
     window.fit(model=models.model_hierarchical, do_make_change='divide', dist_y=dist, zscore_y=False, )
-    alt.layer(*plot_posterior(df=window.data_and_posterior, title='Log power', )).display()
+    alt.layer(*plot_posterior(df=window.data_and_posterior, y_title='Log power', )).display()
     window.plot(independent_axes=True).display()
 
 
@@ -320,7 +291,7 @@ def test_chirp_data(force_correct_fold_change_index_cols):
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
                              treatment='stim_on',
-                             condition=['Stim phase','Inversion','Brain region'],
+                             condition=['Stim phase', 'Inversion', 'Brain region'],
                              group='Subject')
     if force_correct_fold_change_index_cols:
         window.fit(model=models.model_hierarchical, fold_change_index_cols=['Brain region', 'Stim phase', 'stim_on',
@@ -334,7 +305,7 @@ def test_chirp_data(force_correct_fold_change_index_cols):
 import json
 
 
-@mark.parametrize('plot_from_data_and_posterior', [True,False])
+@mark.parametrize('plot_from_data_and_posterior', [True, False])
 def test_chirp_data1(plot_from_data_and_posterior):
     dfdata = pd.read_csv(Path('tests') / 'test_data' / 'chirp_power.csv')
     window = BayesRegression(df=dfdata, y='Log power',
@@ -348,7 +319,7 @@ def test_chirp_data1(plot_from_data_and_posterior):
                         independent_axes=True)
     chart.display()
     chart_data = pd.DataFrame.from_records(list(json.loads(chart.to_json())['datasets'].values())[0])
-    assert (chart_data['Stim phase'].unique().astype(float)==dfdata['Stim phase'].unique()).all()
+    assert (chart_data['Stim phase'].unique().astype(float) == dfdata['Stim phase'].unique()).all()
     # assert (chart_data['Inversion'].astype(bool).unique()==dfdata['Inversion'].unique()).all()
     # assert (window.data_and_posterior['higher interval'].dropna().size <
     #         window.data_and_posterior['higher interval'].size)
@@ -364,16 +335,7 @@ def test_chirp_data2():
     window.fit(model=models.model_hierarchical, fold_change_index_cols=[  # 'Condition code',
         'Brain region', 'Stim phase', 'stim_on', 'Fid', 'Subject', 'Inversion'], do_mean_over_trials=True, num_chains=1,
                n_draws=100, num_warmup=100)
-    window.plot(x='Stim phase', color='Fid',add_data=True, independent_axes=True).display()
-
-
-def test_conditions2():
-    df.neuron = df.neuron.astype(int)
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', add_data=True)
-
-    window.fit(model=models.model_single, num_chains=1)
-    assert window.window.y in window.data_and_posterior
-    window.plot(x='stim:O', independent_axes=False, add_data=True)
+    window.plot(x='Stim phase', color='Fid', add_data=True, independent_axes=True).display()
 
 
 def random_tests():
@@ -474,7 +436,7 @@ def test_plot_slopes_intercepts(do_make_change):
 
 
 def test_gpu():
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron','mouse'], group='mouse',
+    window = BayesRegression(df=df, y='isi', treatment='stim', condition=['neuron', 'mouse'], group='mouse',
                              detail='i_trial')
     window.fit(model=models.model_hierarchical, do_make_change='subtract',
                add_condition_slope=True,

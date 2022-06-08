@@ -233,7 +233,7 @@ def recode_posterior(posterior, levels, original_label_values):
 
         else:  # Otherwise, if dataframe:
             if index_var not in posterior.keys():
-                print(f'Not recoding {index_var}: {index_var} not in {posterior.keys()}')
+                # print(f'Not recoding {index_var}: {index_var} not in {posterior.keys()}')
                 continue
             posterior[index_var] = posterior[index_var].replace(key)
             # Also try old value as string:
@@ -491,6 +491,10 @@ def add_data_to_lme(do_make_change, include_condition, res, condition, data, y, 
 def decode_combined_condition(combined_condition: pd.Series, conditions: list,
                               combined_condition_labeler: LabelEncoder):
     decoded_df = pd.Series(combined_condition_labeler.inverse_transform(combined_condition)).str.split(',', expand=True)
+    if len(decoded_df.columns) != len(conditions):
+        raise KeyError(f'Combined condition stored in labeler is '
+                       f'{combined_condition_labeler.inverse_transform(combined_condition)[0]}, '
+                       f'but conditions requested are {conditions}')
     decoded_df.columns = conditions
     return decoded_df
 

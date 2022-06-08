@@ -39,7 +39,7 @@ class BayesWindow:
                  group2: str = None,
                  detail=':O',
                  add_data=False,
-                 transform_treatment=True
+                 transform_treatment=False
                  ):
         assert y in df.columns
         if df[y].isna().any():
@@ -57,7 +57,11 @@ class BayesWindow:
         self.levels = list(set(utils.parse_levels(self.treatment, self.condition, self.group, self.group2)))
 
         # Combined condition
-        self.data, self.combined_condition_labeler = utils.combined_condition(df.copy(), self.condition)
+        levels_to_transform = self.levels if transform_treatment else set(self.levels) - {self.treatment}
+        self.data, self.combined_condition_labeler = utils.combined_condition(df.copy(), list(levels_to_transform))
+        # self.combined_condition_labeler.labels = levels_to_transform
+        # if len(self.combined_condition_labeler.classes_[0].split(',')) != len(self.condition):
+        #     raise KeyError(f"{self.combined_condition_labeler.classes_[0].split(', ')} but {self.condition}")
         self.original_data = self.data.copy()
         self.detail = detail
         self.y = y
@@ -65,7 +69,7 @@ class BayesWindow:
         # Transform conditions to integers as required by numpyro:
         labeler = LabelEncoder()
         self.original_label_values = {}
-        levels_to_transform = self.levels if transform_treatment else set(self.levels) - {self.treatment}
+
         # Transform all except treatment if not transform_treatment
         for level in set(levels_to_transform):
             self.data[level] = labeler.fit_transform(self.data[level])

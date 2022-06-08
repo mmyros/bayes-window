@@ -236,7 +236,7 @@ def is_x_axis_long(data, x, error_type='bar'):
     return long_x_axis, x, error_type
 
 
-def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=None, error_type=None,
+def plot_posterior(df=None, y_title='', x=':O', do_make_change=True, base_chart=None, error_type=None,
                    row=None, column=None,  # noqa
                    **kwargs):
     assert (df is not None) or (base_chart is not None)
@@ -322,7 +322,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     if (x == ':O') or (x == ':N'):  # Bar
         chart_posterior_center = base_chart.mark_bar(color='black', filled=False, opacity=1, size=17).encode(
             y=alt.Y('center interval:Q',
-                    title=title,
+                    title=y_title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
@@ -338,7 +338,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
             # opacity=.7 if not long_x_axis else .5,
         ).encode(
             y=alt.Y('center interval:Q',
-                    title=title,
+                    title=y_title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
@@ -349,7 +349,7 @@ def plot_posterior(df=None, title='', x=':O', do_make_change=True, base_chart=No
     else:  # tick
         chart_posterior_center = base_chart.mark_tick(opacity=1).encode(
             y=alt.Y('center interval:Q',
-                    title=title,
+                    title=y_title,
                     scale=scale,
                     # impute=alt.ImputeParams(value='value'),
                     axis=alt.Axis(orient='left'),
