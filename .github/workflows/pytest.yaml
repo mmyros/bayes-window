@@ -37,7 +37,7 @@ jobs:
       # Run tox using the version of Python in `PATH`
       # For some reason tests in test_model_comparison must be run separately - some concurrency problem maybe
       run: |
-          pytest --cov bayes_window --cov-report xml -m 'not serial'
+          pytest --cov bayes_window --cov-report xml -m 'not serial' --ignore tests/test_generative_models.py
 
     - name: Run coverage
       run: |
