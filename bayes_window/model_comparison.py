@@ -205,7 +205,7 @@ def split_train_predict(df, model, y, **kwargs):
     :return:
     """
 
-    level_names = ['treatment', 'group']
+    level_names = ['treatment', 'group', 'condition']
     # Drop levels that were not requested
     level_names = [level_name for level_name in level_names if (level_name in kwargs.keys())]
     # Drop levels not present in data
@@ -282,7 +282,7 @@ def compare_models(df, models: dict,
                                                    (df, model, num_chains=1, **kwargs, **extra_model_arg)
                                                    for model, extra_model_arg in zip(models.values(), extra_model_args))
     else:
-        traces = [split_train_predict(df, model, **kwargs, **extra_model_arg)
+        traces = [split_train_predict(df, model, y=kwargs['y'], **extra_model_arg)
                   for model, extra_model_arg in zip(tqdm(models.values()), extra_model_args)]
 
     # save tp dict

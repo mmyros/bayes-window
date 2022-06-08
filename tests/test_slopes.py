@@ -23,7 +23,7 @@ dfl, _, _, _ = generate_fake_lfp(n_trials=5)
 df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
                                                                 n_neurons=3,
                                                                 n_mice=4,
-                                                                dur=2, )
+                                                                dur=4, )
 
 
 # @mark.parametrize('add_data', [True, False])
@@ -445,6 +445,7 @@ def test_gpu():
     assert window.data_and_posterior.dropna(subset=['mu_intercept_per_group center interval'])[
                'mouse'].unique().size == 4
 
+
 # def test_stim_strength():
 #     df = []
 #     for slope in np.linspace(4, 400, 4):
@@ -457,3 +458,18 @@ def test_gpu():
 #     window = BayesRegression(df=df, 'Power', treatment='stim_strength', condition='mouse', detail='i_trial')
 #     window.fit(add_condition_slope=True, center_intercept=True, dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
 #     window.chart
+
+window = BayesRegression(df=df, y='isi', treatment='stim', )
+window.fit(model=models.model_hierarchical)
+
+
+def test_extra_plots():
+    window.plot_detail_minus_intercepts().display()
+    window.plot_intercepts().display()
+    # window.plot_detail_minus_intercepts().display()
+
+
+def test_explore_models():
+    window.explore_models(parallel=False)
+    window.explore_model_kinds(parallel=False)
+

@@ -11,7 +11,7 @@ df_radon = load_radon()
 
 dfl, _, _, _ = generate_fake_lfp(n_trials=5)
 
-df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=2,
+df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
                                                                 n_neurons=3,
                                                                 n_mice=4,
                                                                 dur=2, )
@@ -75,23 +75,15 @@ def test_facet():
     window.plot(row='neuron', width=40)
     window.plot(x='neuron').facet(column='mouse')
 
-#def test_model_quality():
+def test_plot_model_quality():
+   window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+   window.fit(model=models.model_single)
+   window.plot_model_quality()
+
+
+def test_plot_model_quality():
     # conditions:
-#    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-#    window.fit(model=models.model_single)
-#    window.plot_model_quality()
-    
-    
-def test_model_comparison():
-    # conditions:
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
-    window.fit(model=models.model_single)
-    window.explore_models()
-    
-    
-def test_explore_model_kinds():
-    # conditions:
-    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window = BayesConditions(df=dfl, y='isi', treatment='stim')
     window.fit(model=models.model_single)
     window.plot_model_quality()
 
@@ -106,3 +98,9 @@ def test_plot_slope_data_only():
     chart = window.plot()
     chart.display()
 
+
+def test_model_comparison():
+    # conditions:
+    window = BayesConditions(df=df, y='isi', treatment='stim', group='mouse')
+    window.fit(model=models.model_single)
+    window.explore_models(parallel=False)

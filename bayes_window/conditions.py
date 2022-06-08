@@ -248,26 +248,26 @@ class BayesConditions:
             **kwargs
         )
 
-    def explore_models(self, **kwargs):
+    def explore_models(self, parallel=True, **kwargs):
         from bayes_window.model_comparison import compare_models
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
-            return compare_models(df=self.data,
+            return compare_models(df=self.window. data,
                                   models={
-                                      'no_condition': self.model,
+                                      # 'no_condition': self.model,
                                       'full_normal': self.model,
                                       'full_student': self.model,
                                       'full_lognormal': self.model,
                                   },
                                   extra_model_args=[
-                                      {'condition': None},
-                                      {'condition': self.condition},
-                                      {'condition': self.condition},
-                                      {'condition': self.condition},
+                                      # {'condition': None},
+                                      {'condition': self.window.condition},
+                                      {'condition': self.window.condition},
+                                      {'condition': self.window.condition},
                                   ],
-                                  y=self.y,
-                                  parallel=True,
+                                  y=self.window.y,
+                                  parallel=parallel,
                                   **kwargs
                                   )
 
@@ -292,12 +292,15 @@ class BayesConditions:
     def plot_model_quality(self, var_names=None, **kwargs):
         assert hasattr(self, 'trace'), 'Run bayesian fitting first!'
         az.plot_trace(self.trace, var_names=var_names, show=True, **kwargs)
-        az.plot_pair(
-            self.trace,
-            var_names=var_names,
-            kind="hexbin",
-            # coords=coords,
-            colorbar=False,
-            divergences=True,
-            # backend="bokeh",
-        )
+        try:
+            az.plot_pair(
+                self.trace,
+                var_names=var_names,
+                kind="hexbin",
+                # coords=coords,
+                colorbar=False,
+                divergences=True,
+                # backend="bokeh",
+            )
+        except ZeroDivisionError as e:
+            print(e)
