@@ -80,6 +80,20 @@ def test_model_quality():
     window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
     window.fit(model=models.model_single)
     window.plot_model_quality()
+    
+    
+def test_model_comparison():
+    # conditions:
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_single)
+    window.explore_models()
+    
+    
+def test_explore_model_kinds():
+    # conditions:
+    window = BayesConditions(df=df, y='isi', treatment='stim', condition='neuron', group='mouse')
+    window.fit(model=models.model_single)
+    window.plot_model_quality()
 
 def test_plot_no_slope_data_only():
     window = BayesConditions(df=df, y='isi', treatment='stim')
