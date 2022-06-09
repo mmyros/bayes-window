@@ -99,8 +99,8 @@ def test_plot_slope_data_only():
     chart.display()
 
 
-def test_model_comparison():
-    # conditions:
-    window = BayesConditions(df=df, y='isi', treatment='stim', group='mouse')
-    window.fit(model=models.model_single)
-    window.explore_models(parallel=False)
+# def test_model_comparison():
+#     # conditions:
+#     window = BayesConditions(df=df, y='isi', treatment='stim', group='mouse')
+#     window.fit(model=models.model_single)
+#     window.explore_models(parallel=False)

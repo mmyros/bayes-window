@@ -459,17 +459,14 @@ def test_gpu():
 #     window.fit(add_condition_slope=True, center_intercept=True, dist_y='normal', num_chains=1, n_draws=100, num_warmup=100)
 #     window.chart
 
-window = BayesRegression(df=df, y='isi', treatment='stim', )
+window = BayesRegression(df=df, y='isi', treatment='stim', group='mouse')
 window.fit(model=models.model_hierarchical)
 
 
 def test_extra_plots():
-    window.plot_detail_minus_intercepts().display()
     window.plot_intercepts().display()
-    # window.plot_detail_minus_intercepts().display()
+    window.plot_detail_minus_intercepts().display()
 
-
-def test_explore_models():
-    window.explore_models(parallel=False)
-    window.explore_model_kinds(parallel=False)
-
+# def test_explore_models():
+#     window.explore_models(parallel=False)
+#     window.explore_model_kinds(parallel=False)
