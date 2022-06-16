@@ -1,4 +1,5 @@
 import os
+from pytest import mark
 
 from bayes_window import models
 from bayes_window.conditions import BayesConditions
@@ -16,10 +17,10 @@ df, df_monster, index_cols, firing_rates = generate_fake_spikes(n_trials=3,
                                                                 n_mice=4,
                                                                 dur=2, )
 
-
-def test_estimate_posteriors():
+@mark.parametrize('transform_treatment', [False, True])
+def test_estimate_posteriors(transform_treatment):
     window = BayesConditions(df=df, y='isi', treatment='stim', condition=['neuron_x_mouse', 'i_trial', ],
-                             group='mouse', )
+                             group='mouse', transform_treatment=transform_treatment)
     window.fit(model=models.model_single)
 
     chart = window.plot(x='stim:O', column='neuron', row='mouse', )

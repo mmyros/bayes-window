@@ -53,10 +53,12 @@ def test_radon(
     assert len(window.charts) > 3  # Should include kde
 
 
+@mark.parametrize('transform_treatment', [False, True])
 @mark.parametrize('do_make_change', [False, 'divide', 'subtract'])
 @mark.parametrize('detail', [None, ':O', 'i_trial'])
-def test_slopes(do_make_change, detail):
-    window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', detail=detail)
+def test_slopes(transform_treatment, do_make_change, detail):
+    window = BayesRegression(df=df, y='isi', treatment='stim', condition='neuron', group='mouse', detail=detail,
+                             transform_treatment=transform_treatment)
     # try:
     window.fit(model=models.model_hierarchical, do_make_change=do_make_change, )
     # fold_change_index_cols=('stim', 'mouse', 'neuron_x_mouse'))

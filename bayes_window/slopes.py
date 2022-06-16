@@ -39,7 +39,7 @@ class BayesRegression:
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
-        window = copy(window) if window is not None else BayesWindow(transform_treatment=False, **kwargs)
+        window = copy(window) if window is not None else BayesWindow(**kwargs)
         self.window = window
 
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,

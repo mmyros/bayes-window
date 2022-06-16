@@ -37,7 +37,7 @@ class BayesConditions:
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
-        window = copy(window) if window is not None else BayesWindow(transform_treatment=True, **kwargs)
+        window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
 
