@@ -1,3 +1,4 @@
+import warnings
 from copy import copy
 from typing import List, Any
 
@@ -37,6 +38,9 @@ class BayesConditions:
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
+        if 'transform_treatment' in kwargs.keys():
+            warnings.warn('Transform treatment must be True for conditions. Setting to True')
+            kwargs['transform_treatment'] = True
         window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
@@ -94,7 +98,6 @@ class BayesConditions:
             self.posterior[var] = utils.get_hdi_map(self.trace.posterior[var],
                                                     prefix=f'{var} ' if (var != self.b_name) else '')
 
-
         # Fill posterior into data
         self.data_and_posterior = utils.insert_posterior_into_data(posteriors=self.posterior,
                                                                    group=self.window.group,
@@ -103,7 +106,6 @@ class BayesConditions:
         self.data_and_posterior = utils.recode_posterior(self.data_and_posterior,
                                                          self.window.levels,
                                                          self.window.original_label_values)
-
 
         self.posterior['mu_per_condition'] = utils.recode_posterior(self.posterior['mu_per_condition'],
                                                                     self.window.levels,
@@ -126,11 +128,12 @@ class BayesConditions:
                 self.trace.posterior[posterior_name] = pd.concat(
                     [self.trace.posterior[posterior_name].to_dataframe().reset_index(),
                      utils.decode_combined_condition(
-                         combined_condition=self.trace.posterior[posterior_name].to_dataframe().reset_index()['combined_condition'],
+                         combined_condition=self.trace.posterior[posterior_name].to_dataframe().reset_index()[
+                             'combined_condition'],
                          conditions=self.window.original_label_values.keys(),
                          combined_condition_labeler=self.window.combined_condition_labeler
-                     )], axis=1).set_index(['chain','draw', ] + list(self.window.original_label_values.keys())
-                     ).to_xarray()[posterior_name]
+                     )], axis=1).set_index(['chain', 'draw', ] + list(self.window.original_label_values.keys())
+                                           ).to_xarray()[posterior_name]
 
         # Make slope from conditions to emulate regression:
         try:
@@ -178,7 +181,6 @@ class BayesConditions:
             posterior = self.posterior['mu_per_condition']
         else:
             posterior = self.data_and_posterior
-
 
         chart_p = None
         if posterior is not None:
@@ -253,7 +255,7 @@ class BayesConditions:
         if self.b_name is None:
             raise ValueError('Fit a model first')
         elif self.b_name == 'mu_per_condition':
-            return compare_models(df=self.window. data,
+            return compare_models(df=self.window.data,
                                   models={
                                       # 'no_condition': self.model,
                                       'full_normal': self.model,

@@ -143,7 +143,7 @@ def test_run_methods():
 
 def test_run_methods_serial():
     res = run_conditions(
-        true_slopes=np.hstack([np.zeros(2), np.linspace(8.03, 18, 3)]),
+        true_slopes=np.hstack([np.zeros(2), 8]),
         n_trials=[9],
         parallel=False,
         ys=('Log power', 'Power')
