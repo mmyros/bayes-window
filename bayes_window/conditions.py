@@ -40,7 +40,7 @@ class BayesConditions:
             window = None
         if 'transform_treatment' in kwargs.keys():
             warnings.warn('Transform treatment must be True for conditions. Setting to True')
-            kwargs['transform_treatment'] = True
+        kwargs['transform_treatment'] = True
         window = copy(window) if window is not None else BayesWindow(**kwargs)
         window.add_data = add_data
         self.window = window
