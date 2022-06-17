@@ -146,7 +146,7 @@ def test_run_methods_serial():
         true_slopes=np.hstack([np.zeros(2), 10]),
         n_trials=[10],
         parallel=False,
-        ys=('Power')
+        ys=('Power', )
     )
     res_confusion=make_confusion_matrix(res, groups=['method'])
     plot_confusion(res_confusion)
