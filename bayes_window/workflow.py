@@ -44,6 +44,11 @@ class BayesWindow:
         assert y in df.columns
         if df[y].isna().any():
             raise ValueError(f'Outcome variable {y} should not contain nans. Please clean first')
+
+        # Standardize response variable:
+        standardize = lambda x: (x - x.mean()) / x.std()
+        df[y] = df[y].pipe(standardize)
+
         assert treatment in df.columns
         if group:
             assert group in df.columns
@@ -54,11 +59,24 @@ class BayesWindow:
         self.condition = condition if type(condition) == list else [condition]
         if self.condition[0]:
             assert self.condition[0] in df.columns, f'{self.condition[0]} is not in {df.columns}'
-        self.levels = list(set(utils.parse_levels(self.treatment, self.condition, self.group, self.group2)))
+        # self.levels = list(set(utils.parse_levels(self.treatment, self.condition, self.group, self.group2)))
+
+        self.levels = list(set(self.condition).union({self.treatment}) - {None})
 
         # Combined condition
-        levels_to_transform = self.levels if transform_treatment else set(self.levels) - {self.treatment}
+        levels_to_transform = set(self.levels) if transform_treatment else set(self.levels) - {self.treatment}
+        #  have to find another way to recode self.group, self.group2
+        levels_to_transform -= {self.group, self.group2}
         self.data, self.combined_condition_labeler = utils.combined_condition(df.copy(), list(levels_to_transform))
+
+        # Transform groups to integers as required by numpyro:
+        if group:
+            self.group_labeler = LabelEncoder()
+            self.data[group] = self.group_labeler.fit_transform(df[group])
+        if group2:
+            self.group2_labeler = LabelEncoder()
+            self.data[group2] = self.group2_labeler.fit_transform(df[group2])
+
         # self.combined_condition_labeler.labels = levels_to_transform
         # if len(self.combined_condition_labeler.classes_[0].split(',')) != len(self.condition):
         #     raise KeyError(f"{self.combined_condition_labeler.classes_[0].split(', ')} but {self.condition}")

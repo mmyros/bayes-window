@@ -1,4 +1,5 @@
 # from contextlib import nullcontext
+import warnings
 
 import jax.numpy as jnp
 import numpy as np
@@ -41,20 +42,20 @@ def sample_y(dist_y, theta, y, sigma_obs=None):
         raise NotImplementedError
 
 
-def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True, add_intercept=False, **kwargs):
+def model_single(y, condition, group=None, dist_y='normal', add_group_intercept=True, add_intercept=True, **kwargs):
     n_conditions = np.unique(condition).shape[0]
-    sigma_neuron = numpyro.sample('sigma', dist.HalfNormal(1))
-    a = numpyro.sample('mu', dist.Normal(0, 1))
-    a_neuron_per_condition = numpyro.sample('mu_per_condition',
-                                            dist.Normal(jnp.tile(a, n_conditions), sigma_neuron))
-    theta = a_neuron_per_condition[condition]
+    sigma = numpyro.sample('sigma', dist.HalfNormal(10))
+    mu_per_condition = numpyro.sample('mu_per_condition',
+                                     dist.Normal(jnp.tile(0, n_conditions), sigma))
+    theta = mu_per_condition[condition]
     if add_intercept:
-        theta += a  
+        mu = numpyro.sample('mu', dist.Normal(0, 10))
+        theta += mu
     if group is not None and add_group_intercept:
         if dist_y == 'poisson':
             a_group = numpyro.sample('mu_intercept_per_group', dist.HalfNormal(jnp.tile(10, np.unique(group).shape[0])))
         else:
-            sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(1))
+            sigma_group = numpyro.sample('sigma_intercept_per_group', dist.HalfNormal(10))
             a_group = numpyro.sample('mu_intercept_per_group', dist.Normal(jnp.tile(0, np.unique(group).shape[0]),
                                                                            sigma_group))
         theta += a_group[group]
@@ -67,7 +68,9 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
                        center_intercept=True, center_slope=False, robust_slopes=False,
                        add_condition_intercept=False,
                        dist_slope=dist.Normal
-                      ):
+                       ):
+    if group is not None and not add_group_intercept and not add_group_slope:
+        warnings.warn(f'No group intercept or group slope requested. What was the point of providing group {group}?')
     n_subjects = np.unique(group).shape[0]
 
     n_conditions = np.unique(condition).shape[0]
@@ -100,7 +103,7 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
         center_slope = True  # override center_slope
 
     if center_slope:
-        slope = numpyro.sample('slope', dist_slope(0, 100))
+        slope = numpyro.sample('slope', dist_slope(0, 1))
     else:
         slope = 0
     if add_condition_slope:
@@ -112,25 +115,37 @@ def model_hierarchical(y, condition=None, group=None, treatment=None, dist_y='no
             b_per_condition = numpyro.sample('slope_per_condition',
                                              dist_slope(jnp.tile(0, n_conditions), 100))
 
-        sigma_b_condition = numpyro.sample('sigma_slope_per_condition', dist.HalfNormal(100))
-        slope = slope + b_per_condition[condition] * sigma_b_condition
+        slope = slope + b_per_condition[condition]
 
     if (group is not None) and add_group_slope:
-        sigma_b_group = numpyro.sample('sigma_slope_per_group', dist.HalfNormal(100))
-        b_per_group = numpyro.sample('slope_per_group', dist_slope(jnp.tile(0, n_subjects), 100))
-        slope = slope + b_per_group[group] * sigma_b_group
+        b_per_group = numpyro.sample('slope_per_group', dist_slope(jnp.tile(0, n_subjects), 1))
+        slope = slope + b_per_group[group]
 
     if (group2 is not None) and add_group2_slope:
-        sigma_b_group = numpyro.sample('sigma_slope_per_group2', dist.HalfNormal(100))
-        b_per_group = numpyro.sample('slope_per_group2', dist_slope(jnp.tile(0, n_subjects), 100))
-        slope = slope + b_per_group[group] * sigma_b_group
+        b_per_group = numpyro.sample('slope_per_group2', dist_slope(jnp.tile(0, n_subjects), 1))
+        slope = slope + b_per_group[group]
 
     if type(intercept) is int:
         print('Caution: No intercept')
     if treatment is not None:
         slope = slope * treatment
-    
+
     sample_y(dist_y=dist_y, theta=intercept + slope, y=y)
+
+
+def model_regression_simple(y, condition, treatment, **kwargs):
+    n_conditions = np.unique(condition).shape[0]
+    sigma_obs = numpyro.sample('sigma_obs', dist.HalfNormal(1))
+    intercept = numpyro.sample('intercept', dist.Normal(0, 1))
+
+    #     b_per_condition = numpyro.sample('slope_per_condition',
+    #                                      dist.StudentT(4,
+    #                                                    jnp.tile(0, n_conditions),
+    #                                                    jnp.tile(2, n_conditions),))
+    b_per_condition = numpyro.sample('slope_per_condition',
+                                     dist.Normal(jnp.tile(0, n_conditions), 10))
+    theta = intercept + b_per_condition[condition] * treatment
+    numpyro.sample('y', dist.Normal(theta, sigma_obs), obs=y)
 
 
 def model_hierarchical_for_render(y, condition=None, group=None, treatment=None, dist_y='normal', add_group_slope=False,

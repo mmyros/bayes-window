@@ -34,7 +34,7 @@ class BayesConditions:
     mcmc: Any
     independent_axes: bool
 
-    def __init__(self, window=None, add_data=True, **kwargs):
+    def __init__(self, window=None, add_data=False, **kwargs):
         if type(window) == pd.DataFrame:  # User must want to specify df, not window
             kwargs['df'] = window
             window = None
@@ -160,6 +160,8 @@ class BayesConditions:
              color=None,
              detail=':O',
              auto_facet=False,
+             plot_natural_scale=False,
+             y_title=None,
              **kwargs):
         self.independent_axes = independent_axes
         x = x or self.window.treatment or self.window.condition[0]
@@ -185,17 +187,16 @@ class BayesConditions:
         chart_p = None
         if posterior is not None:
 
-            if 'mu' in self.posterior.keys():
+            if plot_natural_scale and 'mu' in self.posterior.keys():
                 for key in posterior.columns:
                     if 'interval' in key:
                         posterior[key] += self.posterior['mu']['mu center interval'].iloc[0]
-                        # from pdb import set_trace; set_trace()
 
             base_chart = alt.Chart(posterior)  # TODO self.data_and_posterior is broken
             # Plot posterior
             chart_p = alt.layer(*visualization.plot_posterior(x=x,
                                                               do_make_change=True,
-                                                              y_title=f'{self.window.y} estimate',
+                                                              y_title=y_title or f'{self.window.y} estimate',
                                                               base_chart=base_chart,
                                                               color=color,
                                                               **kwargs

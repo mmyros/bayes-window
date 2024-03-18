@@ -45,8 +45,6 @@ class BayesRegression:
     def fit(self, model=models.model_hierarchical, do_make_change='subtract', fold_change_index_cols=None,
             do_mean_over_trials=True, fit_method=fit_numpyro, add_condition_slope=True, add_group_slope=False,
             zscore_y=None, dist_y='normal', **kwargs):
-        # assert len(self.window.combined_condition_labeler.classes_[0].split(','))  == len(self.window.condition)
-
         self.model_args = kwargs
         if do_make_change not in ['subtract', 'divide', False]:
             raise ValueError(f'do_make_change should be subtract or divide, not {do_make_change}')
@@ -104,13 +102,9 @@ class BayesRegression:
         # Make (fold) change
         if do_make_change and (fold_change_index_cols is not None) and (len(fold_change_index_cols) > 0):
             try:
-                df_data, _ = utils.make_fold_change(
-                    df_data,
-                    y=self.window.y,
-                    index_cols=fold_change_index_cols + [
-                        self.window.group] if self.window.group else fold_change_index_cols,
-                    treatment_name=self.window.treatment,
-                    fold_change_method=do_make_change)
+                df_data, _ = utils.make_fold_change(df_data, y=self.window.y, index_cols=fold_change_index_cols,
+                                                    treatment_name=self.window.treatment,
+                                                    fold_change_method=do_make_change)
             except Exception as e:
                 print(f'fold change warning {str(e)}')
                 print(f'For plotting, selecting {self.window.treatment} = {df_data[self.window.treatment].min()}')
@@ -142,8 +136,6 @@ class BayesRegression:
                                                 self.window.levels,
                                                 self.window.original_label_values)
 
-
-
         # Decode back combined_condition for posterior:
         for posterior_name in self.posterior.keys():
             if 'combined_condition' in self.posterior[posterior_name].keys():
@@ -151,21 +143,15 @@ class BayesRegression:
                     [self.posterior[posterior_name],
                      utils.decode_combined_condition(
                          combined_condition=self.posterior[posterior_name]['combined_condition'],
-                         conditions=self.window.original_label_values,
+                         conditions=self.window.condition,
                          combined_condition_labeler=self.window.combined_condition_labeler
                      )], axis=1)
 
-            # Recode trace:
+        #self.trace.posterior = utils.recode_posterior(self.trace.posterior,
+        #                                              self.window.levels,
+        #                                              self.window.original_label_values)
 
-            if 'combined_condition' in self.trace.posterior[posterior_name].coords:
-                self.trace.posterior[posterior_name] = pd.concat(
-                    [self.trace.posterior[posterior_name].to_dataframe().reset_index(),
-                     utils.decode_combined_condition(
-                         combined_condition=self.trace.posterior[posterior_name].to_dataframe().reset_index()['combined_condition'],
-                         conditions=self.window.original_label_values.keys(),
-                         combined_condition_labeler=self.window.combined_condition_labeler
-                     )], axis=1).set_index(['chain', 'draw', ] + list(self.window.original_label_values.keys())
-                                           ).to_xarray()[posterior_name]
+        # TODO recoding trace currently results in duplicate conditions, incorrec slope_per_condition
 
         try:
             self.default_regression_charts()
@@ -174,7 +160,7 @@ class BayesRegression:
         return self
 
     def plot(self, x: str = ':O', color: str = ':N', detail: str = ':N', independent_axes=None,
-             add_data=None, add_posterior_density=True, plot_data=True, y_title=None,
+             add_data=None, add_posterior_density=True, plot_data=True,
              **kwargs):
         # Set some options
         if type(x) == str:
@@ -221,7 +207,7 @@ class BayesRegression:
             # No-data plot
             (self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
              self.chart_posterior_center, self.chart_zero) = plot_posterior(
-                y_title=y_title or (f'Δ{self.window.y}' if self.window.do_make_change else self.window.y),
+                title=f'Δ{self.window.y}' if self.window.do_make_change else self.window.y,
                 x=x,
                 base_chart=base_chart,
                 do_make_change=self.window.do_make_change,
@@ -242,7 +228,7 @@ class BayesRegression:
             #                else self.posterior['slope_per_condition']
             #                )
             self.chart_posterior_hdi_no_data = alt.layer(
-                *plot_posterior(df=main_effect, y_title=y_title or f'{self.window.y}', x=x,
+                *plot_posterior(df=main_effect, title=f'{self.window.y}', x=x,
                                 do_make_change=self.window.do_make_change))
 
             self.chart_posterior_hdi = alt.layer(self.chart_posterior_whiskers, self.chart_posterior_whiskers75,
@@ -456,6 +442,7 @@ class BayesRegression:
         else:  # Auto facet
             return visualization.facet(chart, **visualization.auto_facet(self.window.group, self.window.condition))
 
+
     def default_regression_charts(self, **kwargs):
         reload(visualization)
         # Default plots:
@@ -653,25 +640,17 @@ class BayesRegression:
             # backend="bokeh",
         )
 
-    def plot_BEST(self, query=None, rope=(-1, 1), **kwargs):
-        """
-        eg query = 'opsin=="chr2" & delay_length==60'
-        """
-        trace_post_query = query_posterior(self.trace.posterior['slope_per_condition'],
-                                           self.posterior['slope_per_condition'],
-                                           query
-                                           ) if query else self.trace.posterior
-
+    def plot_BEST(self, rope=(-.01, .01), **kwargs):
         if 'slope' in self.trace.posterior.data_vars:
             az.plot_posterior(
-                trace_post_query,
+                self.trace.posterior,
                 'slope',
                 rope=rope,
                 ref_val=0
             )
         elif 'slope_per_condition' in self.trace.posterior.data_vars:
             az.plot_posterior(
-                trace_post_query,
+                self.trace.posterior,
                 'slope_per_condition',
                 rope=rope,
                 ref_val=0

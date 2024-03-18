@@ -22,66 +22,6 @@ def level_to_data_column(level_name, kwargs):
         return kwargs[level_name]
 
 
-def parse_levels(treatment, condition, group, group2):
-    levels = []
-    if treatment:
-        levels += [treatment]
-    if condition[0] and condition[0] not in levels:
-        levels += condition
-    if group and group not in levels:
-        levels += [group]
-    if group2 and group2 not in levels:
-        levels += [group2]
-    return levels
-
-
-# def fill_conditions(original_data: pd.DataFrame, data: pd.DataFrame, df_result: pd.DataFrame, group: str):
-#     # Back to human-readable labels
-#     if ('combined_condition' not in original_data.columns) or ('combined_condition' not in df_result.columns):
-#         warnings.warn('No condition found. Returning posterior unchanged')
-#         return df_result
-#
-#     levels_to_replace = ['combined_condition', group]
-#     # Replace index code  values with true data values we saved in self.original_data
-#     for level_values, data_subset in original_data[levels_to_replace].groupby(levels_to_replace):
-#         # print(level_values, data_subset)
-#         if not hasattr(level_values, '__len__') or (type(level_values) == str):  # This level is a scalar
-#             level_values = [level_values]
-#         recoded_data_subset = data.loc[data_subset.index, levels_to_replace]
-#
-#         # Sanity check:
-#         for col in recoded_data_subset.columns:
-#             if recoded_data_subset[col].unique().size > 1:
-#                 raise IndexError(f'In self.data, recoded {col} = {recoded_data_subset[col].unique()}, '
-#                                  f'but data_subset[{col}] = {data_subset[col].unique()}')
-#         index = ((df_result[levels_to_replace[0]] == data_subset[levels_to_replace[0]].iloc[0]) |
-#                  (df_result[levels_to_replace[0]] == recoded_data_subset[levels_to_replace[0]].iloc[0])) & \
-#                 ((df_result[levels_to_replace[1]] == data_subset[levels_to_replace[1]].iloc[0]) |
-#                  (df_result[levels_to_replace[1]] == recoded_data_subset[levels_to_replace[1]].iloc[0]))
-#         # Strict check only if conditions and intercepts are requested:
-#         # assert sum(index) > 0, ('all_zero index', levels_to_replace, index)
-#         # Set rows we found to to level values. If not found, nothing is modified
-#         df_result.loc[index, levels_to_replace] = level_values
-#     # sanity check 1:
-#     if 'mu_intercept_per_group center interval' in df_result.columns:
-#         assert (df_result.dropna(subset=['mu_intercept_per_group center interval'])[group].unique().size ==
-#                 data[group].unique().size)
-#     return df_result
-# sanity check 2, for when we have data:
-# if df_result.shape[0] * 2 != data.shape[0]:
-#     warnings.warn(f'We lost some detail in the data. This does not matter for posterior, but plotting data '
-#                   f'may suffer. Did was there another index column (like i_trial) '
-#                   f'other than {levels_to_replace}?')
-
-# General version if we have more than two indices:
-# Preallocate
-# index = np.ones_like(df_result['combined_condition'])
-# for level_value, level_name in zip(level_values, levels_to_replace):
-#     this_index = (df_result[level_name] == data_subset[level_name].iloc[0]) | \
-#                  (df_result[level_name] == recoded_data_subset[level_name].iloc[0])
-#     index = index & this_index
-
-
 def fill_row(condition_val, data_rows, df_bayes, condition_name):
     """
 
@@ -302,13 +242,13 @@ def insert_posterior_into_data(posteriors, data, group, group2):
             assert subset_posterior.shape[0] == 1, f'Non-unique! {subset_posterior}'
             subset_posterior = subset_posterior.iloc[0]
             # Take the first time eg 'higher interval' needs to be placed
-            data_index =\
+            data_index = \
                 np.where(data[posterior_index_cols] == posterior_val)[0]
             if len(data_index) == 0:
                 data_index = np.where(data[posterior_index_cols].dropna(
                     subset=posterior_index_cols).astype(type(posterior_val)) == posterior_val)[0]
             if len(data_index) == 0:
-                #print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
+                # print(f'no {posterior_index_cols} in {posterior_name}: {data[posterior_index_cols]}=={posterior_val}')
                 continue
             for posterior_value_col in posterior_value_cols:
                 data.loc[data.index[data_index[0]], posterior_value_col] = subset_posterior[posterior_value_col]
@@ -517,11 +457,11 @@ def combined_condition(df: pd.DataFrame, conditions: list):
     data['combined_condition'] = labeler.fit_transform(df['combined_condition'])
 
     # Keep key to combined_condition for later use in recode_posterior
-    combined_condition_labeler = labeler
+    # combined_condition_labeler = labeler
     # combined_condition_key = dict()
     # for level in conditions:
     #     combined_condition_key[level] = dict(zip(range(len(labeler.classes_)), labeler.classes_))
-    return data, combined_condition_labeler
+    return data, labeler
 
 
 def load_radon():
@@ -569,14 +509,13 @@ def load_radon():
 
 def query_posterior(trace, posterior, query=None):
     # Query posterior since we have access to sane conditions there:
-    query_combined_condition = posterior['mu_per_condition']
 
     # Restrict if requested:
     if query:
-        query_combined_condition = query_combined_condition.query(query)
+        posterior = posterior.query(query)
+        if posterior['combined_condition'].unique().size == 0:
+            raise KeyError(f"Your query {query} returned nothing")
 
-    # Use posterior query to Select only min and max of combined condition:
-    trace_post_query = trace.posterior['mu_per_condition'].sel(
-        combined_condition=slice(query_combined_condition['combined_condition'].min(),
-                                 query_combined_condition['combined_condition'].max()))
+    # Use posterior query to Select combined condition:
+    trace_post_query = trace.sel(combined_condition=posterior['combined_condition'].unique())
     return trace_post_query
